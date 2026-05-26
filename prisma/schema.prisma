@@ -1,0 +1,305 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  avatar    String?
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile          Profile?
+  incomes          Income[]
+  expenses         Expense[]
+  expenseCategories ExpenseCategory[]
+  commissions      Commission[]
+  portfolioAssets  PortfolioAsset[]
+  assets           Asset[]
+  emergencyFund    EmergencyFund?
+  retirementPlan   RetirementPlan?
+  budgetRules      BudgetRule[]
+}
+
+enum Plan {
+  FREE
+  PRO
+  FOUNDER
+}
+
+// ─────────────────────────────────────────────
+// PERFIL (dados pessoais para cálculos)
+// ─────────────────────────────────────────────
+
+model Profile {
+  id           String @id @default(cuid())
+  userId       String @unique
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  birthYear    Int    // ex: 2001 → idade 25
+  retirementAge Int   @default(67)
+  currency     String @default("EUR")
+}
+
+// ─────────────────────────────────────────────
+// RENDIMENTO (salário base + comissões)
+// ─────────────────────────────────────────────
+
+model Income {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  month       Int        // 1-12
+  year        Int
+  baseSalary  Decimal    @db.Decimal(10, 2)
+  totalNet    Decimal    @db.Decimal(10, 2) // salário base + comissões pagas no mês
+  notes       String?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([userId, month, year])
+}
+
+// ─────────────────────────────────────────────
+// COMISSÕES (o core para profissionais)
+// ─────────────────────────────────────────────
+
+model Commission {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  description  String           // ex: "Venda contrato XYZ"
+  client       String?          // nome do cliente / fonte
+  amount       Decimal          @db.Decimal(10, 2)
+  status       CommissionStatus @default(PENDING)
+
+  earnedAt     DateTime         // data em que foi gerada/acordada
+  expectedAt   DateTime?        // data prevista de pagamento
+  paidAt       DateTime?        // data real de pagamento (null = não paga)
+
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+enum CommissionStatus {
+  PENDING    // registada, aguarda pagamento
+  PAID       // paga e confirmada
+  CANCELLED  // cancelada / não vai ser paga
+}
+
+// ─────────────────────────────────────────────
+// DESPESAS
+// ─────────────────────────────────────────────
+
+model ExpenseCategory {
+  id     String      @id @default(cuid())
+  userId String
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name   String      // ex: "Transporte", "Habitação", "Lazer"
+  type   BudgetType  // NEEDS | WANTS | SAVINGS (regra 50/30/20)
+  icon   String?     // emoji ou nome de ícone
+
+  expenses Expense[]
+
+  @@unique([userId, name])
+}
+
+enum BudgetType {
+  NEEDS    // 50% — necessidades
+  WANTS    // 30% — desejos
+  SAVINGS  // 20% — poupança/investimento
+}
+
+model Expense {
+  id         String          @id @default(cuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  description String
+  amount      Decimal        @db.Decimal(10, 2)
+  isFixed     Boolean        @default(false) // fixo mensal vs pontual
+  month       Int
+  year        Int
+  paidAt      DateTime?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// REGRA 50/30/20 (snapshot mensal)
+// ─────────────────────────────────────────────
+
+model BudgetRule {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  month  Int
+  year   Int
+
+  // percentagens reais do mês
+  needsPct   Decimal @db.Decimal(5, 4)   // ex: 0.5475
+  wantsPct   Decimal @db.Decimal(5, 4)   // ex: 0.0696
+  savingsPct Decimal @db.Decimal(5, 4)   // ex: 0.3091
+
+  // valores absolutos
+  needsAmt   Decimal @db.Decimal(10, 2)
+  wantsAmt   Decimal @db.Decimal(10, 2)
+  savingsAmt Decimal @db.Decimal(10, 2)
+
+  totalIncome Decimal @db.Decimal(10, 2)
+
+  @@unique([userId, month, year])
+}
+
+// ─────────────────────────────────────────────
+// PORTFOLIO DE INVESTIMENTOS (XTB / ETFs / Ações)
+// ─────────────────────────────────────────────
+
+model PortfolioAsset {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String      // ex: "FTSE All-World"
+  ticker      String      // ex: "VWCE.DE"
+  assetType   AssetType   @default(ETF)
+  broker      String      @default("XTB")
+
+  // posição atual
+  units       Decimal     @db.Decimal(12, 6)   // nº de unidades/ações
+  avgPrice    Decimal     @db.Decimal(10, 4)   // preço médio de compra
+  capitalInvested Decimal @db.Decimal(10, 2)   // total investido
+  currentValue    Decimal @db.Decimal(10, 2)   // valor de mercado atual
+
+  // calculados (podem ser fórmulas no front ou calculados aqui)
+  // pl = currentValue - capitalInvested
+  // plPct = pl / capitalInvested
+
+  allocation  Decimal?    @db.Decimal(5, 4)   // % do portfolio (ex: 0.7444)
+  isExtra     Boolean     @default(false)     // fora da alocação principal (ex: Xiaomi)
+
+  lastUpdated DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  snapshots   PortfolioSnapshot[]
+}
+
+enum AssetType {
+  ETF
+  STOCK
+  CRYPTO
+  BOND
+  OTHER
+}
+
+// histórico diário/semanal de valor (para gráficos de evolução)
+model PortfolioSnapshot {
+  id               String         @id @default(cuid())
+  portfolioAssetId String
+  asset            PortfolioAsset @relation(fields: [portfolioAssetId], references: [id], onDelete: Cascade)
+
+  date             DateTime       @db.Date
+  price            Decimal        @db.Decimal(10, 4)
+  totalValue       Decimal        @db.Decimal(10, 2)
+
+  @@unique([portfolioAssetId, date])
+}
+
+// ─────────────────────────────────────────────
+// OUTROS ATIVOS (carro, casa, fundo emerg., conta)
+// ─────────────────────────────────────────────
+
+model Asset {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String    // ex: "Peugeot", "Conta principal"
+  type        AssetKind
+  value       Decimal   @db.Decimal(10, 2)  // valor líquido atual
+  debt        Decimal   @db.Decimal(10, 2) @default(0) // dívida associada (crédito carro)
+  notes       String?
+
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+}
+
+enum AssetKind {
+  VEHICLE        // carro — valor líquido = valor mercado - crédito restante
+  REAL_ESTATE
+  BANK_ACCOUNT
+  SAVINGS
+  OTHER
+}
+
+// ─────────────────────────────────────────────
+// FUNDO DE EMERGÊNCIA
+// ─────────────────────────────────────────────
+
+model EmergencyFund {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  currentAmount Decimal  @db.Decimal(10, 2)  // ex: 1940.20
+  targetMonths  Int      @default(6)          // meses de despesas a cobrir
+  targetAmount  Decimal? @db.Decimal(10, 2)  // calculado: despesas mensais × targetMonths
+
+  updatedAt     DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// PLANO DE REFORMA
+// ─────────────────────────────────────────────
+
+model RetirementPlan {
+  id                String              @id @default(cuid())
+  userId            String              @unique
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  currentAge        Int                 // ex: 25
+  retirementAge     Int                 // ex: 67
+  monthlyContrib    Decimal             @db.Decimal(10, 2)  // ex: 200
+  initialCapital    Decimal             @db.Decimal(10, 2)  // ex: 1658.06 (valor XTB)
+
+  // anos até reforma e total aportado são calculados no front:
+  // yearsToRetire = retirementAge - currentAge
+  // totalContributed = monthlyContrib * yearsToRetire * 12 + initialCapital
+
+  updatedAt         DateTime            @updatedAt
+  createdAt         DateTime            @default(now())
+
+  scenarios         RetirementScenario[]
+}
+
+model RetirementScenario {
+  id               String         @id @default(cuid())
+  planId           String
+  plan             RetirementPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  name             String         // "Conservador" | "Realista" | "Otimista"
+  annualReturn     Decimal        @db.Decimal(5, 4)   // ex: 0.07
+  projectedCapital Decimal?       @db.Decimal(12, 2)  // valor final projetado
+
+  @@unique([planId, name])
+}
