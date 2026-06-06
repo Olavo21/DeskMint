@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator } from 'react-native'
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Image } from 'react-native'
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const logoSource = require('../../assets/logo-icon.png')
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { supabase } from '../../lib/supabase'
@@ -68,8 +71,15 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
+      {/* Logo no topo */}
+      {logoSource && (
+        <View className="items-center pt-4">
+          <Image source={logoSource} style={{ width: 80, height: 80 }} resizeMode="contain" />
+        </View>
+      )}
+
       {/* Progress */}
-      <View className="px-6 pt-4 pb-2">
+      <View className="px-6 pt-2 pb-2">
         <View className="flex-row gap-1.5 mb-4">
           {[1,2,3,4].map((s) => (
             <View key={s} className="flex-1 h-1 rounded-full"

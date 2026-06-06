@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
+import Header from '../../components/ui/Header'
 
 const MONTH = 5
 const YEAR = 2026
@@ -46,19 +47,11 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
+      <Header subtitle="Maio 2026" showSignOut />
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
 
-        <View className="mt-4 mb-6 flex-row justify-between items-center">
-          <View>
-            <Text className="text-dark-400 text-sm">Maio 2026</Text>
-            <Text className="text-white text-2xl font-bold">Dashboard</Text>
-          </View>
-          <Text
-            className="text-dark-500 text-sm"
-            onPress={() => supabase.auth.signOut()}
-          >
-            Sair
-          </Text>
+        <View className="mt-4 mb-6">
+          <Text className="text-white text-2xl font-bold">Dashboard</Text>
         </View>
 
         {isLoading ? (

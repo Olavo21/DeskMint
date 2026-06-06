@@ -1,7 +1,12 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '../../lib/supabase'
+
+// Tenta carregar o logo — se não existir usa o fallback com texto
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const logoSource = require('../../assets/logo.png')
+
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('')
@@ -32,13 +37,14 @@ export default function LoginScreen() {
         className="flex-1 px-6 justify-center"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Logo / título */}
+        {/* Logo */}
         <View className="mb-12 items-center">
-          <View className="w-16 h-16 bg-mint-600 rounded-2xl items-center justify-center mb-4">
-            <Text className="text-white text-3xl font-bold">D</Text>
-          </View>
-          <Text className="text-white text-3xl font-bold">DeskMint</Text>
-          <Text className="text-dark-400 text-sm mt-1">O teu orçamento, sempre contigo</Text>
+          <Image
+            source={logoSource}
+            style={{ width: 200, height: 160 }}
+            resizeMode="contain"
+          />
+          <Text className="text-dark-400 text-sm mt-2">Orçamento · Poupança · Investimento</Text>
         </View>
 
         {/* Formulário */}

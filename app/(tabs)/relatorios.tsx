@@ -1,3 +1,4 @@
+import Header from '../../components/ui/Header'
 import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -263,6 +264,7 @@ export default function RelatoriosScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
+      <Header />
       <View className="px-4 pt-4 pb-2">
         <Text className="text-white text-2xl font-bold mb-4">Relatórios</Text>
 

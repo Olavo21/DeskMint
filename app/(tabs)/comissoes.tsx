@@ -1,3 +1,4 @@
+import Header from '../../components/ui/Header'
 import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -25,6 +26,7 @@ export default function ComissoesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
+      <Header />
       <NovaComissaoModal visible={showModal} onClose={() => setShowModal(false)} />
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
 

@@ -1,3 +1,4 @@
+import Header from '../../components/ui/Header'
 import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -76,6 +77,7 @@ function Alert({ status, text }: { status: Status; text: string }) {
 export default function FiscalScreen() {
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
+      <Header />
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
 
         {/* Header */}

@@ -1,3 +1,4 @@
+import Header from '../../components/ui/Header'
 import { useState } from 'react'
 import {
   ScrollView, View, Text, ActivityIndicator,
@@ -113,6 +114,7 @@ export default function OrcamentoScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
+      <Header />
       <NovaDespesaModal visible={showModal} onClose={() => setShowModal(false)} month={MONTH} year={YEAR} />
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
 
