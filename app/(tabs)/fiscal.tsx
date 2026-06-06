@@ -1,6 +1,6 @@
 import Header from '../../components/ui/Header'
 import { useState } from 'react'
-import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
+import { ScrollView, View, Text, TouchableOpacity, TextInput } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -62,6 +62,22 @@ function Row({ label, value, status, note }:
   )
 }
 
+function CalcInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <View>
+      <Text className="text-dark-400 text-xs mb-1">{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        keyboardType="decimal-pad"
+        placeholder={placeholder ?? '0,00'}
+        placeholderTextColor="#475569"
+        className="bg-dark-700 border border-dark-600 rounded-xl px-3 py-2.5 text-white text-sm"
+      />
+    </View>
+  )
+}
+
 function Alert({ status, text }: { status: Status; text: string }) {
   const cfg = STATUS_CFG[status]
   return (
@@ -73,8 +89,33 @@ function Alert({ status, text }: { status: Status; text: string }) {
   )
 }
 
+type TipoAtivo = 'etf' | 'cripto_curto' | 'cripto_longo'
+
+const TIPOS_ATIVO: { key: TipoAtivo; label: string }[] = [
+  { key: 'etf',          label: 'ETF / Ação'  },
+  { key: 'cripto_curto', label: 'Cripto <365d' },
+  { key: 'cripto_longo', label: 'Cripto ≥365d' },
+]
+
+const fmtCalc = (v: number) =>
+  v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 })
+
 // ─── ECRÃ PRINCIPAL ──────────────────────────────────────────────────────────
 export default function FiscalScreen() {
+  const [tipoAtivo, setTipoAtivo] = useState<TipoAtivo>('etf')
+  const [compra,   setCompra]     = useState('')
+  const [venda,    setVenda]      = useState('')
+  const [qtd,      setQtd]        = useState('1')
+
+  const pc = parseFloat(compra.replace(',', '.')) || 0
+  const pv = parseFloat(venda.replace(',', '.'))  || 0
+  const q  = parseFloat(qtd.replace(',', '.'))    || 1
+  const mostrarCalc = pc > 0 && pv > 0
+  const maisValia   = mostrarCalc ? (pv - pc) * q : 0
+  const taxa        = tipoAtivo === 'cripto_longo' ? 0 : 0.28
+  const imposto     = mostrarCalc && maisValia > 0 ? maisValia * taxa : 0
+  const liquido     = maisValia - imposto
+
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header />
@@ -282,6 +323,65 @@ export default function FiscalScreen() {
                value="Reduz withholding EUA"
                status="info"
                note="Preenche no XTB/IBKR para reduzir retenção americana em dividendos de 30% para 15%. A diferença até 28% regularizas em Portugal." />
+        </Section>
+
+        {/* ─── Calculadora de Mais-Valias ──────────────────────────────── */}
+        <Section title="Calculadora de Mais-Valias" icon="🧮">
+          {/* Tipo de ativo */}
+          <View className="flex-row gap-2 mb-4">
+            {TIPOS_ATIVO.map((t) => (
+              <TouchableOpacity
+                key={t.key}
+                onPress={() => setTipoAtivo(t.key)}
+                className={`flex-1 py-2 rounded-xl border items-center ${tipoAtivo === t.key ? 'border-teal-500/50 bg-teal-500/10' : 'border-dark-600 bg-dark-700'}`}
+              >
+                <Text className={`text-xs font-semibold ${tipoAtivo === t.key ? 'text-teal-400' : 'text-dark-400'}`}>
+                  {t.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Inputs */}
+          <View className="gap-3 mb-4">
+            <CalcInput label="Preço de compra (€ / unidade)" value={compra} onChange={setCompra} />
+            <CalcInput label="Preço de venda (€ / unidade)"  value={venda}  onChange={setVenda}  />
+            <CalcInput label="Quantidade" value={qtd} onChange={setQtd} placeholder="1" />
+          </View>
+
+          {/* Resultado */}
+          {mostrarCalc && (
+            <View
+              className="rounded-2xl border p-4 mb-3"
+              style={maisValia >= 0
+                ? { borderColor: '#34d39933', backgroundColor: '#34d3990d' }
+                : { borderColor: '#f8717133', backgroundColor: '#f871710d' }}
+            >
+              <Text className="text-dark-400 text-xs uppercase tracking-widest mb-3">Resultado estimado</Text>
+              <View className="flex-row flex-wrap gap-3">
+                {[
+                  { label: 'Mais-Valia Bruta', value: fmtCalc(maisValia),    color: maisValia >= 0 ? '#34d399' : '#f87171' },
+                  { label: 'Taxa IRS',         value: tipoAtivo === 'cripto_longo' ? '0% (Isento)' : '28%', color: tipoAtivo === 'cripto_longo' ? '#34d399' : '#fbbf24' },
+                  { label: 'IRS Estimado',     value: fmtCalc(imposto),      color: imposto > 0 ? '#f87171' : '#34d399' },
+                  { label: 'Ganho Líquido',    value: fmtCalc(liquido),      color: liquido >= 0 ? '#34d399' : '#f87171' },
+                ].map(({ label, value, color }) => (
+                  <View key={label} style={{ width: '45%' }} className="items-center py-2">
+                    <Text className="text-dark-500 text-xs mb-1 text-center">{label}</Text>
+                    <Text className="text-base font-bold" style={{ color }}>{value}</Text>
+                  </View>
+                ))}
+              </View>
+              {maisValia < 0 && (
+                <Text className="text-dark-500 text-xs mt-3 leading-5">
+                  Menos-valia: podes compensar com ganhos do mesmo ano ou nos 5 anos seguintes.
+                </Text>
+              )}
+            </View>
+          )}
+
+          <Text className="text-dark-600 text-xs leading-5">
+            * Estimativa simplificada. Não considera custos de transação, deduções ou englobamento. Consulta sempre um fiscalista.
+          </Text>
         </Section>
 
         <View className="h-8" />

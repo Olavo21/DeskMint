@@ -96,6 +96,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="ferramentas"
+        options={{
+          title: 'Ferramentas',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="construct-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="assistente"
         options={{
           title: 'Assistente',
