@@ -206,24 +206,30 @@ function parseTrading212(text: string): ParsedPosition[] {
 
 // ─── HTML table extractor (XTB HTML export) ───────────────────────────────
 
+function cellText(html: string) {
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
+}
+
 function extractHtmlTable(html: string): { headers: string[]; rows: string[][] } {
-  // Strip scripts/styles to avoid false matches
   const clean = html.replace(/<script[\s\S]*?<\/script>/gi, '')
                     .replace(/<style[\s\S]*?<\/style>/gi, '')
 
-  // Find all <table> blocks, pick the one with most rows
   const tableParts: Array<{ headers: string[]; rows: string[][] }> = []
   const tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi
   let tm: RegExpExecArray | null
 
   while ((tm = tableRe.exec(clean)) !== null) {
     const tableContent = tm[1]
-    const headers: string[] = []
+
+    // Collect <th> headers
+    let headers: string[] = []
     const thRe = /<th[^>]*>([\s\S]*?)<\/th>/gi
     let th: RegExpExecArray | null
     while ((th = thRe.exec(tableContent)) !== null) {
-      headers.push(th[1].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim())
+      headers.push(cellText(th[1]))
     }
+
+    // Collect all <tr> rows (cells from <td>)
     const rows: string[][] = []
     const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi
     let tr: RegExpExecArray | null
@@ -232,13 +238,21 @@ function extractHtmlTable(html: string): { headers: string[]; rows: string[][] }
       const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi
       let td: RegExpExecArray | null
       while ((td = tdRe.exec(tr[1])) !== null) {
-        cells.push(td[1].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim())
+        cells.push(cellText(td[1]))
       }
       if (cells.length > 1) rows.push(cells)
     }
+
+    // If no <th> found, treat first row as headers
+    if (headers.length === 0 && rows.length > 0) {
+      headers = rows[0]
+      rows.splice(0, 1)
+    }
+
     tableParts.push({ headers, rows })
   }
 
+  // Pick the table with the most data rows
   return tableParts.reduce(
     (best, t) => (t.rows.length > best.rows.length ? t : best),
     { headers: [], rows: [] }
@@ -246,75 +260,55 @@ function extractHtmlTable(html: string): { headers: string[]; rows: string[][] }
 }
 
 function parseXTBHtml(html: string): ParsedPosition[] {
-  const { headers, rows } = extractHtmlTable(html)
-  if (rows.length === 0) return []
+  // Flatten all HTML to plain text — XTB uses complex nested tables
+  const text = html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
 
-  const hdr = headers.map((h) => h.toLowerCase())
-  const col = (...names: string[]) => {
-    for (const n of names) {
-      const i = hdr.findIndex((h) => h.includes(n))
-      if (i !== -1) return i
+  // XTB report CASH OPERATION HISTORY contains entries like:
+  //   OPEN BUY 0.3667 @ 224.60 NVDA.US
+  //   OPEN BUY 0.4021/1.4021 @ 13.24 ONDS.US  (partial fill — take number before /)
+  //   CLOSE BUY 0.0293 @ 196.90 NVDA.US
+  const pattern = /(OPEN|CLOSE)\s+(BUY|SELL)\s+([\d.]+)(?:\/[\d.]+)?\s*@\s*([\d.]+)\s+([A-Z0-9]+\.[A-Z]+)/gi
+
+  const map: Record<string, { units: number; costOpen: number; lastOpen: number }> = {}
+
+  let m: RegExpExecArray | null
+  while ((m = pattern.exec(text)) !== null) {
+    const action = m[1].toUpperCase()
+    const vol    = parseFloat(m[3])
+    const price  = parseFloat(m[4])
+    const full   = m[5]                     // e.g. NVDA.US
+    const ticker = full.split('.')[0]       // NVDA
+
+    if (!ticker || isNaN(vol) || isNaN(price) || vol <= 0) continue
+    if (!map[ticker]) map[ticker] = { units: 0, costOpen: 0, lastOpen: 0 }
+
+    if (action === 'OPEN') {
+      map[ticker].units    += vol
+      map[ticker].costOpen += vol * price
+      map[ticker].lastOpen  = price
+    } else {
+      // CLOSE — reduce position
+      map[ticker].units    -= vol
+      map[ticker].costOpen -= vol * price
     }
-    return -1
   }
-
-  // Try open-positions table: instrumento/symbol, volume, valor/value, preço abertura
-  const iSymbol = col('instrumento', 'symbol', 'posição', 'ativo')
-  const iVol    = col('volume', 'quantidade', 'units')
-  const iOpen   = col('abertura', 'open price', 'preço de ab')
-  const iVal    = col('valor', 'value', 'market')
-  const iClose  = col('fecho', 'close price', 'preço de fe')
-
-  // If we have symbol + volume, treat as open-positions
-  if (iSymbol !== -1 && iVol !== -1) {
-    return rows.flatMap((r) => {
-      const raw    = (r[iSymbol] ?? '').trim()
-      // XTB shows "NVDA Ação" — strip type suffix
-      const ticker = raw.split(/\s+/)[0] ?? raw
-      const name   = raw
-      const units  = parseNum(r[iVol]   ?? '0')
-      const open   = parseNum(r[iOpen]  ?? '0')
-      const value  = parseNum(r[iVal]   ?? '0')
-      const close  = parseNum(r[iClose] ?? '0')
-      if (!ticker || units === 0) return []
-      const avg = open || (value / units)
-      return [{
-        ticker, name: name || ticker,
-        units,
-        avg_price:        avg,
-        current_value:    value || units * (close || avg),
-        capital_invested: units * avg,
-        asset_type: detectAssetType(ticker, name),
-        broker: 'XTB',
-      }]
-    })
-  }
-
-  // Transaction history: use rows directly, need to find position/symbol col
-  // XTB history HTML often has no header — first column is trade ID/symbol
-  // Try to aggregate by symbol from column 0 if it looks like a ticker
-  const map: Record<string, { units: number; cost: number; close: number }> = {}
-  rows.forEach((r) => {
-    const maybeSymbol = (r[0] ?? '').trim()
-    const units = parseNum(r[1] ?? '0')
-    const openP = parseNum(r[2] ?? '0')
-    const clsP  = parseNum(r[3] ?? '0')
-    if (!maybeSymbol || units === 0 || /^\d{4}/.test(maybeSymbol)) return
-    if (!map[maybeSymbol]) map[maybeSymbol] = { units: 0, cost: 0, close: 0 }
-    map[maybeSymbol].units += units
-    map[maybeSymbol].cost  += units * openP
-    map[maybeSymbol].close  = clsP || openP
-  })
 
   return Object.entries(map).flatMap(([ticker, pos]) => {
-    if (pos.units <= 0) return []
-    const avg = pos.cost / pos.units
+    if (pos.units < 0.0001) return []
+    const units  = Math.round(pos.units * 100000) / 100000
+    const avg    = pos.costOpen / pos.units
+    const value  = units * pos.lastOpen
     return [{
-      ticker, name: ticker,
-      units: pos.units,
-      avg_price: avg,
-      current_value: pos.units * (pos.close || avg),
-      capital_invested: pos.units * avg,
+      ticker,
+      name: ticker,
+      units,
+      avg_price:        avg > 0 ? Math.round(avg * 10000) / 10000 : 0,
+      current_value:    Math.round(value * 100) / 100,
+      capital_invested: Math.round(units * avg * 100) / 100,
       asset_type: detectAssetType(ticker, ticker),
       broker: 'XTB',
     }]
@@ -507,33 +501,53 @@ function isHtml(text: string) {
   return t.startsWith('<!doctype html') || t.startsWith('<html') || t.includes('<table') || isMhtml(text)
 }
 
+function decodeBase64Utf8(b64: string): string {
+  try {
+    const clean = b64.replace(/[\r\n\s]/g, '')
+    if (typeof atob !== 'undefined') {
+      const binary = atob(clean)
+      if (typeof TextDecoder !== 'undefined') {
+        const bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+        return new TextDecoder('utf-8').decode(bytes)
+      }
+      return decodeURIComponent(escape(binary))
+    }
+    // React Native / Node
+    return Buffer.from(clean, 'base64').toString('utf-8')
+  } catch {
+    return ''
+  }
+}
+
 function extractHtmlFromMhtml(text: string): string {
-  // Get MIME boundary
   const boundaryMatch = text.match(/boundary="([^"]+)"/)
   if (!boundaryMatch) {
-    // Fallback: find raw HTML inside the file
     const s = text.search(/<!doctype html|<html/i)
     return s !== -1 ? text.slice(s) : text
   }
 
   const boundary = boundaryMatch[1]
-  const parts = text.split(new RegExp('--' + boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+  const escaped  = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const parts    = text.split(new RegExp('--' + escaped))
 
   for (const part of parts) {
     if (!/Content-Type:\s*text\/html/i.test(part)) continue
     const sep = part.indexOf('\n\n')
     if (sep === -1) continue
     let content = part.slice(sep + 2).replace(/\r\n/g, '\n')
-    // Decode quoted-printable encoding
-    if (/Content-Transfer-Encoding:\s*quoted-printable/i.test(part)) {
+
+    if (/Content-Transfer-Encoding:\s*base64/i.test(part)) {
+      content = decodeBase64Utf8(content)
+    } else if (/Content-Transfer-Encoding:\s*quoted-printable/i.test(part)) {
       content = content
         .replace(/=\n/g, '')
         .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
     }
-    return content
+
+    if (content.length > 100) return content
   }
 
-  // Last resort: extract anything between <html>...</html>
   const s = text.search(/<!doctype html|<html/i)
   return s !== -1 ? text.slice(s) : text
 }
