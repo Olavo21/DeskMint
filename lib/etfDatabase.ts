@@ -36,7 +36,7 @@ const DB: Record<string, EtfInfo> = {
   // ── VanEck ────────────────────────────────────────────────────────────────
   QUTM: { provider: 'VanEck',   description: 'Future of Quantum Computing',   providerColor: '#2c3e7c', providerDomain: 'vaneck.com' },
   // ── LGIM (Legal & General) ────────────────────────────────────────────────
-  LSMC: { provider: 'LGIM',     description: 'MSCI World Small Cap (ACC)',    providerColor: '#00a651', providerDomain: 'lgim.com' },
+  LSMC: { provider: 'LGIM',     description: 'Global Semiconductors (ACC)',   providerColor: '#00a651', providerDomain: 'lgim.com' },
   // ── Direxion ──────────────────────────────────────────────────────────────
   DFEN: { provider: 'Direxion', description: 'Aerospace & Defense Bull 3X',   providerColor: '#c82020', providerDomain: 'direxion.com' },
   // ── Amundi ────────────────────────────────────────────────────────────────
