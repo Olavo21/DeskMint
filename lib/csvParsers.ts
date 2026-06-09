@@ -71,10 +71,21 @@ function parseNum(s: string): number {
   return parseFloat(s.replace(/[€$£\s]/g, '').replace(',', '.')) || 0
 }
 
+const KNOWN_ETF_TICKERS = new Set([
+  'VWCE','VWRL','VWRP','VUSA','VUSD','VEUR',
+  'IWDA','SWDA','SSAC','ISAC','CSPX','IUSA','IUQQ','SXRV','SPYL','CSUS','EMIM','EIMI','AGGH','IGLO','IBTS','VAGU','IGLT','IBGL','AGBP','IUSQ',
+  'FWRA','WORL','ACWI',
+  'LSMC','QUTM','DFEN',
+  'EUNA','DXEU','IEUA','EXW1','MEUD','DXSU','SX5S','IMEU','EXSA',
+  'EEM','VWO','IEEM','IEMG','IVV','SPY','VOO','QQQ',
+  'BTCE','ETHC',
+])
+
 function detectAssetType(ticker: string, name: string): ParsedPosition['asset_type'] {
-  const t = ticker.toUpperCase()
+  const t = ticker.split('.')[0].toUpperCase()
   const n = name.toUpperCase()
-  if (['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOT', 'MATIC', 'LINK'].includes(t)) return 'CRYPTO'
+  if (['BTC','ETH','SOL','XRP','ADA','DOT','MATIC','LINK'].includes(t)) return 'CRYPTO'
+  if (KNOWN_ETF_TICKERS.has(t)) return 'ETF'
   if (n.includes('ETF') || n.includes('UCITS') || n.includes('INDEX') || n.includes('FUND')) return 'ETF'
   if (n.includes('BOND') || n.includes('OBRIG') || n.includes('TREASURY')) return 'BOND'
   return 'STOCK'

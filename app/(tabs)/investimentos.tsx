@@ -17,6 +17,7 @@ import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
 import TickerLogo from '../../components/ui/TickerLogo'
 import { getColor } from '../../lib/portfolioColors'
 import { getRegion, getRegionLabel, REGION_COLORS } from '../../lib/assetRegions'
+import { getEtfInfo } from '../../lib/etfDatabase'
 
 type Tab = 'ativos' | 'tipo' | 'regiao' | 'historico'
 type EditState = { id: string; currentValue: string; capitalInvested: string; units: string; avgPrice: string }
@@ -165,40 +166,22 @@ export default function InvestimentosScreen() {
         {/* ── Ativos ── */}
         {activeTab === 'ativos' && (
           <View>
-            {/* Donut + legenda compacta lado a lado */}
             {byAsset.length > 0 ? (
-              <View className="flex-row items-center px-3 pt-1 pb-2">
-                {/* Donut */}
-                <DonutChart
-                  segments={byAsset}
-                  centerLabel={fmt(totalValue)}
-                  centerSub="Portfolio"
-                  size={donutSize}
-                  thickness={donutThickness}
-                  showSegmentLabels
-                />
-                {/* Legenda compacta */}
-                <View className="flex-1 pl-3 gap-2.5">
-                  {byAsset.map((seg, i) => {
-                    const pct = totalValue > 0 ? (seg.value / totalValue) * 100 : 0
-                    const asset = data?.assets?.[i]
-                    return (
-                      <View key={i} className="flex-row items-center gap-2">
-                        <View
-                          style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: seg.color, flexShrink: 0 }}
-                        />
-                        <View className="flex-1 min-w-0">
-                          <Text className="text-dark-200 text-xs font-bold" numberOfLines={1}>{seg.label}</Text>
-                          <Text className="text-dark-500 text-xs">{fmt(seg.value)}</Text>
-                        </View>
-                        <Text className="text-dark-400 text-xs font-semibold flex-shrink-0">
-                          {pct.toFixed(1)}%
-                        </Text>
-                      </View>
-                    )
-                  })}
+              <>
+                {/* Donut centrado */}
+                <View className="items-center pt-2 pb-1">
+                  <DonutChart
+                    segments={byAsset}
+                    centerLabel={fmt(totalValue)}
+                    centerSub="Portfolio"
+                    size={donutSize}
+                    thickness={donutThickness}
+                    showSegmentLabels
+                  />
                 </View>
-              </View>
+                {/* Legenda em baixo */}
+                <Legend segments={byAsset} assets={data?.assets ?? []} fmt={fmt} />
+              </>
             ) : (
               <View className="mx-4 py-10 items-center">
                 <Ionicons name="pie-chart-outline" size={48} color="#94a3b8" />
@@ -263,7 +246,7 @@ export default function InvestimentosScreen() {
             </View>
             <View className="mx-4 mt-3 bg-dark-800/50 border border-dark-600/50 rounded-xl p-3">
               <Text className="text-dark-500 text-xs">
-                A região é derivada automaticamente do ticker. ETFs não mapeados aparecem como "Outro".
+                A região é derivada automaticamente do ticker. ETFs globais e temáticos aparecem em "Resto do Mundo".
               </Text>
             </View>
           </View>
@@ -437,19 +420,42 @@ type AssetWithPL = {
 function AssetCard({ asset, color, fmt, onEdit }: {
   asset: AssetWithPL; color: string; fmt: (n: number) => string; onEdit: () => void
 }) {
-  const plPos = asset.pl >= 0
+  const plPos  = asset.pl >= 0
+  const isEtf  = asset.asset_type === 'ETF'
+  const etfInfo = isEtf ? getEtfInfo(asset.ticker) : null
 
   return (
     <View className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3.5">
       <View className="flex-row items-center gap-3">
         <View className="flex-shrink-0">
-          <TickerLogo ticker={asset.ticker} color={color} size={40} />
+          <TickerLogo
+            ticker={asset.ticker}
+            color={color}
+            size={40}
+            providerDomain={etfInfo?.providerDomain}
+            providerColor={etfInfo?.providerColor}
+          />
         </View>
 
         {/* Name + meta */}
         <View className="flex-1 min-w-0">
-          <Text className="text-dark-100 font-semibold text-sm" numberOfLines={1}>{asset.name}</Text>
-          <Text className="text-dark-500 text-xs mt-0.5">{asset.broker} · {asset.units} un.</Text>
+          <Text className="text-dark-100 font-semibold text-sm" numberOfLines={1}>
+            {etfInfo ? etfInfo.description : asset.name}
+          </Text>
+          <View className="flex-row items-center gap-1.5 mt-0.5 flex-wrap">
+            {etfInfo && (
+              <View style={{
+                backgroundColor: etfInfo.providerColor + '20',
+                borderWidth: 1, borderColor: etfInfo.providerColor + '40',
+                borderRadius: 3, paddingHorizontal: 4, paddingVertical: 1,
+              }}>
+                <Text style={{ color: etfInfo.providerColor, fontSize: 9, fontWeight: '700' }}>
+                  {etfInfo.provider}
+                </Text>
+              </View>
+            )}
+            <Text className="text-dark-500 text-xs">{asset.broker} · {asset.units} un.</Text>
+          </View>
         </View>
 
         {/* Value + P/L */}
