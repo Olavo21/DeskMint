@@ -26,7 +26,7 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
     <PlansModal visible={showPlans} onClose={() => setShowPlans(false)} />
     <View
       className="flex-row items-center justify-between px-4 pt-2 pb-3"
-      style={{ borderBottomWidth: 1, borderBottomColor: '#1e293b' }}
+      style={{ borderBottomWidth: 1, borderBottomColor: '#d1fae5', backgroundColor: '#f0fdf9' }}
     >
       {/* Logo + nome */}
       <View className="flex-row items-center gap-2.5">
@@ -38,7 +38,7 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
           </View>
         )}
         <View>
-          <Text className="text-white font-bold text-base leading-5">DeskMint</Text>
+          <Text className="text-dark-50 font-bold text-base leading-5">DeskMint</Text>
           {(subtitle || profile?.name) && (
             <Text className="text-dark-400 text-xs leading-4">
               {subtitle ?? `Olá, ${profile?.name?.split(' ')[0]}`}
@@ -64,7 +64,7 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
         {showSignOut && (
           <TouchableOpacity
             onPress={() => supabase.auth.signOut()}
-            className="w-8 h-8 rounded-full bg-dark-800 items-center justify-center"
+            className="w-8 h-8 rounded-full bg-dark-700 border border-dark-600 items-center justify-center"
           >
             <Ionicons name="log-out-outline" size={16} color="#64748b" />
           </TouchableOpacity>

@@ -2,10 +2,10 @@ import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlan } from '../../hooks/usePlan'
 
-const TAB_COLOR_ACTIVE = '#14b8a6'
-const TAB_COLOR_INACTIVE = '#475569'
-const TAB_COLOR_LOCKED  = '#1e293b'
-const TAB_BG = '#0f172a'
+const TAB_COLOR_ACTIVE   = '#0d9488' // teal-600 — accessible on white (5:1 contrast)
+const TAB_COLOR_INACTIVE = '#94a3b8' // muted gray
+const TAB_COLOR_LOCKED   = '#d1d5db' // light disabled
+const TAB_BG             = '#ffffff' // white tab bar
 
 export default function TabsLayout() {
   const plan = usePlan()
@@ -16,10 +16,14 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: TAB_BG,
-          borderTopColor: '#1e293b',
+          borderTopColor: '#d1fae5',
           borderTopWidth: 1,
           paddingBottom: 8,
           height: 64,
+          shadowColor: '#14b8a6',
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 8,
         },
         tabBarActiveTintColor: TAB_COLOR_ACTIVE,
         tabBarInactiveTintColor: TAB_COLOR_INACTIVE,

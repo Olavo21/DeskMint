@@ -1,4 +1,4 @@
-import { ScrollView, View, Text, ActivityIndicator } from 'react-native'
+﻿import { ScrollView, View, Text, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useAuthStore } from '../../stores/authStore'
@@ -12,7 +12,7 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
   return (
     <View className="bg-dark-800 rounded-2xl p-4 flex-1">
       <Text className="text-dark-400 text-xs mb-1">{label}</Text>
-      <Text className="text-white text-xl font-bold">{value}</Text>
+      <Text className="text-dark-50 text-xl font-bold">{value}</Text>
       {sub ? <Text className="text-dark-400 text-xs mt-1">{sub}</Text> : null}
     </View>
   )
@@ -51,7 +51,7 @@ export default function DashboardScreen() {
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
 
         <View className="mt-4 mb-6">
-          <Text className="text-white text-2xl font-bold">Dashboard</Text>
+          <Text className="text-dark-50 text-2xl font-bold">Dashboard</Text>
         </View>
 
         {isLoading ? (
@@ -71,7 +71,7 @@ export default function DashboardScreen() {
             {/* 50/30/20 */}
             {data?.budgetRule && (
               <View className="bg-dark-800 rounded-2xl p-4 mb-4">
-                <Text className="text-white font-semibold mb-3">Regra 50 / 30 / 20</Text>
+                <Text className="text-dark-50 font-semibold mb-3">Regra 50 / 30 / 20</Text>
                 <RuleRow label="Necessidades" pct={data.budgetRule.needs_pct} ideal={0.5} amt={data.budgetRule.needs_amt} fmt={fmt} />
                 <RuleRow label="Desejos" pct={data.budgetRule.wants_pct} ideal={0.3} amt={data.budgetRule.wants_amt} fmt={fmt} />
                 <RuleRow label="Poupança" pct={data.budgetRule.savings_pct} ideal={0.2} amt={data.budgetRule.savings_amt} fmt={fmt} />
@@ -81,7 +81,7 @@ export default function DashboardScreen() {
             {/* Património */}
             <View className="bg-dark-800 rounded-2xl p-4 mb-8">
               <View className="flex-row justify-between items-center mb-2">
-                <Text className="text-white font-semibold">Património Líquido</Text>
+                <Text className="text-dark-50 font-semibold">Património Líquido</Text>
                 <Text className="text-mint-400 text-lg font-bold">{fmt(data?.netWorth ?? 0)}</Text>
               </View>
               {[
@@ -91,7 +91,7 @@ export default function DashboardScreen() {
               ].map((row) => (
                 <View key={row.label} className="flex-row justify-between items-center py-3 border-b border-dark-700">
                   <Text className="text-dark-300 text-sm">{row.label}</Text>
-                  <Text className="text-white text-sm font-semibold">{fmt(row.value)}</Text>
+                  <Text className="text-dark-50 text-sm font-semibold">{fmt(row.value)}</Text>
                 </View>
               ))}
             </View>

@@ -6,7 +6,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // DeskMint brand
+        // DeskMint brand — teal/mint
         mint: {
           50:  '#f0fdf9',
           100: '#ccfbef',
@@ -19,19 +19,19 @@ module.exports = {
           800: '#115e59',
           900: '#134e4a',
         },
-        // Dark background palette
+        // Light-theme surface palette (was dark navy — now mint/white)
         dark: {
-          50:  '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
+          50:  '#0f172a', // near-black text  (replaces text-white on light bg)
+          100: '#1e293b', // very dark text
+          200: '#334155', // dark text
+          300: '#475569', // medium text
+          400: '#64748b', // secondary text
+          500: '#94a3b8', // muted / placeholder text
+          600: '#d1fae5', // borders & dividers  (was dark separator)
+          700: '#f0fdf9', // input / inner surface (was dark input bg)
+          800: '#ffffff', // card surface         (was dark card bg)
+          900: '#f0fdf9', // page background      (was darkest bg)
+          950: '#e6fdf7', // pressed / hover state
         },
       },
       fontFamily: {

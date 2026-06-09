@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import {
   Modal, View, Text, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, Switch,
@@ -114,7 +114,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
           <TouchableOpacity onPress={handleClose}>
             <Text className="text-dark-400 text-base">Cancelar</Text>
           </TouchableOpacity>
-          <Text className="text-white text-base font-semibold">Novo Ativo</Text>
+          <Text className="text-dark-50 text-base font-semibold">Novo Ativo</Text>
           <TouchableOpacity onPress={handleSubmit} disabled={save.isPending}>
             {save.isPending
               ? <ActivityIndicator color="#14b8a6" size="small" />
@@ -151,7 +151,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
           <View className="mb-4">
             <Text className="text-dark-400 text-xs mb-1.5 ml-1">Nome *</Text>
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               placeholder="ex: Apple Inc."
               placeholderTextColor="#475569"
               value={name}
@@ -166,7 +166,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
             <View className="flex-row items-center bg-dark-800 rounded-xl px-4 border border-dark-700">
               <Ionicons name="search-outline" size={15} color="#475569" />
               <TextInput
-                className="flex-1 text-white text-base py-3.5 ml-2"
+                className="flex-1 text-dark-50 text-base py-3.5 ml-2"
                 placeholder="ex: Apple, VWCE, NVDA..."
                 placeholderTextColor="#475569"
                 value={tickerQ || ticker}
@@ -192,7 +192,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                     style={{ borderBottomWidth: i < results.length - 1 ? 1 : 0, borderBottomColor: '#334155' }}
                   >
                     <View className="flex-1">
-                      <Text className="text-white text-sm font-semibold">{r.displaySymbol}</Text>
+                      <Text className="text-dark-50 text-sm font-semibold">{r.displaySymbol}</Text>
                       <Text className="text-dark-400 text-xs" numberOfLines={1}>{r.description}</Text>
                     </View>
                     <View className="bg-dark-600 rounded px-2 py-0.5 ml-2">
@@ -223,7 +223,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
               ))}
             </View>
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3 text-sm border border-dark-700 mt-2"
+              className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3 text-sm border border-dark-700 mt-2"
               placeholder="Outro broker..."
               placeholderTextColor="#475569"
               value={COMMON_BROKERS.includes(broker) ? '' : broker}
@@ -236,7 +236,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
             <View className="flex-1">
               <Text className="text-dark-400 text-xs mb-1.5 ml-1">Nº unidades</Text>
               <TextInput
-                className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+                className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3.5 text-base border border-dark-700"
                 placeholder="0"
                 placeholderTextColor="#475569"
                 value={units}
@@ -247,7 +247,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
             <View className="flex-1">
               <Text className="text-dark-400 text-xs mb-1.5 ml-1">Preço médio (€)</Text>
               <TextInput
-                className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+                className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3.5 text-base border border-dark-700"
                 placeholder="0.00"
                 placeholderTextColor="#475569"
                 value={avgPrice}
@@ -261,7 +261,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
           {capitalInvested > 0 && (
             <View className="bg-dark-700 rounded-xl px-4 py-2.5 mb-4 flex-row justify-between">
               <Text className="text-dark-400 text-sm">Capital investido (calculado)</Text>
-              <Text className="text-white font-semibold text-sm">
+              <Text className="text-dark-50 font-semibold text-sm">
                 {capitalInvested.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
               </Text>
             </View>
@@ -271,7 +271,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
           <View className="mb-4">
             <Text className="text-dark-400 text-xs mb-1.5 ml-1">Valor atual (€) *</Text>
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               placeholder="Consulta no broker e insere aqui"
               placeholderTextColor="#475569"
               value={currentValue}
@@ -284,7 +284,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
           {/* Ação satélite */}
           <View className="bg-dark-800 rounded-xl px-4 py-3.5 mb-4 flex-row items-center justify-between">
             <View className="flex-1 mr-3">
-              <Text className="text-white text-sm font-medium">Posição satélite</Text>
+              <Text className="text-dark-50 text-sm font-medium">Posição satélite</Text>
               <Text className="text-dark-500 text-xs mt-0.5">Fora da alocação principal do portfolio</Text>
             </View>
             <Switch
@@ -308,7 +308,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
           >
             {save.isPending
               ? <ActivityIndicator color="white" />
-              : <Text className="text-white font-semibold text-base">Adicionar ao Portfolio</Text>
+              : <Text className="text-dark-50 font-semibold text-base">Adicionar ao Portfolio</Text>
             }
           </TouchableOpacity>
 

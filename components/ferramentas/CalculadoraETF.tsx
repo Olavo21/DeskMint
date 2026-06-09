@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+﻿import { useState, useMemo } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 
@@ -61,11 +61,11 @@ function MiniAreaChart({ pontos }: { pontos: { ano: string; valor: number; inves
       <View style={{ flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <View style={{ width: 10, height: 2, backgroundColor: '#14b8a6', borderRadius: 1 }} />
-          <Text style={{ color: '#94a3b8', fontSize: 10 }}>Valor total</Text>
+          <Text style={{ color: '#64748b', fontSize: 10 }}>Valor total</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <View style={{ width: 10, height: 2, backgroundColor: '#6366f1', borderRadius: 1 }} />
-          <Text style={{ color: '#94a3b8', fontSize: 10 }}>Investido</Text>
+          <Text style={{ color: '#64748b', fontSize: 10 }}>Investido</Text>
         </View>
       </View>
     </View>

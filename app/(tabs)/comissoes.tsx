@@ -1,4 +1,4 @@
-import Header from '../../components/ui/Header'
+﻿import Header from '../../components/ui/Header'
 import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -33,14 +33,14 @@ export default function ComissoesScreen() {
         <View className="mt-4 mb-6 flex-row justify-between items-center">
           <View>
             <Text className="text-dark-400 text-sm">Rastreio</Text>
-            <Text className="text-white text-2xl font-bold">Comissões</Text>
+            <Text className="text-dark-50 text-2xl font-bold">Comissões</Text>
           </View>
           <TouchableOpacity
             className="bg-mint-600 rounded-xl px-4 py-2 flex-row items-center gap-1"
             onPress={() => setShowModal(true)}
           >
             <Ionicons name="add" size={18} color="white" />
-            <Text className="text-white font-medium text-sm">Nova</Text>
+            <Text className="text-dark-50 font-medium text-sm">Nova</Text>
           </TouchableOpacity>
         </View>
 
@@ -70,10 +70,10 @@ export default function ComissoesScreen() {
                 <View key={c.id} className="bg-dark-800 rounded-2xl p-4 mb-3">
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1 mr-3">
-                      <Text className="text-white font-semibold">{c.description}</Text>
+                      <Text className="text-dark-50 font-semibold">{c.description}</Text>
                       {c.client && <Text className="text-dark-400 text-xs mt-0.5">{c.client}</Text>}
                     </View>
-                    <Text className="text-white text-lg font-bold">{fmt(c.amount)}</Text>
+                    <Text className="text-dark-50 text-lg font-bold">{fmt(c.amount)}</Text>
                   </View>
 
                   <View className="flex-row justify-between items-center mt-3">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, LayoutChangeEvent, ActivityIndicator } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop, Line, Text as SvgText } from 'react-native-svg'
 
@@ -83,7 +83,7 @@ export default function PortfolioLineChart({ data, range, onRangeChange, isLoadi
             onPress={() => onRangeChange(r)}
             className={`px-3 py-1.5 rounded-lg ${range === r ? 'bg-teal-500/20' : ''}`}
           >
-            <Text className={`text-xs font-semibold ${range === r ? 'text-teal-400' : 'text-slate-500'}`}>
+            <Text className={`text-xs font-semibold ${range === r ? 'text-teal-600' : 'text-dark-400'}`}>
               {r}
             </Text>
           </TouchableOpacity>
@@ -122,7 +122,7 @@ export default function PortfolioLineChart({ data, range, onRangeChange, isLoadi
                     y1={y}
                     x2={chartWidth - PADDING.right}
                     y2={y}
-                    stroke="#1e293b"
+                    stroke="#d1fae5"
                     strokeWidth="1"
                   />
                   <SvgText
@@ -172,13 +172,13 @@ export default function PortfolioLineChart({ data, range, onRangeChange, isLoadi
       {data.length >= 2 && !isLoading && (
         <View className="flex-row justify-between mt-2 px-2">
           <View>
-            <Text className="text-slate-500 text-xs">Início</Text>
-            <Text className="text-slate-300 text-sm font-semibold">
+            <Text className="text-dark-500 text-xs">Início</Text>
+            <Text className="text-dark-300 text-sm font-semibold">
               {data[0].value.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
             </Text>
           </View>
           <View className="items-end">
-            <Text className="text-slate-500 text-xs">Variação</Text>
+            <Text className="text-dark-500 text-xs">Variação</Text>
             <Text
               className="text-sm font-semibold"
               style={{ color: isPositive ? '#14b8a6' : '#ef4444' }}

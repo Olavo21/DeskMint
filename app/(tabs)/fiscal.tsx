@@ -1,4 +1,4 @@
-import Header from '../../components/ui/Header'
+﻿import Header from '../../components/ui/Header'
 import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, TextInput } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -8,10 +8,10 @@ import { Ionicons } from '@expo/vector-icons'
 type Status = 'obrigatorio' | 'atencao' | 'isento' | 'info'
 
 const STATUS_CFG: Record<Status, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap; label: string }> = {
-  obrigatorio: { color: '#f87171', bg: '#450a0a', icon: 'alert-circle',        label: 'Obrigatório' },
-  atencao:     { color: '#fbbf24', bg: '#451a03', icon: 'warning-outline',      label: 'Atenção' },
-  isento:      { color: '#34d399', bg: '#022c22', icon: 'checkmark-circle',     label: 'Isento' },
-  info:        { color: '#93c5fd', bg: '#1e3a5f', icon: 'information-circle',   label: 'Info' },
+  obrigatorio: { color: '#dc2626', bg: '#fef2f2', icon: 'alert-circle',        label: 'Obrigatório' },
+  atencao:     { color: '#d97706', bg: '#fffbeb', icon: 'warning-outline',      label: 'Atenção' },
+  isento:      { color: '#059669', bg: '#ecfdf5', icon: 'checkmark-circle',     label: 'Isento' },
+  info:        { color: '#2563eb', bg: '#eff6ff', icon: 'information-circle',   label: 'Info' },
 }
 
 // ─── Componentes ─────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ function Section({ title, icon, children, defaultOpen = false }:
       >
         <View className="flex-row items-center gap-2">
           <Text className="text-lg">{icon}</Text>
-          <Text className="text-white font-semibold text-sm">{title}</Text>
+          <Text className="text-dark-50 font-semibold text-sm">{title}</Text>
         </View>
         <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color="#475569" />
       </TouchableOpacity>
@@ -49,11 +49,11 @@ function Section({ title, icon, children, defaultOpen = false }:
 function Row({ label, value, status, note }:
   { label: string; value: string; status?: Status; note?: string }) {
   return (
-    <View className="py-2.5 border-t border-dark-700">
+    <View className="py-2.5 border-t border-dark-600">
       <View className="flex-row justify-between items-center gap-2">
         <Text className="text-dark-300 text-sm flex-1">{label}</Text>
         <View className="flex-row items-center gap-2">
-          <Text className="text-white text-sm font-medium">{value}</Text>
+          <Text className="text-dark-50 text-sm font-medium">{value}</Text>
           {status && <Tag status={status} />}
         </View>
       </View>
@@ -72,7 +72,7 @@ function CalcInput({ label, value, onChange, placeholder }: { label: string; val
         keyboardType="decimal-pad"
         placeholder={placeholder ?? '0,00'}
         placeholderTextColor="#475569"
-        className="bg-dark-700 border border-dark-600 rounded-xl px-3 py-2.5 text-white text-sm"
+        className="bg-dark-700 border border-dark-600 rounded-xl px-3 py-2.5 text-dark-50 text-sm"
       />
     </View>
   )
@@ -124,13 +124,13 @@ export default function FiscalScreen() {
         {/* Header */}
         <View className="mt-4 mb-4">
           <Text className="text-dark-400 text-sm">Portugal · IRS 2025</Text>
-          <Text className="text-white text-2xl font-bold">Fiscalidade</Text>
+          <Text className="text-dark-50 text-2xl font-bold">Fiscalidade</Text>
         </View>
 
         {/* Aviso legal — topo */}
-        <View className="bg-yellow-900/40 border border-yellow-700 rounded-2xl px-4 py-3 mb-5 flex-row gap-3 items-start">
+        <View className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-5 flex-row gap-3 items-start">
           <Text className="text-lg">⚠️</Text>
-          <Text className="text-yellow-200 text-xs leading-5 flex-1">
+          <Text className="text-amber-700 text-xs leading-5 flex-1">
             Este conteúdo é informativo e baseado na legislação portuguesa em vigor para 2025.
             Não substitui aconselhamento de um contabilista ou consultor fiscal certificado.
             Consulta sempre um profissional para a tua situação específica.
@@ -140,11 +140,11 @@ export default function FiscalScreen() {
         {/* KPIs rápidos */}
         <View className="flex-row gap-3 mb-4">
           <View className="bg-dark-800 rounded-2xl p-4 flex-1 items-center">
-            <Text className="text-white text-2xl font-bold">28%</Text>
+            <Text className="text-dark-50 text-2xl font-bold">28%</Text>
             <Text className="text-dark-400 text-xs text-center mt-1">Taxa liberatória sobre mais-valias e dividendos</Text>
           </View>
           <View className="bg-dark-800 rounded-2xl p-4 flex-1 items-center">
-            <Text className="text-white text-2xl font-bold">365</Text>
+            <Text className="text-dark-50 text-2xl font-bold">365</Text>
             <Text className="text-dark-400 text-xs text-center mt-1">Dias para isenção de cripto (+ de 1 ano)</Text>
           </View>
         </View>

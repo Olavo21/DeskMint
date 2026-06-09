@@ -1,4 +1,4 @@
-import Header from '../../components/ui/Header'
+﻿import Header from '../../components/ui/Header'
 import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -47,17 +47,17 @@ export default function FerramentasScreen() {
   const ferramenta = FERRAMENTAS.find((f) => f.key === ativa)
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-900">
+    <SafeAreaView className="flex-1 bg-dark-900">
       <Header title={ferramenta?.label ?? 'Ferramentas'} />
 
       {/* Botão voltar quando está dentro de uma ferramenta */}
       {ativa && (
         <TouchableOpacity
           onPress={() => setAtiva(null)}
-          className="flex-row items-center gap-2 px-4 py-2 border-b border-slate-800"
+          className="flex-row items-center gap-2 px-4 py-2 border-b border-dark-600"
         >
           <Ionicons name="arrow-back-outline" size={16} color="#64748b" />
-          <Text className="text-slate-400 text-sm">Todas as ferramentas</Text>
+          <Text className="text-dark-400 text-sm">Todas as ferramentas</Text>
         </TouchableOpacity>
       )}
 
@@ -68,7 +68,7 @@ export default function FerramentasScreen() {
       >
         {!ativa && (
           <>
-            <Text className="text-slate-400 text-sm mb-4">
+            <Text className="text-dark-400 text-sm mb-4">
               Ferramentas de análise e simulação para os teus investimentos.
             </Text>
 
@@ -77,7 +77,7 @@ export default function FerramentasScreen() {
                 <TouchableOpacity
                   key={f.key}
                   onPress={() => setAtiva(f.key)}
-                  className="flex-row items-center gap-4 bg-slate-800 border border-slate-700 rounded-2xl p-4"
+                  className="flex-row items-center gap-4 bg-dark-800 border border-dark-600 rounded-2xl p-4"
                 >
                   <View
                     className="w-12 h-12 rounded-2xl items-center justify-center flex-shrink-0"
@@ -86,20 +86,20 @@ export default function FerramentasScreen() {
                     <Ionicons name={f.icon as 'search-outline'} size={22} color={f.cor} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-slate-200 font-semibold">{f.label}</Text>
-                    <Text className="text-slate-400 text-sm mt-0.5">{f.desc}</Text>
+                    <Text className="text-dark-200 font-semibold">{f.label}</Text>
+                    <Text className="text-dark-400 text-sm mt-0.5">{f.desc}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color="#475569" />
                 </TouchableOpacity>
               ))}
             </View>
 
-            <View className="mt-6 bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+            <View className="mt-6 bg-dark-800/50 border border-dark-600/50 rounded-xl p-4">
               <View className="flex-row items-center gap-2 mb-2">
                 <Ionicons name="information-circle-outline" size={14} color="#475569" />
-                <Text className="text-slate-500 text-xs font-semibold">Aviso</Text>
+                <Text className="text-dark-500 text-xs font-semibold">Aviso</Text>
               </View>
-              <Text className="text-slate-500 text-xs leading-5">
+              <Text className="text-dark-500 text-xs leading-5">
                 Estas ferramentas são meramente educativas e informativas. Não constituem aconselhamento financeiro profissional. Consulta sempre um especialista antes de tomar decisões de investimento.
               </Text>
             </View>

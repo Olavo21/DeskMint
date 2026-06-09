@@ -1,4 +1,4 @@
-import Header from '../../components/ui/Header'
+﻿import Header from '../../components/ui/Header'
 import { useState, useMemo } from 'react'
 import {
   ScrollView, View, Text, TouchableOpacity, TextInput,
@@ -83,7 +83,7 @@ export default function InvestimentosScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-900 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-dark-900 items-center justify-center">
         <ActivityIndicator color="#14b8a6" />
       </SafeAreaView>
     )
@@ -95,15 +95,15 @@ export default function InvestimentosScreen() {
   const plPos        = totalPL >= 0
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-900">
+    <SafeAreaView className="flex-1 bg-dark-900">
       <Header title="Portfolio" />
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
 
         {/* Summary */}
-        <View className="mx-4 mt-3 mb-4 bg-slate-800 border border-slate-700 rounded-2xl px-5 py-4">
-          <Text className="text-slate-400 text-xs mb-1">Valor Total</Text>
-          <Text className="text-white text-3xl font-bold">{fmt(totalValue)}</Text>
+        <View className="mx-4 mt-3 mb-4 bg-dark-800 border border-dark-600 rounded-2xl px-5 py-4">
+          <Text className="text-dark-400 text-xs mb-1">Valor Total</Text>
+          <Text className="text-dark-50 text-3xl font-bold">{fmt(totalValue)}</Text>
           <View className="flex-row items-center gap-2 mt-2">
             <View className="flex-row items-center gap-1 px-2 py-1 rounded-lg" style={{ backgroundColor: plPos ? '#14b8a615' : '#ef444415' }}>
               <Ionicons name={plPos ? 'trending-up-outline' : 'trending-down-outline'} size={12} color={plPos ? '#14b8a6' : '#ef4444'} />
@@ -111,7 +111,7 @@ export default function InvestimentosScreen() {
                 {plPos ? '+' : ''}{fmt(totalPL)} ({plPos ? '+' : ''}{(totalPLPct * 100).toFixed(2)}%)
               </Text>
             </View>
-            <Text className="text-slate-500 text-xs">P/L total</Text>
+            <Text className="text-dark-500 text-xs">P/L total</Text>
           </View>
         </View>
 
@@ -124,10 +124,10 @@ export default function InvestimentosScreen() {
                 <TouchableOpacity
                   key={tab.key}
                   onPress={() => setActiveTab(tab.key)}
-                  className={`flex-row items-center gap-1.5 px-4 py-2 rounded-xl border ${active ? 'bg-teal-500/15 border-teal-500/40' : 'bg-slate-800 border-slate-700'}`}
+                  className={`flex-row items-center gap-1.5 px-4 py-2 rounded-xl border ${active ? 'bg-teal-500/15 border-teal-500/40' : 'bg-dark-800 border-dark-600'}`}
                 >
                   <Ionicons name={tab.icon as 'list-outline'} size={14} color={active ? '#14b8a6' : '#64748b'} />
-                  <Text className={`text-sm font-medium ${active ? 'text-teal-400' : 'text-slate-400'}`}>{tab.label}</Text>
+                  <Text className={`text-sm font-medium ${active ? 'text-teal-400' : 'text-dark-400'}`}>{tab.label}</Text>
                 </TouchableOpacity>
               )
             })}
@@ -186,8 +186,8 @@ export default function InvestimentosScreen() {
                 <GroupRow key={seg.label} seg={seg} total={totalValue} fmt={fmt} />
               ))}
             </View>
-            <View className="mx-4 mt-3 bg-slate-800/50 border border-slate-700/50 rounded-xl p-3">
-              <Text className="text-slate-500 text-xs">
+            <View className="mx-4 mt-3 bg-dark-800/50 border border-dark-600/50 rounded-xl p-3">
+              <Text className="text-dark-500 text-xs">
                 A região é derivada automaticamente do ticker. ETFs não mapeados aparecem como "Outro".
               </Text>
             </View>
@@ -204,8 +204,8 @@ export default function InvestimentosScreen() {
               isLoading={historyLoading}
             />
             {!historyLoading && (historyData?.length ?? 0) === 0 && (
-              <View className="mt-4 bg-slate-800 border border-slate-700 rounded-xl p-4">
-                <Text className="text-slate-400 text-sm text-center">
+              <View className="mt-4 bg-dark-800 border border-dark-600 rounded-xl p-4">
+                <Text className="text-dark-400 text-sm text-center">
                   Ainda não há snapshots. Os snapshots são gravados automaticamente quando actualizas um ativo.
                 </Text>
               </View>
@@ -223,7 +223,7 @@ export default function InvestimentosScreen() {
           style={{ shadowColor: '#14b8a6', shadowOpacity: 0.5, shadowRadius: 12, elevation: 8 }}
         >
           <Ionicons name="add" size={18} color="#fff" />
-          <Text className="text-white text-sm font-semibold">Novo Ativo</Text>
+          <Text className="text-dark-50 text-sm font-semibold">Novo Ativo</Text>
         </TouchableOpacity>
       </View>
 
@@ -248,7 +248,7 @@ function Legend({ segments, assets, fmt }: {
           <View key={i} className="flex-row items-center justify-between py-1">
             <View className="flex-row items-center gap-2.5 flex-1 min-w-0">
               <View className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: seg.color }} />
-              <Text className="text-slate-300 text-sm flex-1" numberOfLines={1}>{seg.label}</Text>
+              <Text className="text-dark-300 text-sm flex-1" numberOfLines={1}>{seg.label}</Text>
             </View>
             <View className="flex-row items-center gap-3">
               {asset && (
@@ -256,8 +256,8 @@ function Legend({ segments, assets, fmt }: {
                   {asset.pl >= 0 ? '+' : ''}{(asset.plPct * 100).toFixed(1)}%
                 </Text>
               )}
-              <Text className="text-slate-300 text-sm font-semibold w-24 text-right">{fmt(seg.value)}</Text>
-              <Text className="text-slate-500 text-xs w-10 text-right">
+              <Text className="text-dark-300 text-sm font-semibold w-24 text-right">{fmt(seg.value)}</Text>
+              <Text className="text-dark-500 text-xs w-10 text-right">
                 {total > 0 ? ((seg.value / total) * 100).toFixed(1) : 0}%
               </Text>
             </View>
@@ -270,14 +270,14 @@ function Legend({ segments, assets, fmt }: {
 
 function GroupRow({ seg, total, fmt }: { seg: DonutSegment; total: number; fmt: (n: number) => string }) {
   return (
-    <View className="flex-row items-center justify-between bg-slate-800 border border-slate-700 rounded-xl px-4 py-3">
+    <View className="flex-row items-center justify-between bg-dark-800 border border-dark-600 rounded-xl px-4 py-3">
       <View className="flex-row items-center gap-3">
         <View className="w-3 h-3 rounded-full" style={{ backgroundColor: seg.color }} />
-        <Text className="text-slate-200 font-medium">{seg.label}</Text>
+        <Text className="text-dark-200 font-medium">{seg.label}</Text>
       </View>
       <View className="items-end">
-        <Text className="text-slate-200 font-semibold">{fmt(seg.value)}</Text>
-        <Text className="text-slate-500 text-xs">{total > 0 ? ((seg.value / total) * 100).toFixed(1) : 0}%</Text>
+        <Text className="text-dark-200 font-semibold">{fmt(seg.value)}</Text>
+        <Text className="text-dark-500 text-xs">{total > 0 ? ((seg.value / total) * 100).toFixed(1) : 0}%</Text>
       </View>
     </View>
   )
@@ -298,8 +298,8 @@ function AssetCard({ asset, color, fmt, editing, onEdit, onSave, onCancel, onEdi
 
   if (editing) {
     return (
-      <View className="bg-slate-800 border border-teal-500/40 rounded-2xl p-4 gap-3">
-        <Text className="text-slate-200 font-semibold">{asset.name} ({asset.ticker})</Text>
+      <View className="bg-dark-800 border border-teal-500/40 rounded-2xl p-4 gap-3">
+        <Text className="text-dark-200 font-semibold">{asset.name} ({asset.ticker})</Text>
         <View className="gap-2">
           {([
             { field: 'currentValue',    label: 'Valor Atual (€)'      },
@@ -308,22 +308,22 @@ function AssetCard({ asset, color, fmt, editing, onEdit, onSave, onCancel, onEdi
             { field: 'avgPrice',        label: 'Preço Médio (€)'      },
           ] as const).map(({ field, label }) => (
             <View key={field}>
-              <Text className="text-slate-400 text-xs mb-1">{label}</Text>
+              <Text className="text-dark-400 text-xs mb-1">{label}</Text>
               <TextInput
                 value={editing[field]}
                 onChangeText={(v) => onEditChange(field, v)}
                 keyboardType="decimal-pad"
-                className="bg-slate-700 border border-slate-600 rounded-xl px-3 py-2.5 text-slate-200 text-sm"
+                className="bg-dark-700 border border-dark-500 rounded-xl px-3 py-2.5 text-dark-200 text-sm"
               />
             </View>
           ))}
         </View>
         <View className="flex-row gap-2">
-          <TouchableOpacity onPress={onCancel} className="flex-1 bg-slate-700 rounded-xl py-2.5 items-center">
-            <Text className="text-slate-300 text-sm">Cancelar</Text>
+          <TouchableOpacity onPress={onCancel} className="flex-1 bg-dark-700 rounded-xl py-2.5 items-center">
+            <Text className="text-dark-300 text-sm">Cancelar</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onSave} disabled={isSaving} className="flex-1 bg-teal-500 rounded-xl py-2.5 items-center">
-            {isSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text className="text-white text-sm font-semibold">Guardar</Text>}
+            {isSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text className="text-dark-50 text-sm font-semibold">Guardar</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -331,19 +331,19 @@ function AssetCard({ asset, color, fmt, editing, onEdit, onSave, onCancel, onEdi
   }
 
   return (
-    <TouchableOpacity onPress={onEdit} className="bg-slate-800 border border-slate-700 rounded-2xl p-4">
+    <TouchableOpacity onPress={onEdit} className="bg-dark-800 border border-dark-600 rounded-2xl p-4">
       <View className="flex-row items-start justify-between">
         <View className="flex-row items-center gap-3 flex-1 min-w-0">
           <View className="w-9 h-9 rounded-full items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '25' }}>
             <Text style={{ color, fontSize: 10, fontWeight: '700' }}>{asset.ticker.slice(0, 4)}</Text>
           </View>
           <View className="flex-1 min-w-0">
-            <Text className="text-slate-200 font-semibold text-sm" numberOfLines={1}>{asset.name}</Text>
-            <Text className="text-slate-500 text-xs">{asset.broker} · {asset.units} un.</Text>
+            <Text className="text-dark-200 font-semibold text-sm" numberOfLines={1}>{asset.name}</Text>
+            <Text className="text-dark-500 text-xs">{asset.broker} · {asset.units} un.</Text>
           </View>
         </View>
         <View className="items-end ml-2">
-          <Text className="text-slate-200 font-semibold">{fmt(asset.current_value)}</Text>
+          <Text className="text-dark-200 font-semibold">{fmt(asset.current_value)}</Text>
           <Text className="text-xs" style={{ color: plPos ? '#14b8a6' : '#ef4444' }}>
             {plPos ? '+' : ''}{fmt(asset.pl)} ({plPos ? '+' : ''}{(asset.plPct * 100).toFixed(2)}%)
           </Text>
@@ -351,10 +351,10 @@ function AssetCard({ asset, color, fmt, editing, onEdit, onSave, onCancel, onEdi
       </View>
       {asset.allocation != null && (
         <View className="mt-3">
-          <View className="h-1 bg-slate-700 rounded-full overflow-hidden">
+          <View className="h-1 bg-dark-700 rounded-full overflow-hidden">
             <View className="h-1 rounded-full" style={{ width: `${Math.min(asset.allocation * 100, 100)}%`, backgroundColor: color }} />
           </View>
-          <Text className="text-slate-500 text-xs mt-1">
+          <Text className="text-dark-500 text-xs mt-1">
             {(asset.allocation * 100).toFixed(1)}% do portfolio · PM {fmt(asset.avg_price)}
           </Text>
         </View>

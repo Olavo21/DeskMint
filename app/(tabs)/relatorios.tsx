@@ -1,4 +1,4 @@
-import Header from '../../components/ui/Header'
+﻿import Header from '../../components/ui/Header'
 import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -36,7 +36,7 @@ function PendentesTab() {
     return (
       <View className="items-center mt-20">
         <Text className="text-4xl mb-3">🎉</Text>
-        <Text className="text-white font-semibold text-base">Nenhuma comissão pendente</Text>
+        <Text className="text-dark-50 font-semibold text-base">Nenhuma comissão pendente</Text>
         <Text className="text-dark-400 text-sm mt-1">Tudo pago e em dia!</Text>
       </View>
     )
@@ -47,7 +47,7 @@ function PendentesTab() {
       {/* Total pendente */}
       <View className="bg-yellow-900/40 border border-yellow-700 rounded-2xl p-4 mb-4">
         <Text className="text-yellow-300 text-xs mb-1">Total a receber</Text>
-        <Text className="text-white text-3xl font-bold">{fmt(data.totalPending)}</Text>
+        <Text className="text-dark-50 text-3xl font-bold">{fmt(data.totalPending)}</Text>
         <Text className="text-yellow-400 text-xs mt-1">{data.all.length} comissão(ões) pendente(s)</Text>
       </View>
 
@@ -60,7 +60,7 @@ function PendentesTab() {
             <View className="flex-row items-center justify-between px-4 py-3" style={{ borderLeftWidth: 3, borderLeftColor: color }}>
               <View className="flex-row items-center gap-2">
                 {group.type?.icon ? <Text className="text-lg">{group.type.icon}</Text> : <Ionicons name="ellipse" size={14} color={color} />}
-                <Text className="text-white font-semibold">{group.type?.name ?? 'Sem tipo'}</Text>
+                <Text className="text-dark-50 font-semibold">{group.type?.name ?? 'Sem tipo'}</Text>
                 <View className="bg-dark-700 rounded-full px-2 py-0.5">
                   <Text className="text-dark-300 text-xs">{group.items.length}</Text>
                 </View>
@@ -85,7 +85,7 @@ function PendentesTab() {
                       )}
                     </View>
                   </View>
-                  <Text className="text-white font-semibold">{fmt(c.amount)}</Text>
+                  <Text className="text-dark-50 font-semibold">{fmt(c.amount)}</Text>
                 </View>
               )
             })}
@@ -140,7 +140,7 @@ function SemanalTab() {
           <View key={c.id} className="bg-dark-800 rounded-2xl p-4 mb-3">
             <View className="flex-row justify-between items-start">
               <View className="flex-1 mr-3">
-                <Text className="text-white font-medium">{c.description}</Text>
+                <Text className="text-dark-50 font-medium">{c.description}</Text>
                 {c.client && <Text className="text-dark-500 text-xs mt-0.5">{c.client}</Text>}
                 <View className="flex-row items-center gap-2 mt-2">
                   <TypeBadge type={c.dm_commission_types} />
@@ -148,7 +148,7 @@ function SemanalTab() {
                 </View>
               </View>
               <View className="items-end">
-                <Text className="text-white font-bold">{fmt(c.amount)}</Text>
+                <Text className="text-dark-50 font-bold">{fmt(c.amount)}</Text>
                 <Text className={`text-xs mt-1 ${c.status === 'PAID' ? 'text-mint-400' : 'text-yellow-400'}`}>
                   {c.status === 'PAID' ? '✓ Pago' : '⏳ Pendente'}
                 </Text>
@@ -180,7 +180,7 @@ function MensalTab() {
           <Text className="text-dark-400 text-xs mb-2 uppercase tracking-wider">Rendimento</Text>
           <View className="flex-row justify-between">
             <Text className="text-dark-300 text-sm">Salário líquido</Text>
-            <Text className="text-white font-semibold">{fmt(data.income.total_net)}</Text>
+            <Text className="text-dark-50 font-semibold">{fmt(data.income.total_net)}</Text>
           </View>
         </View>
       )}
@@ -224,7 +224,7 @@ function MensalTab() {
                 <Text className="text-dark-300 text-sm">{r.label}</Text>
               </View>
               <View className="items-end">
-                <Text className="text-white text-sm font-medium">{fmt(r.amt)}</Text>
+                <Text className="text-dark-50 text-sm font-medium">{fmt(r.amt)}</Text>
                 <Text className="text-dark-500 text-xs">{(r.pct * 100).toFixed(1)}% / ideal {(r.ideal * 100).toFixed(0)}%</Text>
               </View>
             </View>
@@ -237,7 +237,7 @@ function MensalTab() {
         <Text className="text-dark-400 text-xs mb-2 uppercase tracking-wider">Portfolio XTB</Text>
         <View className="flex-row justify-between">
           <Text className="text-dark-300 text-sm">Valor atual</Text>
-          <Text className="text-white font-semibold">{fmt(data.portfolio.totalValue)}</Text>
+          <Text className="text-dark-50 font-semibold">{fmt(data.portfolio.totalValue)}</Text>
         </View>
         <View className="flex-row justify-between mt-2">
           <Text className="text-dark-300 text-sm">P/L total</Text>
@@ -266,7 +266,7 @@ export default function RelatoriosScreen() {
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header />
       <View className="px-4 pt-4 pb-2">
-        <Text className="text-white text-2xl font-bold mb-4">Relatórios</Text>
+        <Text className="text-dark-50 text-2xl font-bold mb-4">Relatórios</Text>
 
         {/* Tab selector */}
         <View className="flex-row bg-dark-800 rounded-xl p-1 mb-1">
@@ -277,7 +277,7 @@ export default function RelatoriosScreen() {
               onPress={() => setTab(t.key)}
             >
               <Ionicons name={t.icon} size={14} color={tab === t.key ? 'white' : '#475569'} />
-              <Text className={`text-xs font-medium ${tab === t.key ? 'text-white' : 'text-dark-500'}`}>
+              <Text className={`text-xs font-medium ${tab === t.key ? 'text-dark-50' : 'text-dark-500'}`}>
                 {t.label}
               </Text>
             </TouchableOpacity>

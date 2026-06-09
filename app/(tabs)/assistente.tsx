@@ -1,4 +1,4 @@
-import Header from '../../components/ui/Header'
+﻿import Header from '../../components/ui/Header'
 import { useState, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
@@ -72,7 +72,7 @@ export default function AssistenteScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-900">
+    <SafeAreaView className="flex-1 bg-dark-900">
       <Header title="Assistente IA" />
 
       {/* Botão limpar */}
@@ -102,10 +102,10 @@ export default function AssistenteScreen() {
               <View className="w-16 h-16 rounded-full bg-teal-500/10 items-center justify-center mb-4">
                 <Ionicons name="sparkles" size={28} color="#14b8a6" />
               </View>
-              <Text className="text-slate-200 text-lg font-semibold mb-1">
+              <Text className="text-dark-200 text-lg font-semibold mb-1">
                 Assistente de Investimentos
               </Text>
-              <Text className="text-slate-400 text-sm text-center px-6">
+              <Text className="text-dark-400 text-sm text-center px-6">
                 Pergunta-me sobre a tua carteira, diversificação ou notícias dos teus ativos.
               </Text>
 
@@ -115,10 +115,10 @@ export default function AssistenteScreen() {
                   <TouchableOpacity
                     key={a.label}
                     onPress={() => send(a.label)}
-                    className="flex-row items-center gap-3 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3"
+                    className="flex-row items-center gap-3 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3"
                   >
                     <Ionicons name={a.icon as 'pie-chart-outline'} size={16} color="#14b8a6" />
-                    <Text className="text-slate-300 text-sm">{a.label}</Text>
+                    <Text className="text-dark-300 text-sm">{a.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -141,12 +141,12 @@ export default function AssistenteScreen() {
                 className={
                   m.role === 'user'
                     ? 'bg-teal-600 rounded-2xl rounded-tr-sm px-4 py-3'
-                    : 'bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3'
+                    : 'bg-dark-800 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3'
                 }
               >
                 <Text
                   className={
-                    m.role === 'user' ? 'text-white text-sm' : 'text-slate-200 text-sm leading-5'
+                    m.role === 'user' ? 'text-dark-50 text-sm' : 'text-dark-200 text-sm leading-5'
                   }
                 >
                   {m.text}
@@ -157,14 +157,14 @@ export default function AssistenteScreen() {
 
           {/* Indicador de loading */}
           {loading && (
-            <View className="self-start mb-3 bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3">
+            <View className="self-start mb-3 bg-dark-800 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3">
               <ActivityIndicator size="small" color="#14b8a6" />
             </View>
           )}
         </ScrollView>
 
         {/* Input */}
-        <View className="px-4 pb-2 pt-2 border-t border-slate-800 bg-slate-900">
+        <View className="px-4 pb-2 pt-2 border-t border-dark-600 bg-dark-900">
           <View className="flex-row items-end gap-2">
             <TextInput
               value={input}
@@ -174,14 +174,14 @@ export default function AssistenteScreen() {
               placeholderTextColor="#475569"
               multiline
               returnKeyType="send"
-              className="flex-1 bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-slate-200 text-sm max-h-28"
+              className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-dark-200 text-sm max-h-28"
               style={{ textAlignVertical: 'top' }}
             />
             <TouchableOpacity
               onPress={() => send(input)}
               disabled={!input.trim() || loading}
               className={`w-11 h-11 rounded-full items-center justify-center ${
-                input.trim() && !loading ? 'bg-teal-500' : 'bg-slate-700'
+                input.trim() && !loading ? 'bg-teal-500' : 'bg-dark-700'
               }`}
             >
               <Ionicons

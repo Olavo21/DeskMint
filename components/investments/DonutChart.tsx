@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TouchableWithoutFeedback } from 'react-native'
-import Svg, { Path } from 'react-native-svg'
+import Svg, { Path, Circle } from 'react-native-svg'
 
 export type DonutSegment = {
   value: number
@@ -22,7 +22,7 @@ function polar(cx: number, cy: number, r: number, deg: number) {
 }
 
 function arcPath(cx: number, cy: number, outerR: number, innerR: number, start: number, end: number) {
-  const GAP = 1.5 // degrees gap between segments
+  const GAP = 2 // degrees gap between segments
   const s = start + GAP / 2
   const e = end - GAP / 2
   const span = e - s
@@ -30,7 +30,7 @@ function arcPath(cx: number, cy: number, outerR: number, innerR: number, start: 
   if (span <= 0) return ''
 
   // Handle near-full circle (single segment)
-  if (span >= 358) {
+  if (span >= 357) {
     const o1 = polar(cx, cy, outerR, 0)
     const o2 = polar(cx, cy, outerR, 180)
     const i1 = polar(cx, cy, innerR, 0)
@@ -64,8 +64,8 @@ function arcPath(cx: number, cy: number, outerR: number, innerR: number, start: 
 
 export default function DonutChart({
   segments,
-  size = 220,
-  thickness = 44,
+  size = 260,
+  thickness = 52,
   centerLabel,
   centerSub,
 }: Props) {
@@ -73,7 +73,7 @@ export default function DonutChart({
 
   const cx = size / 2
   const cy = size / 2
-  const outerR = size / 2 - 6
+  const outerR = size / 2 - 8
   const innerR = outerR - thickness
 
   const total = segments.reduce((s, seg) => s + seg.value, 0)
@@ -94,15 +94,27 @@ export default function DonutChart({
     <View style={{ alignItems: 'center' }}>
       <View style={{ width: size, height: size }}>
         <Svg width={size} height={size}>
+          {/* Background track — subtle inner ring */}
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={innerR + thickness / 2}
+            fill="none"
+            stroke="#d1fae5"
+            strokeWidth={thickness}
+            opacity={0.35}
+          />
           {arcs.map((arc) => {
             const d = arcPath(cx, cy, outerR, innerR, arc.start, arc.end)
             if (!d) return null
+            const isSelected = selected === arc.i
+            const dimmed = selected !== null && !isSelected
             return (
               <Path
                 key={arc.i}
                 d={d}
                 fill={arc.color}
-                opacity={selected !== null && selected !== arc.i ? 0.3 : 1}
+                opacity={dimmed ? 0.18 : 1}
                 onPress={() => setSelected(selected === arc.i ? null : arc.i)}
               />
             )
@@ -117,20 +129,20 @@ export default function DonutChart({
               top: 0, left: 0, right: 0, bottom: 0,
               alignItems: 'center',
               justifyContent: 'center',
-              paddingHorizontal: thickness + 12,
+              paddingHorizontal: thickness + 16,
             }}
           >
             {sel ? (
               <>
                 <Text
-                  style={{ color: sel.color, fontSize: 20, fontWeight: '700', textAlign: 'center' }}
+                  style={{ color: sel.color, fontSize: 24, fontWeight: '800', textAlign: 'center' }}
                   numberOfLines={1}
                   adjustsFontSizeToFit
                 >
                   {(sel.pct * 100).toFixed(1)}%
                 </Text>
                 <Text
-                  style={{ color: '#94a3b8', fontSize: 10, textAlign: 'center', marginTop: 2 }}
+                  style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 3, fontWeight: '500' }}
                   numberOfLines={2}
                 >
                   {sel.label}
@@ -140,7 +152,7 @@ export default function DonutChart({
               <>
                 {centerLabel && (
                   <Text
-                    style={{ color: '#f1f5f9', fontSize: 15, fontWeight: '700', textAlign: 'center' }}
+                    style={{ color: '#134e4a', fontSize: 16, fontWeight: '800', textAlign: 'center' }}
                     numberOfLines={2}
                     adjustsFontSizeToFit
                   >
@@ -148,7 +160,7 @@ export default function DonutChart({
                   </Text>
                 )}
                 {centerSub && (
-                  <Text style={{ color: '#64748b', fontSize: 10, textAlign: 'center', marginTop: 2 }}>
+                  <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 3, fontWeight: '500' }}>
                     {centerSub}
                   </Text>
                 )}
