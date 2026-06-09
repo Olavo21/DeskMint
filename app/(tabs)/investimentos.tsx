@@ -14,6 +14,7 @@ import MarketNews from '../../components/investments/MarketNews'
 import NovoAtivoModal from '../../components/investments/NovoAtivoModal'
 import BrokerModal from '../../components/investments/BrokerModal'
 import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
+import TickerLogo from '../../components/ui/TickerLogo'
 import { getColor } from '../../lib/portfolioColors'
 import { getRegion, getRegionLabel, REGION_COLORS } from '../../lib/assetRegions'
 
@@ -441,9 +442,8 @@ function AssetCard({ asset, color, fmt, onEdit }: {
   return (
     <View className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3.5">
       <View className="flex-row items-center gap-3">
-        {/* Ticker badge */}
-        <View className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '22' }}>
-          <Text style={{ color, fontSize: 9, fontWeight: '800', letterSpacing: -0.5 }}>{asset.ticker.slice(0, 4)}</Text>
+        <View className="flex-shrink-0">
+          <TickerLogo ticker={asset.ticker} color={color} size={40} />
         </View>
 
         {/* Name + meta */}

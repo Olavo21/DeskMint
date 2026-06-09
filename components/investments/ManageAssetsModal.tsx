@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { getColor } from '../../lib/portfolioColors'
+import TickerLogo from '../ui/TickerLogo'
 
 type Asset = {
   id: string; name: string; ticker: string; broker: string; asset_type: string
@@ -206,13 +207,8 @@ export default function ManageAssetsModal({ visible, onClose, onAdd }: Props) {
                     className="flex-row items-center gap-3 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3"
                     style={isConfirming ? { borderColor: '#fca5a5' } : undefined}
                   >
-                    <View
-                      className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: getColor(i) + '22' }}
-                    >
-                      <Text style={{ color: getColor(i), fontSize: 9, fontWeight: '800', letterSpacing: -0.5 }}>
-                        {asset.ticker.slice(0, 4)}
-                      </Text>
+                    <View className="flex-shrink-0">
+                      <TickerLogo ticker={asset.ticker} color={getColor(i)} size={40} />
                     </View>
                     <View className="flex-1 min-w-0">
                       <Text className="text-dark-100 text-sm font-semibold" numberOfLines={1}>{asset.ticker}</Text>
