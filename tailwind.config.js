@@ -19,19 +19,19 @@ module.exports = {
           800: '#115e59',
           900: '#134e4a',
         },
-        // Light-theme surface palette (was dark navy — now mint/white)
+        // Surface palette — sage-mint, slightly dark, not too heavy
         dark: {
-          50:  '#0f172a', // near-black text  (replaces text-white on light bg)
+          50:  '#0f172a', // near-black text
           100: '#1e293b', // very dark text
           200: '#334155', // dark text
           300: '#475569', // medium text
           400: '#64748b', // secondary text
           500: '#94a3b8', // muted / placeholder text
-          600: '#d1fae5', // borders & dividers  (was dark separator)
-          700: '#f0fdf9', // input / inner surface (was dark input bg)
-          800: '#ffffff', // card surface         (was dark card bg)
-          900: '#f0fdf9', // page background      (was darkest bg)
-          950: '#e6fdf7', // pressed / hover state
+          600: '#c9d4cf', // borders & dividers
+          700: '#edf1ee', // input / inner surface
+          800: '#f8faf9', // card surface
+          900: '#dfe8e3', // page background
+          950: '#d3dfd9', // pressed / hover state
         },
       },
       fontFamily: {

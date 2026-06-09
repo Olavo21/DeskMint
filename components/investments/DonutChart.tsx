@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { View, Text, TouchableWithoutFeedback } from 'react-native'
-import Svg, { Path, Circle } from 'react-native-svg'
+import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg'
 
 export type DonutSegment = {
   value: number
@@ -14,6 +14,7 @@ interface Props {
   thickness?: number
   centerLabel?: string
   centerSub?: string
+  showSegmentLabels?: boolean
 }
 
 function polar(cx: number, cy: number, r: number, deg: number) {
@@ -68,6 +69,7 @@ export default function DonutChart({
   thickness = 52,
   centerLabel,
   centerSub,
+  showSegmentLabels = false,
 }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
 
@@ -75,6 +77,7 @@ export default function DonutChart({
   const cy = size / 2
   const outerR = size / 2 - 8
   const innerR = outerR - thickness
+  const labelR  = innerR + thickness * 0.52  // midpoint of ring
 
   const total = segments.reduce((s, seg) => s + seg.value, 0)
 
@@ -94,7 +97,7 @@ export default function DonutChart({
     <View style={{ alignItems: 'center' }}>
       <View style={{ width: size, height: size }}>
         <Svg width={size} height={size}>
-          {/* Background track — subtle inner ring */}
+          {/* Background track */}
           <Circle
             cx={cx}
             cy={cy}
@@ -109,6 +112,9 @@ export default function DonutChart({
             if (!d) return null
             const isSelected = selected === arc.i
             const dimmed = selected !== null && !isSelected
+            const midAngle = (arc.start + arc.end) / 2
+            const lp = polar(cx, cy, labelR, midAngle)
+            const labelFontSize = size < 220 ? 9 : 10
             return (
               <Path
                 key={arc.i}
@@ -117,6 +123,29 @@ export default function DonutChart({
                 opacity={dimmed ? 0.18 : 1}
                 onPress={() => setSelected(selected === arc.i ? null : arc.i)}
               />
+            )
+          })}
+          {/* % labels on top of arcs so they're not clipped */}
+          {showSegmentLabels && arcs.map((arc) => {
+            if (arc.pct < 0.07) return null
+            const dimmed = selected !== null && selected !== arc.i
+            if (dimmed) return null
+            const midAngle = (arc.start + arc.end) / 2
+            const lp = polar(cx, cy, labelR, midAngle)
+            const labelFontSize = size < 220 ? 9 : 10
+            return (
+              <SvgText
+                key={`lbl-${arc.i}`}
+                x={lp.x}
+                y={lp.y}
+                fill="#ffffff"
+                fontSize={labelFontSize}
+                fontWeight="700"
+                textAnchor="middle"
+                alignmentBaseline="middle"
+              >
+                {(arc.pct * 100).toFixed(0)}%
+              </SvgText>
             )
           })}
         </Svg>

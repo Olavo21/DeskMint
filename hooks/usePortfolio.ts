@@ -36,6 +36,21 @@ export function usePortfolio() {
     },
   })
 
+  const deleteAsset = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('dm_portfolio_assets')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', session!.user.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['portfolio'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+
   const query = useQuery({
     queryKey: ['portfolio', session?.user.id],
     enabled: !!session,
@@ -68,5 +83,5 @@ export function usePortfolio() {
     },
   })
 
-  return { ...query, updateAsset }
+  return { ...query, updateAsset, deleteAsset }
 }

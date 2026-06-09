@@ -26,21 +26,21 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
     <PlansModal visible={showPlans} onClose={() => setShowPlans(false)} />
     <View
       className="flex-row items-center justify-between px-4 pt-2 pb-3"
-      style={{ borderBottomWidth: 1, borderBottomColor: '#d1fae5', backgroundColor: '#f0fdf9' }}
+      style={{ borderBottomWidth: 1, borderBottomColor: '#0f766e', backgroundColor: '#115e59' }}
     >
       {/* Logo + nome */}
       <View className="flex-row items-center gap-2.5">
         {logoIcon ? (
           <Image source={logoIcon} style={{ width: 36, height: 36 }} resizeMode="contain" />
         ) : (
-          <View className="w-9 h-9 bg-mint-600 rounded-xl items-center justify-center">
+          <View className="w-9 h-9 rounded-xl items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
             <Text className="text-white font-bold text-base">D</Text>
           </View>
         )}
         <View>
-          <Text className="text-dark-50 font-bold text-base leading-5">DeskMint</Text>
+          <Text className="text-white font-bold text-base leading-5">DeskMint ✓</Text>
           {(subtitle || profile?.name) && (
-            <Text className="text-dark-400 text-xs leading-4">
+            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, lineHeight: 16 }}>
               {subtitle ?? `Olá, ${profile?.name?.split(' ')[0]}`}
             </Text>
           )}
@@ -54,19 +54,20 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
         <TouchableOpacity
           onPress={() => setShowPlans(true)}
           className="rounded-full px-2.5 py-1 flex-row items-center gap-1"
-          style={{ backgroundColor: PLAN_COLORS[plan.plan] + '22', borderWidth: 1, borderColor: PLAN_COLORS[plan.plan] + '55' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}
         >
           {plan.isFounder && <Text style={{ fontSize: 10 }}>⭐</Text>}
-          <Text style={{ color: PLAN_COLORS[plan.plan], fontSize: 10, fontWeight: '700' }}>
+          <Text style={{ color: '#ccfbef', fontSize: 10, fontWeight: '700' }}>
             {plan.isFounder ? `Founder #${plan.founderNumber ?? '?'}` : plan.plan}
           </Text>
         </TouchableOpacity>
         {showSignOut && (
           <TouchableOpacity
             onPress={() => supabase.auth.signOut()}
-            className="w-8 h-8 rounded-full bg-dark-700 border border-dark-600 items-center justify-center"
+            className="w-8 h-8 rounded-full items-center justify-center"
+            style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
           >
-            <Ionicons name="log-out-outline" size={16} color="#64748b" />
+            <Ionicons name="log-out-outline" size={16} color="#ccfbef" />
           </TouchableOpacity>
         )}
       </View>

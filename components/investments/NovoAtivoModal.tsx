@@ -136,8 +136,8 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                   onPress={() => setAssetType(t.key)}
                   className="flex-row items-center gap-1.5 rounded-xl px-3 py-2 border"
                   style={{
-                    backgroundColor: active ? '#0d9488' + '33' : '#1e293b',
-                    borderColor: active ? '#0d9488' : '#334155',
+                    backgroundColor: active ? '#0d948820' : '#f4f7f5',
+                    borderColor: active ? '#0d9488' : '#c9d4cf',
                   }}
                 >
                   <Text>{t.icon}</Text>
@@ -189,7 +189,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                     key={`${r.symbol}-${i}`}
                     onPress={() => selectSuggestion(r)}
                     className="px-4 py-3 flex-row items-center justify-between"
-                    style={{ borderBottomWidth: i < results.length - 1 ? 1 : 0, borderBottomColor: '#334155' }}
+                    style={{ borderBottomWidth: i < results.length - 1 ? 1 : 0, borderBottomColor: '#c9d4cf' }}
                   >
                     <View className="flex-1">
                       <Text className="text-dark-50 text-sm font-semibold">{r.displaySymbol}</Text>
@@ -214,11 +214,11 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                   onPress={() => setBroker(b)}
                   className="rounded-lg px-3 py-2 border"
                   style={{
-                    backgroundColor: broker === b ? '#1e3a5f' : '#1e293b',
-                    borderColor: broker === b ? '#2563eb' : '#334155',
+                    backgroundColor: broker === b ? '#eff6ff' : '#f4f7f5',
+                    borderColor: broker === b ? '#3b82f6' : '#c9d4cf',
                   }}
                 >
-                  <Text style={{ color: broker === b ? '#93c5fd' : '#64748b' }} className="text-sm">{b}</Text>
+                  <Text style={{ color: broker === b ? '#2563eb' : '#64748b' }} className="text-sm">{b}</Text>
                 </TouchableOpacity>
               ))}
             </View>

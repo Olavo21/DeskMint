@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react'
 import {
   ScrollView, View, Text, TouchableOpacity, TextInput,
-  ActivityIndicator,
+  ActivityIndicator, Alert, Modal, useWindowDimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -12,6 +12,8 @@ import DonutChart, { type DonutSegment } from '../../components/investments/Donu
 import PortfolioLineChart, { type Range } from '../../components/investments/PortfolioLineChart'
 import MarketNews from '../../components/investments/MarketNews'
 import NovoAtivoModal from '../../components/investments/NovoAtivoModal'
+import BrokerModal from '../../components/investments/BrokerModal'
+import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
 import { getColor } from '../../lib/portfolioColors'
 import { getRegion, getRegionLabel, REGION_COLORS } from '../../lib/assetRegions'
 
@@ -33,11 +35,19 @@ const TYPE_COLORS: Record<string, string> = {
 }
 
 export default function InvestimentosScreen() {
-  const { data, isLoading, updateAsset } = usePortfolio()
+  const { width: screenW } = useWindowDimensions()
+  const { data, isLoading, updateAsset, deleteAsset } = usePortfolio()
   const [activeTab, setActiveTab]         = useState<Tab>('ativos')
   const [showModal, setShowModal]         = useState(false)
+  const [showBroker, setShowBroker]       = useState(false)
+  const [showManage, setShowManage]       = useState(false)
+  const [editAsset, setEditAsset]         = useState<AssetWithPL | null>(null)
   const [editing, setEditing]             = useState<EditState | null>(null)
   const [historyRange, setHistoryRange]   = useState<Range>('Todo')
+
+  // Donut: 54% da largura mas nunca maior que 240px (evita overflow no web/tablet)
+  const donutSize      = Math.min(Math.round(screenW * 0.54), 240)
+  const donutThickness = Math.round(donutSize * 0.19)
 
   const { data: historyData, isLoading: historyLoading } = usePortfolioHistory(historyRange)
 
@@ -67,8 +77,14 @@ export default function InvestimentosScreen() {
     }))
   }, [data?.assets])
 
-  function startEdit(a: { id: string; current_value: number; capital_invested: number; units: number; avg_price: number }) {
+  function openEdit(a: AssetWithPL) {
+    setEditAsset(a)
     setEditing({ id: a.id, currentValue: String(a.current_value), capitalInvested: String(a.capital_invested), units: String(a.units), avgPrice: String(a.avg_price) })
+  }
+
+  function closeEdit() {
+    setEditAsset(null)
+    setEditing(null)
   }
 
   async function saveEdit() {
@@ -78,7 +94,18 @@ export default function InvestimentosScreen() {
     const u = p(editing.units), ap = p(editing.avgPrice)
     if (isNaN(cv)) return
     await updateAsset.mutateAsync({ id: editing.id, currentValue: cv, capitalInvested: isNaN(ci) ? cv : ci, units: isNaN(u) ? undefined : u, avgPrice: isNaN(ap) ? undefined : ap })
-    setEditing(null)
+    closeEdit()
+  }
+
+  function confirmDelete(asset: AssetWithPL) {
+    Alert.alert(
+      'Remover ativo',
+      `Tens a certeza que queres remover ${asset.ticker} do portfolio? Esta acção não pode ser desfeita.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Remover', style: 'destructive', onPress: () => { deleteAsset.mutate(asset.id); closeEdit() } },
+      ],
+    )
   }
 
   if (isLoading) {
@@ -137,29 +164,76 @@ export default function InvestimentosScreen() {
         {/* ── Ativos ── */}
         {activeTab === 'ativos' && (
           <View>
-            {byAsset.length > 0 && (
-              <>
-                <DonutChart segments={byAsset} centerLabel={fmt(totalValue)} centerSub="Portfolio" />
-                <Legend segments={byAsset} assets={data?.assets} fmt={fmt} />
-              </>
+            {/* Donut + legenda compacta lado a lado */}
+            {byAsset.length > 0 ? (
+              <View className="flex-row items-center px-3 pt-1 pb-2">
+                {/* Donut */}
+                <DonutChart
+                  segments={byAsset}
+                  centerLabel={fmt(totalValue)}
+                  centerSub="Portfolio"
+                  size={donutSize}
+                  thickness={donutThickness}
+                  showSegmentLabels
+                />
+                {/* Legenda compacta */}
+                <View className="flex-1 pl-3 gap-2.5">
+                  {byAsset.map((seg, i) => {
+                    const pct = totalValue > 0 ? (seg.value / totalValue) * 100 : 0
+                    const asset = data?.assets?.[i]
+                    return (
+                      <View key={i} className="flex-row items-center gap-2">
+                        <View
+                          style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: seg.color, flexShrink: 0 }}
+                        />
+                        <View className="flex-1 min-w-0">
+                          <Text className="text-dark-200 text-xs font-bold" numberOfLines={1}>{seg.label}</Text>
+                          <Text className="text-dark-500 text-xs">{fmt(seg.value)}</Text>
+                        </View>
+                        <Text className="text-dark-400 text-xs font-semibold flex-shrink-0">
+                          {pct.toFixed(1)}%
+                        </Text>
+                      </View>
+                    )
+                  })}
+                </View>
+              </View>
+            ) : (
+              <View className="mx-4 py-10 items-center">
+                <Ionicons name="pie-chart-outline" size={48} color="#94a3b8" />
+                <Text className="text-dark-400 text-sm mt-3">Sem ativos no portfolio</Text>
+              </View>
             )}
-            <View className="mx-4 mt-5 gap-2">
+
+            {/* Botão Editar Ativos */}
+            <TouchableOpacity
+              onPress={() => setShowManage(true)}
+              className="mx-4 mt-3 mb-1 flex-row items-center justify-center gap-2.5 bg-dark-800 border border-teal-500/30 rounded-2xl py-3.5"
+              style={{ shadowColor: '#0d9488', shadowOpacity: 0.08, shadowRadius: 10, elevation: 2 }}
+            >
+              <View className="w-7 h-7 rounded-full bg-teal-500/15 items-center justify-center">
+                <Ionicons name="create-outline" size={15} color="#0d9488" />
+              </View>
+              <Text className="text-teal-600 font-semibold text-sm">Editar Ativos</Text>
+            </TouchableOpacity>
+
+            {/* Lista de ativos */}
+            <View className="mx-4 mt-4 gap-2">
               {(data?.assets ?? []).map((asset, i) => (
                 <AssetCard
                   key={asset.id}
                   asset={asset}
                   color={getColor(i)}
                   fmt={fmt}
-                  editing={editing?.id === asset.id ? editing : null}
-                  onEdit={() => startEdit(asset)}
-                  onSave={saveEdit}
-                  onCancel={() => setEditing(null)}
-                  onEditChange={(field, val) => setEditing((prev) => prev ? { ...prev, [field]: val } : prev)}
-                  isSaving={updateAsset.isPending}
+                  onEdit={() => openEdit(asset)}
                 />
               ))}
             </View>
-            <View className="mt-6"><MarketNews /></View>
+
+            {/* Notícias compactas */}
+            <View className="mx-4 mt-6 mb-2">
+              <MarketNews />
+            </View>
           </View>
         )}
 
@@ -215,8 +289,72 @@ export default function InvestimentosScreen() {
 
       </ScrollView>
 
-      {/* FAB */}
-      <View className="absolute bottom-6 right-4">
+      {/* Edit Modal */}
+      <Modal visible={!!editAsset} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeEdit}>
+        <SafeAreaView className="flex-1 bg-dark-900">
+          {/* Header */}
+          <View className="flex-row items-center justify-between px-4 py-4 border-b border-dark-600">
+            <TouchableOpacity onPress={closeEdit}>
+              <Text className="text-dark-400 text-base">Cancelar</Text>
+            </TouchableOpacity>
+            <View className="items-center">
+              <Text className="text-dark-50 text-base font-semibold">Editar Ativo</Text>
+              {editAsset && <Text className="text-dark-400 text-xs">{editAsset.name} · {editAsset.ticker}</Text>}
+            </View>
+            <TouchableOpacity onPress={saveEdit} disabled={updateAsset.isPending}>
+              {updateAsset.isPending
+                ? <ActivityIndicator size="small" color="#14b8a6" />
+                : <Text className="text-teal-500 text-base font-semibold">Guardar</Text>}
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView className="flex-1 px-4 pt-5" keyboardShouldPersistTaps="handled">
+            {editing && ([
+              { field: 'currentValue',    label: 'Valor Atual (€)',       hint: 'Consulta no broker' },
+              { field: 'capitalInvested', label: 'Capital Investido (€)', hint: 'Total pago pelas unidades' },
+              { field: 'units',           label: 'Nº Unidades',           hint: 'Quantidade detida' },
+              { field: 'avgPrice',        label: 'Preço Médio (€)',       hint: 'Preço médio de compra' },
+            ] as const).map(({ field, label, hint }) => (
+              <View key={field} className="mb-4">
+                <Text className="text-dark-400 text-xs mb-1">{label}</Text>
+                <TextInput
+                  value={editing[field]}
+                  onChangeText={(v) => setEditing((prev) => prev ? { ...prev, [field]: v } : prev)}
+                  keyboardType="decimal-pad"
+                  placeholder={hint}
+                  placeholderTextColor="#94a3b8"
+                  className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 text-dark-50 text-base"
+                />
+              </View>
+            ))}
+
+            {/* Danger zone */}
+            <View className="mt-6 mb-2 border-t border-dark-600 pt-6">
+              <Text className="text-dark-500 text-xs mb-3 uppercase tracking-widest">Zona de perigo</Text>
+              <TouchableOpacity
+                onPress={() => editAsset && confirmDelete(editAsset)}
+                className="flex-row items-center justify-center gap-2 bg-red-50 border border-red-200 rounded-xl py-4"
+              >
+                <Ionicons name="trash-outline" size={18} color="#dc2626" />
+                <Text className="text-red-600 font-semibold text-base">Remover ativo do portfolio</Text>
+              </TouchableOpacity>
+            </View>
+            <View className="h-8" />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* FABs — bottom-20 clears the 64px tab bar */}
+      <View className="absolute bottom-20 right-4 gap-2.5 items-end">
+        <TouchableOpacity
+          onPress={() => setShowBroker(true)}
+          className="flex-row items-center gap-2 bg-dark-800 border border-dark-600 rounded-full px-4 py-2.5"
+          style={{ shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 }}
+        >
+          <Ionicons name="link-outline" size={16} color="#0d9488" />
+          <Text className="text-teal-600 text-sm font-semibold">Corretoras</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() => setShowModal(true)}
           className="flex-row items-center gap-2 bg-teal-500 rounded-full px-5 py-3"
@@ -228,6 +366,12 @@ export default function InvestimentosScreen() {
       </View>
 
       <NovoAtivoModal visible={showModal} onClose={() => setShowModal(false)} />
+      <BrokerModal visible={showBroker} onClose={() => setShowBroker(false)} />
+      <ManageAssetsModal
+        visible={showManage}
+        onClose={() => setShowManage(false)}
+        onAdd={() => { setShowManage(false); setTimeout(() => setShowModal(true), 300) }}
+      />
     </SafeAreaView>
   )
 }
@@ -289,76 +433,54 @@ type AssetWithPL = {
   pl: number; plPct: number; allocation: number | null
 }
 
-function AssetCard({ asset, color, fmt, editing, onEdit, onSave, onCancel, onEditChange, isSaving }: {
-  asset: AssetWithPL; color: string; fmt: (n: number) => string
-  editing: EditState | null; onEdit: () => void; onSave: () => void; onCancel: () => void
-  onEditChange: (field: keyof EditState, val: string) => void; isSaving: boolean
+function AssetCard({ asset, color, fmt, onEdit }: {
+  asset: AssetWithPL; color: string; fmt: (n: number) => string; onEdit: () => void
 }) {
   const plPos = asset.pl >= 0
 
-  if (editing) {
-    return (
-      <View className="bg-dark-800 border border-teal-500/40 rounded-2xl p-4 gap-3">
-        <Text className="text-dark-200 font-semibold">{asset.name} ({asset.ticker})</Text>
-        <View className="gap-2">
-          {([
-            { field: 'currentValue',    label: 'Valor Atual (€)'      },
-            { field: 'capitalInvested', label: 'Capital Investido (€)' },
-            { field: 'units',           label: 'Unidades'              },
-            { field: 'avgPrice',        label: 'Preço Médio (€)'      },
-          ] as const).map(({ field, label }) => (
-            <View key={field}>
-              <Text className="text-dark-400 text-xs mb-1">{label}</Text>
-              <TextInput
-                value={editing[field]}
-                onChangeText={(v) => onEditChange(field, v)}
-                keyboardType="decimal-pad"
-                className="bg-dark-700 border border-dark-500 rounded-xl px-3 py-2.5 text-dark-200 text-sm"
-              />
-            </View>
-          ))}
-        </View>
-        <View className="flex-row gap-2">
-          <TouchableOpacity onPress={onCancel} className="flex-1 bg-dark-700 rounded-xl py-2.5 items-center">
-            <Text className="text-dark-300 text-sm">Cancelar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onSave} disabled={isSaving} className="flex-1 bg-teal-500 rounded-xl py-2.5 items-center">
-            {isSaving ? <ActivityIndicator size="small" color="#fff" /> : <Text className="text-dark-50 text-sm font-semibold">Guardar</Text>}
-          </TouchableOpacity>
-        </View>
-      </View>
-    )
-  }
-
   return (
-    <TouchableOpacity onPress={onEdit} className="bg-dark-800 border border-dark-600 rounded-2xl p-4">
-      <View className="flex-row items-start justify-between">
-        <View className="flex-row items-center gap-3 flex-1 min-w-0">
-          <View className="w-9 h-9 rounded-full items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '25' }}>
-            <Text style={{ color, fontSize: 10, fontWeight: '700' }}>{asset.ticker.slice(0, 4)}</Text>
-          </View>
-          <View className="flex-1 min-w-0">
-            <Text className="text-dark-200 font-semibold text-sm" numberOfLines={1}>{asset.name}</Text>
-            <Text className="text-dark-500 text-xs">{asset.broker} · {asset.units} un.</Text>
-          </View>
+    <View className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3.5">
+      <View className="flex-row items-center gap-3">
+        {/* Ticker badge */}
+        <View className="w-10 h-10 rounded-full items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '22' }}>
+          <Text style={{ color, fontSize: 9, fontWeight: '800', letterSpacing: -0.5 }}>{asset.ticker.slice(0, 4)}</Text>
         </View>
-        <View className="items-end ml-2">
-          <Text className="text-dark-200 font-semibold">{fmt(asset.current_value)}</Text>
-          <Text className="text-xs" style={{ color: plPos ? '#14b8a6' : '#ef4444' }}>
-            {plPos ? '+' : ''}{fmt(asset.pl)} ({plPos ? '+' : ''}{(asset.plPct * 100).toFixed(2)}%)
+
+        {/* Name + meta */}
+        <View className="flex-1 min-w-0">
+          <Text className="text-dark-100 font-semibold text-sm" numberOfLines={1}>{asset.name}</Text>
+          <Text className="text-dark-500 text-xs mt-0.5">{asset.broker} · {asset.units} un.</Text>
+        </View>
+
+        {/* Value + P/L */}
+        <View className="items-end mr-1">
+          <Text className="text-dark-100 font-bold text-sm">{fmt(asset.current_value)}</Text>
+          <Text className="text-xs mt-0.5" style={{ color: plPos ? '#0d9488' : '#ef4444' }}>
+            {plPos ? '+' : ''}{(asset.plPct * 100).toFixed(2)}%
           </Text>
         </View>
+
+        {/* Edit button */}
+        <TouchableOpacity
+          onPress={onEdit}
+          className="w-8 h-8 rounded-full bg-dark-700 border border-dark-600 items-center justify-center"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="create-outline" size={15} color="#64748b" />
+        </TouchableOpacity>
       </View>
+
+      {/* Allocation bar */}
       {asset.allocation != null && (
-        <View className="mt-3">
+        <View className="mt-3 ml-13">
           <View className="h-1 bg-dark-700 rounded-full overflow-hidden">
             <View className="h-1 rounded-full" style={{ width: `${Math.min(asset.allocation * 100, 100)}%`, backgroundColor: color }} />
           </View>
           <Text className="text-dark-500 text-xs mt-1">
-            {(asset.allocation * 100).toFixed(1)}% do portfolio · PM {fmt(asset.avg_price)}
+            {(asset.allocation * 100).toFixed(1)}% · PM {fmt(asset.avg_price)}
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   )
 }
