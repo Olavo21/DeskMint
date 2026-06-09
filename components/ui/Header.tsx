@@ -38,7 +38,7 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
           </View>
         )}
         <View>
-          <Text className="text-white font-bold text-base leading-5">DeskMint ✓</Text>
+          <Text className="text-white font-bold text-base leading-5">DeskMint</Text>
           {(subtitle || profile?.name) && (
             <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, lineHeight: 16 }}>
               {subtitle ?? `Olá, ${profile?.name?.split(' ')[0]}`}
