@@ -501,20 +501,42 @@ function isHtml(text: string) {
   return t.startsWith('<!doctype html') || t.startsWith('<html') || t.includes('<table') || isMhtml(text)
 }
 
+// Pure-JS base64 → UTF-8 decoder — no atob/Buffer needed, works everywhere
 function decodeBase64Utf8(b64: string): string {
   try {
-    const clean = b64.replace(/[\r\n\s]/g, '')
-    if (typeof atob !== 'undefined') {
-      const binary = atob(clean)
-      if (typeof TextDecoder !== 'undefined') {
-        const bytes = new Uint8Array(binary.length)
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-        return new TextDecoder('utf-8').decode(bytes)
-      }
-      return decodeURIComponent(escape(binary))
+    const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    const lookup = new Uint8Array(256).fill(255)
+    for (let i = 0; i < 64; i++) lookup[CHARS.charCodeAt(i)] = i
+
+    const clean  = b64.replace(/[^A-Za-z0-9+/]/g, '')
+    const outLen = Math.ceil(clean.length * 3 / 4)
+    const bytes  = new Uint8Array(outLen)
+    let j = 0
+
+    for (let i = 0; i < clean.length; i += 4) {
+      const c0 = lookup[clean.charCodeAt(i)]
+      const c1 = lookup[clean.charCodeAt(i + 1)]
+      const c2 = lookup[clean.charCodeAt(i + 2)]
+      const c3 = lookup[clean.charCodeAt(i + 3)]
+      bytes[j++] = (c0 << 2) | (c1 >> 4)
+      if (c2 !== 255) bytes[j++] = ((c1 & 0xf) << 4) | (c2 >> 2)
+      if (c3 !== 255) bytes[j++] = ((c2 & 0x3) << 6) | c3
     }
-    // React Native / Node
-    return Buffer.from(clean, 'base64').toString('utf-8')
+
+    const raw = bytes.slice(0, j)
+    if (typeof TextDecoder !== 'undefined') {
+      return new TextDecoder('utf-8').decode(raw)
+    }
+    // Manual UTF-8 → JS string fallback
+    let str = ''
+    for (let i = 0; i < raw.length; ) {
+      const b = raw[i]
+      if (b < 0x80) { str += String.fromCharCode(b); i++ }
+      else if ((b & 0xe0) === 0xc0) { str += String.fromCharCode(((b & 0x1f) << 6) | (raw[i+1] & 0x3f)); i += 2 }
+      else if ((b & 0xf0) === 0xe0) { str += String.fromCharCode(((b & 0x0f) << 12) | ((raw[i+1] & 0x3f) << 6) | (raw[i+2] & 0x3f)); i += 3 }
+      else i++
+    }
+    return str
   } catch {
     return ''
   }
