@@ -527,15 +527,17 @@ function extractHtmlFromMhtml(text: string): string {
     return s !== -1 ? text.slice(s) : text
   }
 
+  // Normalise Windows line endings BEFORE any indexOf/split operations
+  const norm    = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
   const boundary = boundaryMatch[1]
   const escaped  = boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const parts    = text.split(new RegExp('--' + escaped))
+  const parts    = norm.split(new RegExp('--' + escaped))
 
   for (const part of parts) {
     if (!/Content-Type:\s*text\/html/i.test(part)) continue
     const sep = part.indexOf('\n\n')
     if (sep === -1) continue
-    let content = part.slice(sep + 2).replace(/\r\n/g, '\n')
+    let content = part.slice(sep + 2)
 
     if (/Content-Transfer-Encoding:\s*base64/i.test(part)) {
       content = decodeBase64Utf8(content)
