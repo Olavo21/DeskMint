@@ -16,7 +16,7 @@ const DB: Record<string, EtfInfo> = {
   VAGU: { provider: 'Vanguard', description: 'Global Bond EUR Hdg (ACC)',     providerColor: '#8b1a1a', providerDomain: 'vanguard.com' },
   // ── iShares (BlackRock) ───────────────────────────────────────────────────
   CSPX: { provider: 'iShares',  description: 'Core S&P 500 (ACC)',            providerColor: '#1a1a1a', providerDomain: 'blackrock.com' },
-  SXRV: { provider: 'iShares',  description: 'Core S&P 500 (DIST)',           providerColor: '#1a1a1a', providerDomain: 'blackrock.com' },
+  SXRV: { provider: 'iShares',  description: 'NASDAQ 100 (ACC)',               providerColor: '#1a1a1a', providerDomain: 'blackrock.com' },
   IWDA: { provider: 'iShares',  description: 'MSCI World (ACC)',              providerColor: '#1a1a1a', providerDomain: 'blackrock.com' },
   SWDA: { provider: 'iShares',  description: 'MSCI World (DIST)',             providerColor: '#1a1a1a', providerDomain: 'blackrock.com' },
   SSAC: { provider: 'iShares',  description: 'MSCI ACWI (ACC)',               providerColor: '#1a1a1a', providerDomain: 'blackrock.com' },
