@@ -31,7 +31,7 @@ export const BROKERS: { id: BrokerId; label: string; icon: string; hasApi: boole
     label:   'XTB',
     icon:    '🔵',
     hasApi:  false,
-    csvHelp: 'xStation → Conta → Histórico de transações → Exportar CSV\n\nOu: Portfólio → Posições abertas → Exportar',
+    csvHelp: 'xStation → Posições abertas → botão Exportar (canto superior direito) → HTML\n\nOu: Histórico de transações → Exportar → HTML\n\n⚠️ O XTB não exporta CSV — escolhe HTML e importa o ficheiro .html aqui.',
   },
   {
     id:      'traderepublic',
@@ -200,6 +200,123 @@ function parseTrading212(text: string): ParsedPosition[] {
       capital_invested: pos.cost,
       asset_type: detectAssetType(ticker, pos.name),
       broker: 'Trading 212',
+    }]
+  })
+}
+
+// ─── HTML table extractor (XTB HTML export) ───────────────────────────────
+
+function extractHtmlTable(html: string): { headers: string[]; rows: string[][] } {
+  // Strip scripts/styles to avoid false matches
+  const clean = html.replace(/<script[\s\S]*?<\/script>/gi, '')
+                    .replace(/<style[\s\S]*?<\/style>/gi, '')
+
+  // Find all <table> blocks, pick the one with most rows
+  const tableParts: Array<{ headers: string[]; rows: string[][] }> = []
+  const tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi
+  let tm: RegExpExecArray | null
+
+  while ((tm = tableRe.exec(clean)) !== null) {
+    const tableContent = tm[1]
+    const headers: string[] = []
+    const thRe = /<th[^>]*>([\s\S]*?)<\/th>/gi
+    let th: RegExpExecArray | null
+    while ((th = thRe.exec(tableContent)) !== null) {
+      headers.push(th[1].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim())
+    }
+    const rows: string[][] = []
+    const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi
+    let tr: RegExpExecArray | null
+    while ((tr = trRe.exec(tableContent)) !== null) {
+      const cells: string[] = []
+      const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi
+      let td: RegExpExecArray | null
+      while ((td = tdRe.exec(tr[1])) !== null) {
+        cells.push(td[1].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim())
+      }
+      if (cells.length > 1) rows.push(cells)
+    }
+    tableParts.push({ headers, rows })
+  }
+
+  return tableParts.reduce(
+    (best, t) => (t.rows.length > best.rows.length ? t : best),
+    { headers: [], rows: [] }
+  )
+}
+
+function parseXTBHtml(html: string): ParsedPosition[] {
+  const { headers, rows } = extractHtmlTable(html)
+  if (rows.length === 0) return []
+
+  const hdr = headers.map((h) => h.toLowerCase())
+  const col = (...names: string[]) => {
+    for (const n of names) {
+      const i = hdr.findIndex((h) => h.includes(n))
+      if (i !== -1) return i
+    }
+    return -1
+  }
+
+  // Try open-positions table: instrumento/symbol, volume, valor/value, preço abertura
+  const iSymbol = col('instrumento', 'symbol', 'posição', 'ativo')
+  const iVol    = col('volume', 'quantidade', 'units')
+  const iOpen   = col('abertura', 'open price', 'preço de ab')
+  const iVal    = col('valor', 'value', 'market')
+  const iClose  = col('fecho', 'close price', 'preço de fe')
+
+  // If we have symbol + volume, treat as open-positions
+  if (iSymbol !== -1 && iVol !== -1) {
+    return rows.flatMap((r) => {
+      const raw    = (r[iSymbol] ?? '').trim()
+      // XTB shows "NVDA Ação" — strip type suffix
+      const ticker = raw.split(/\s+/)[0] ?? raw
+      const name   = raw
+      const units  = parseNum(r[iVol]   ?? '0')
+      const open   = parseNum(r[iOpen]  ?? '0')
+      const value  = parseNum(r[iVal]   ?? '0')
+      const close  = parseNum(r[iClose] ?? '0')
+      if (!ticker || units === 0) return []
+      const avg = open || (value / units)
+      return [{
+        ticker, name: name || ticker,
+        units,
+        avg_price:        avg,
+        current_value:    value || units * (close || avg),
+        capital_invested: units * avg,
+        asset_type: detectAssetType(ticker, name),
+        broker: 'XTB',
+      }]
+    })
+  }
+
+  // Transaction history: use rows directly, need to find position/symbol col
+  // XTB history HTML often has no header — first column is trade ID/symbol
+  // Try to aggregate by symbol from column 0 if it looks like a ticker
+  const map: Record<string, { units: number; cost: number; close: number }> = {}
+  rows.forEach((r) => {
+    const maybeSymbol = (r[0] ?? '').trim()
+    const units = parseNum(r[1] ?? '0')
+    const openP = parseNum(r[2] ?? '0')
+    const clsP  = parseNum(r[3] ?? '0')
+    if (!maybeSymbol || units === 0 || /^\d{4}/.test(maybeSymbol)) return
+    if (!map[maybeSymbol]) map[maybeSymbol] = { units: 0, cost: 0, close: 0 }
+    map[maybeSymbol].units += units
+    map[maybeSymbol].cost  += units * openP
+    map[maybeSymbol].close  = clsP || openP
+  })
+
+  return Object.entries(map).flatMap(([ticker, pos]) => {
+    if (pos.units <= 0) return []
+    const avg = pos.cost / pos.units
+    return [{
+      ticker, name: ticker,
+      units: pos.units,
+      avg_price: avg,
+      current_value: pos.units * (pos.close || avg),
+      capital_invested: pos.units * avg,
+      asset_type: detectAssetType(ticker, ticker),
+      broker: 'XTB',
     }]
   })
 }
@@ -380,8 +497,14 @@ function parseGeneric(text: string): ParsedPosition[] {
 
 // ─── Main entry point ─────────────────────────────────────────────────────
 
+function isHtml(text: string) {
+  const t = text.trimStart().toLowerCase()
+  return t.startsWith('<!doctype html') || t.startsWith('<html') || t.includes('<table')
+}
+
 export function parseCSV(broker: BrokerId, text: string): ParsedPosition[] {
   try {
+    if (broker === 'xtb' && isHtml(text)) return parseXTBHtml(text)
     switch (broker) {
       case 'degiro':       return parseDEGIRO(text)
       case 'trading212':   return parseTrading212(text)

@@ -51,7 +51,7 @@ export default function BrokerModal({ visible, onClose }: Props) {
     return new Promise((resolve, reject) => {
       const input = document.createElement('input')
       input.type = 'file'
-      input.accept = '.csv,.txt,.tsv,text/csv,text/plain,*/*'
+      input.accept = '.csv,.txt,.tsv,.html,.htm,text/csv,text/plain,text/html,*/*'
       input.style.display = 'none'
       document.body.appendChild(input)
       input.onchange = () => {
@@ -333,8 +333,8 @@ export default function BrokerModal({ visible, onClose }: Props) {
         >
           <Ionicons name="document-attach-outline" size={28} color="#64748b" />
           <View>
-            <Text className="text-dark-200 font-semibold">Seleccionar ficheiro CSV</Text>
-            <Text className="text-dark-500 text-xs mt-0.5">Toca para abrir o gestor de ficheiros</Text>
+            <Text className="text-dark-200 font-semibold">Seleccionar ficheiro</Text>
+            <Text className="text-dark-500 text-xs mt-0.5">CSV ou HTML (exportação do broker)</Text>
           </View>
         </TouchableOpacity>
       </>
