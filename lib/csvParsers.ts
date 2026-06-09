@@ -31,7 +31,7 @@ export const BROKERS: { id: BrokerId; label: string; icon: string; hasApi: boole
     label:   'XTB',
     icon:    '🔵',
     hasApi:  false,
-    csvHelp: 'Histórico → Transacções → Exportar CSV',
+    csvHelp: 'xStation → Conta → Histórico de transações → Exportar CSV\n\nOu: Portfólio → Posições abertas → Exportar',
   },
   {
     id:      'traderepublic',
@@ -105,6 +105,16 @@ function parseCsv(text: string, delimiter = ','): string[][] {
   }
   if (cur || row.length) { row.push(cur.trim()); rows.push(row) }
   return rows.filter((r) => r.some((c) => c !== ''))
+}
+
+function detectDelimiter(text: string): ',' | ';' | '\t' {
+  const firstLine = text.split('\n')[0] ?? ''
+  const sc = (firstLine.match(/;/g) ?? []).length
+  const co = (firstLine.match(/,/g) ?? []).length
+  const tb = (firstLine.match(/\t/g) ?? []).length
+  if (tb > sc && tb > co) return '\t'
+  if (sc > co) return ';'
+  return ','
 }
 
 // ─── DEGIRO ────────────────────────────────────────────────────────────────
@@ -195,22 +205,86 @@ function parseTrading212(text: string): ParsedPosition[] {
 }
 
 // ─── XTB ──────────────────────────────────────────────────────────────────
-// XTB export has varying formats; try to handle the common one
-// Header: Symbol,Position,Volume,Open Price,Current Price,Value,Profit
+// Handles two export formats:
+// 1. Open Positions: Symbol,Volume,Open price,Current price,Value,Gross profit,...
+// 2. Transaction History: Position,Symbol,Comment,Type,Volume,Open Time,Open Price,Close Time,Close Price,Commission,...,Net profit
 function parseXTB(text: string): ParsedPosition[] {
-  const rows = parseCsv(text, ',')
+  const delim = detectDelimiter(text)
+  const rows = parseCsv(text, delim)
   if (rows.length < 2) return []
-  const header = rows[0].map((h) => h.toLowerCase())
-  const col = (name: string) => header.findIndex((h) => h.includes(name))
+  const header = rows[0].map((h) => h.toLowerCase().trim())
+  const col = (...names: string[]) => {
+    for (const n of names) {
+      const i = header.findIndex((h) => h.includes(n))
+      if (i !== -1) return i
+    }
+    return -1
+  }
 
-  const iSymbol  = col('symbol')
-  const iVolume  = col('volume')
-  const iOpen    = col('open price')
-  const iCurrent = col('current price')
-  const iValue   = col('value')
+  // Detect format: transaction history has "close time" or "close price" column
+  const isHistory = col('close time', 'close price') !== -1
+
+  if (isHistory) {
+    // Transaction history — aggregate buy/sell by symbol into net positions
+    const iSymbol    = col('symbol', 'instrumento', 'instrument')
+    const iType      = col('type', 'tipo')
+    const iVolume    = col('volume', 'quantidade')
+    const iOpenPrice = col('open price', 'preço de abertura', 'preco abertura')
+    const iClosePrice= col('close price', 'preço de fecho', 'preco fecho')
+
+    if (iSymbol === -1) return []
+
+    const map: Record<string, { units: number; cost: number; closePrice: number }> = {}
+
+    rows.slice(1).forEach((r) => {
+      const symbol = (r[iSymbol] ?? '').trim()
+      const type   = (r[iType]   ?? '').toLowerCase()
+      const vol    = parseNum(r[iVolume]    ?? '0')
+      const oPrice = parseNum(r[iOpenPrice] ?? '0')
+      const cPrice = parseNum(r[iClosePrice]?? '0')
+      if (!symbol || vol === 0) return
+      // Skip "deposit", "withdrawal", "dividend" etc — keep only trades
+      if (type && !type.includes('buy') && !type.includes('sell') &&
+          !type.includes('compra') && !type.includes('venda') &&
+          type !== 'long' && type !== 'short' && type !== 'buy' && type !== 'sell') return
+
+      if (!map[symbol]) map[symbol] = { units: 0, cost: 0, closePrice: 0 }
+      const isSell = type.includes('sell') || type.includes('venda') || type === 'short'
+      if (isSell) {
+        map[symbol].units -= vol
+        map[symbol].cost  -= vol * oPrice
+      } else {
+        map[symbol].units += vol
+        map[symbol].cost  += vol * oPrice
+        map[symbol].closePrice = cPrice || oPrice
+      }
+    })
+
+    return Object.entries(map).flatMap(([ticker, pos]) => {
+      if (pos.units <= 0.0001) return []
+      const avg = pos.units > 0 ? pos.cost / pos.units : 0
+      const lastPrice = pos.closePrice || avg
+      return [{
+        ticker, name: ticker,
+        units:            pos.units,
+        avg_price:        avg,
+        current_value:    pos.units * lastPrice,
+        capital_invested: pos.units * avg,
+        asset_type: detectAssetType(ticker, ticker),
+        broker: 'XTB',
+      }]
+    })
+  }
+
+  // Open positions snapshot
+  const iSymbol  = col('symbol', 'instrumento', 'instrument')
+  const iVolume  = col('volume', 'quantidade')
+  const iOpen    = col('open price', 'preço de abertura')
+  const iCurrent = col('current price', 'preço atual', 'current')
+  const iValue   = col('value', 'valor', 'market value')
 
   return rows.slice(1).flatMap((r) => {
-    const ticker = r[iSymbol] ?? ''
+    const ticker = (r[iSymbol] ?? '').trim()
     const units  = parseNum(r[iVolume] ?? '0')
     const open   = parseNum(r[iOpen]   ?? '0')
     const curr   = parseNum(r[iCurrent]?? '0')

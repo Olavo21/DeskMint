@@ -47,29 +47,54 @@ export default function BrokerModal({ visible, onClose }: Props) {
 
   function close() { reset(); onClose() }
 
+  function pickCSVWeb(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.csv,.txt,.tsv,text/csv,text/plain,*/*'
+      input.style.display = 'none'
+      document.body.appendChild(input)
+      input.onchange = () => {
+        const file = input.files?.[0]
+        document.body.removeChild(input)
+        if (!file) { reject(new Error('cancelled')); return }
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target?.result as string)
+        reader.onerror = () => reject(new Error('Erro ao ler o ficheiro'))
+        reader.readAsText(file, 'UTF-8')
+      }
+      input.oncancel = () => { document.body.removeChild(input); reject(new Error('cancelled')) }
+      input.click()
+    })
+  }
+
   async function pickCSV() {
     setError(null)
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/csv', 'text/plain', 'application/octet-stream', '*/*'],
-        copyToCacheDirectory: true,
-      })
-      if (result.canceled || !result.assets?.[0]) return
-
-      const uri  = result.assets[0].uri
       let text: string
+
       if (Platform.OS === 'web') {
-        const res = await fetch(uri)
-        text = await res.text()
+        try {
+          text = await pickCSVWeb()
+        } catch (e) {
+          if (String(e).includes('cancelled')) return
+          throw e
+        }
       } else {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ['text/csv', 'text/plain', '*/*'],
+          copyToCacheDirectory: true,
+        })
+        if (result.canceled || !result.assets?.[0]) return
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const FS = require('expo-file-system')
-        text = await FS.readAsStringAsync(uri, { encoding: FS.EncodingType.UTF8 })
+        text = await FS.readAsStringAsync(result.assets[0].uri, { encoding: FS.EncodingType.UTF8 })
       }
+
       const positions = parseCSV(broker!, text)
 
       if (positions.length === 0) {
-        setError('Não foi possível ler o ficheiro. Confirma que é um CSV válido deste broker.')
+        setError('Não foi possível ler o ficheiro. Confirma que é um CSV exportado deste broker.')
         return
       }
 
