@@ -51,7 +51,7 @@ export default function BrokerModal({ visible, onClose }: Props) {
     return new Promise((resolve, reject) => {
       const input = document.createElement('input')
       input.type = 'file'
-      input.accept = '.csv,.txt,.tsv,.html,.htm,text/csv,text/plain,text/html,*/*'
+      input.accept = '.csv,.txt,.tsv,.html,.htm,.mhtml,.mht,*/*'
       input.style.display = 'none'
       document.body.appendChild(input)
       input.onchange = () => {

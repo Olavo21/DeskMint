@@ -497,20 +497,57 @@ function parseGeneric(text: string): ParsedPosition[] {
 
 // ─── Main entry point ─────────────────────────────────────────────────────
 
+function isMhtml(text: string) {
+  const t = text.trimStart()
+  return t.startsWith('From:') || /^MIME-Version:/im.test(t.slice(0, 200))
+}
+
 function isHtml(text: string) {
   const t = text.trimStart().toLowerCase()
-  return t.startsWith('<!doctype html') || t.startsWith('<html') || t.includes('<table')
+  return t.startsWith('<!doctype html') || t.startsWith('<html') || t.includes('<table') || isMhtml(text)
+}
+
+function extractHtmlFromMhtml(text: string): string {
+  // Get MIME boundary
+  const boundaryMatch = text.match(/boundary="([^"]+)"/)
+  if (!boundaryMatch) {
+    // Fallback: find raw HTML inside the file
+    const s = text.search(/<!doctype html|<html/i)
+    return s !== -1 ? text.slice(s) : text
+  }
+
+  const boundary = boundaryMatch[1]
+  const parts = text.split(new RegExp('--' + boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+
+  for (const part of parts) {
+    if (!/Content-Type:\s*text\/html/i.test(part)) continue
+    const sep = part.indexOf('\n\n')
+    if (sep === -1) continue
+    let content = part.slice(sep + 2).replace(/\r\n/g, '\n')
+    // Decode quoted-printable encoding
+    if (/Content-Transfer-Encoding:\s*quoted-printable/i.test(part)) {
+      content = content
+        .replace(/=\n/g, '')
+        .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    }
+    return content
+  }
+
+  // Last resort: extract anything between <html>...</html>
+  const s = text.search(/<!doctype html|<html/i)
+  return s !== -1 ? text.slice(s) : text
 }
 
 export function parseCSV(broker: BrokerId, text: string): ParsedPosition[] {
   try {
-    if (broker === 'xtb' && isHtml(text)) return parseXTBHtml(text)
+    const content = isMhtml(text) ? extractHtmlFromMhtml(text) : text
+    if (broker === 'xtb' && isHtml(content)) return parseXTBHtml(content)
     switch (broker) {
-      case 'degiro':       return parseDEGIRO(text)
-      case 'trading212':   return parseTrading212(text)
-      case 'xtb':          return parseXTB(text)
-      case 'traderepublic':return parseTradeRepublic(text)
-      default:             return parseGeneric(text)
+      case 'degiro':       return parseDEGIRO(content)
+      case 'trading212':   return parseTrading212(content)
+      case 'xtb':          return parseXTB(content)
+      case 'traderepublic':return parseTradeRepublic(content)
+      default:             return parseGeneric(content)
     }
   } catch {
     return []
