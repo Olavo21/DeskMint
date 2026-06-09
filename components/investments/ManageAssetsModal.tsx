@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Modal, View, Text, TouchableOpacity,
-  ScrollView, TextInput, ActivityIndicator, Alert,
+  ScrollView, TextInput, ActivityIndicator, Alert, Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -73,15 +73,18 @@ export default function ManageAssetsModal({ visible, onClose, onAdd }: Props) {
   }
 
   function confirmDelete(asset: Asset) {
+    const doDelete = () => { deleteAsset.mutate(asset.id); cancelEdit() }
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-restricted-globals
+      if (confirm(`Remover ${asset.ticker} do portfolio? Esta acção não pode ser desfeita.`)) doDelete()
+      return
+    }
     Alert.alert(
       'Remover ativo',
       `Tens a certeza que queres remover ${asset.ticker} do portfolio? Esta acção não pode ser desfeita.`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover', style: 'destructive',
-          onPress: () => { deleteAsset.mutate(asset.id); cancelEdit() },
-        },
+        { text: 'Remover', style: 'destructive', onPress: doDelete },
       ],
     )
   }
