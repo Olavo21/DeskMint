@@ -53,7 +53,7 @@ export default function LoginScreen() {
             <Text className="text-dark-400 text-xs mb-1.5 ml-1">Email</Text>
             <TextInput
               className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
-              placeholder="olavo@exemplo.com"
+              placeholder="Email"
               placeholderTextColor="#475569"
               value={email}
               onChangeText={setEmail}
@@ -67,7 +67,7 @@ export default function LoginScreen() {
             <Text className="text-dark-400 text-xs mb-1.5 ml-1">Password</Text>
             <TextInput
               className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
-              placeholder="••••••••"
+              placeholder="Palavra-passe"
               placeholderTextColor="#475569"
               value={password}
               onChangeText={setPassword}
