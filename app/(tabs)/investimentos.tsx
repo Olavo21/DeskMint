@@ -189,20 +189,22 @@ export default function InvestimentosScreen() {
               </View>
             )}
 
-            {/* Botão Editar Ativos */}
-            <TouchableOpacity
-              onPress={() => setShowManage(true)}
-              className="mx-4 mt-3 mb-1 flex-row items-center justify-center gap-2.5 bg-dark-800 border border-teal-500/30 rounded-2xl py-3.5"
-              style={{ shadowColor: '#0d9488', shadowOpacity: 0.08, shadowRadius: 10, elevation: 2 }}
-            >
-              <View className="w-7 h-7 rounded-full bg-teal-500/15 items-center justify-center">
-                <Ionicons name="create-outline" size={15} color="#0d9488" />
-              </View>
-              <Text className="text-teal-600 font-semibold text-sm">Editar Ativos</Text>
-            </TouchableOpacity>
+            {/* Cabeçalho da lista de ativos com acesso rápido à edição */}
+            <View className="mx-4 mt-4 flex-row items-center justify-between mb-2">
+              <Text className="text-dark-300 text-xs font-semibold uppercase tracking-widest">
+                {data?.assets?.length ?? 0} Posições
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowManage(true)}
+                className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl bg-dark-800 border border-dark-600"
+              >
+                <Ionicons name="create-outline" size={13} color="#0d9488" />
+                <Text className="text-teal-600 text-xs font-semibold">Gerir</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Lista de ativos */}
-            <View className="mx-4 mt-4 gap-2">
+            <View className="mx-4 gap-2">
               {(data?.assets ?? []).map((asset, i) => (
                 <AssetCard
                   key={asset.id}

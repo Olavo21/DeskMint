@@ -37,11 +37,11 @@ function MiniBarChart({ capital, jurosTotal }: { capital: number; jurosTotal: nu
       <View className="flex-row justify-between">
         <View className="flex-row items-center gap-1.5">
           <View className="w-2.5 h-2.5 rounded-sm bg-teal-500/80" />
-          <Text className="text-slate-400 text-xs">Capital {fmt(capital)}</Text>
+          <Text className="text-dark-400 text-xs">Capital {fmt(capital)}</Text>
         </View>
         <View className="flex-row items-center gap-1.5">
           <View className="w-2.5 h-2.5 rounded-sm bg-red-500/60" />
-          <Text className="text-slate-400 text-xs">Juros {fmt(jurosTotal)}</Text>
+          <Text className="text-dark-400 text-xs">Juros {fmt(jurosTotal)}</Text>
         </View>
       </View>
     </View>
@@ -91,21 +91,25 @@ export default function CalculadoraCreditos() {
     <View className="gap-4">
       {/* Tipo de taxa */}
       <View className="flex-row gap-2">
-        {(['fixa', 'variavel'] as TipoTaxa[]).map((t) => (
+        {(['fixa', 'variavel'] as TipoTaxa[]).map((opt) => (
           <TouchableOpacity
-            key={t}
-            onPress={() => setTipoTaxa(t)}
-            className={`flex-1 py-2.5 rounded-xl border items-center ${tipoTaxa === t ? 'border-teal-500/50 bg-teal-500/10' : 'border-slate-700 bg-slate-800'}`}
+            key={opt}
+            onPress={() => setTipoTaxa(opt)}
+            className={`flex-1 py-2.5 rounded-xl border items-center ${
+              tipoTaxa === opt
+                ? 'border-teal-500/50 bg-teal-500/10'
+                : 'border-dark-600 bg-dark-800'
+            }`}
           >
-            <Text className={`text-sm font-semibold ${tipoTaxa === t ? 'text-teal-400' : 'text-slate-400'}`}>
-              {t === 'fixa' ? 'Taxa Fixa' : 'Taxa Variável (Euribor)'}
+            <Text className={`text-sm font-semibold ${tipoTaxa === opt ? 'text-teal-600' : 'text-dark-400'}`}>
+              {opt === 'fixa' ? 'Taxa Fixa' : 'Taxa Variável (Euribor)'}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Inputs */}
-      <View className="bg-slate-800 border border-slate-700 rounded-2xl p-4 gap-3">
+      <View className="bg-dark-800 border border-dark-600 rounded-2xl p-4 gap-3">
         <InputRow label="Capital em dívida (€)" value={capital} onChange={setCapital} />
         <InputRow label="Prazo restante (meses)" value={prazo} onChange={setPrazo} />
         {tipoTaxa === 'fixa' ? (
@@ -114,63 +118,62 @@ export default function CalculadoraCreditos() {
           <>
             <InputRow label="Euribor 12 meses (%)" value={euribor} onChange={setEuribor} />
             <InputRow label="Spread (%)" value={spread} onChange={setSpread} />
-            <View className="bg-slate-700 rounded-xl px-3 py-2 flex-row justify-between">
-              <Text className="text-slate-400 text-sm">Taxa total</Text>
-              <Text className="text-slate-200 text-sm font-bold">{t.toFixed(2)}%</Text>
+            <View className="bg-dark-700 rounded-xl px-3 py-2 flex-row justify-between">
+              <Text className="text-dark-400 text-sm">Taxa total</Text>
+              <Text className="text-dark-100 text-sm font-bold">{t.toFixed(2)}%</Text>
             </View>
           </>
         )}
       </View>
 
-      {/* Resultado */}
+      {/* Resultado — destaque */}
       <View className="bg-teal-500/10 border border-teal-500/30 rounded-2xl p-4">
-        <Text className="text-teal-400 text-xs mb-1">Prestação mensal</Text>
-        <Text className="text-teal-300 text-3xl font-black">{fmt(pmt)}</Text>
+        <Text className="text-teal-600 text-xs mb-1">Prestação mensal</Text>
+        <Text className="text-teal-600 text-3xl font-black">{fmt(pmt)}</Text>
       </View>
 
       <View className="flex-row gap-3">
-        <View className="flex-1 bg-slate-800 border border-slate-700 rounded-2xl p-4">
-          <Text className="text-slate-400 text-xs mb-1">Total pago</Text>
-          <Text className="text-slate-200 text-lg font-bold" numberOfLines={1} adjustsFontSizeToFit>
+        <View className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl p-4">
+          <Text className="text-dark-400 text-xs mb-1">Total pago</Text>
+          <Text className="text-dark-100 text-lg font-bold" numberOfLines={1} adjustsFontSizeToFit>
             {fmt(totalPago)}
           </Text>
         </View>
-        <View className="flex-1 bg-slate-800 border border-slate-700 rounded-2xl p-4">
-          <Text className="text-slate-400 text-xs mb-1">Total em juros</Text>
-          <Text className="text-red-400 text-lg font-bold" numberOfLines={1} adjustsFontSizeToFit>
+        <View className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl p-4">
+          <Text className="text-dark-400 text-xs mb-1">Total em juros</Text>
+          <Text className="text-red-500 text-lg font-bold" numberOfLines={1} adjustsFontSizeToFit>
             {fmt(jurosTotal)}
           </Text>
         </View>
       </View>
 
       {/* Distribuição */}
-      <View className="bg-slate-800 border border-slate-700 rounded-2xl p-4">
-        <Text className="text-slate-400 text-xs uppercase tracking-widest mb-3">Distribuição capital vs. juros</Text>
+      <View className="bg-dark-800 border border-dark-600 rounded-2xl p-4">
+        <Text className="text-dark-400 text-xs uppercase tracking-widest mb-3">Distribuição capital vs. juros</Text>
         <MiniBarChart capital={c} jurosTotal={jurosTotal} />
       </View>
 
-      {/* Stress test Euribor (só para taxa variável) */}
+      {/* Stress test Euribor */}
       {tipoTaxa === 'variavel' && (
-        <View className="bg-slate-800 border border-slate-700 rounded-2xl p-4">
-          <Text className="text-slate-400 text-xs uppercase tracking-widest mb-3">
+        <View className="bg-dark-800 border border-dark-600 rounded-2xl p-4">
+          <Text className="text-dark-400 text-xs uppercase tracking-widest mb-3">
             Stress test Euribor
           </Text>
           <View className="gap-2">
-            {/* Header */}
             <View className="flex-row">
-              <Text className="text-slate-500 text-xs flex-1">Cenário</Text>
-              <Text className="text-slate-500 text-xs w-20 text-center">Taxa</Text>
-              <Text className="text-slate-500 text-xs w-24 text-right">Prestação</Text>
-              <Text className="text-slate-500 text-xs w-20 text-right">Δ</Text>
+              <Text className="text-dark-500 text-xs flex-1">Cenário</Text>
+              <Text className="text-dark-500 text-xs w-20 text-center">Taxa</Text>
+              <Text className="text-dark-500 text-xs w-24 text-right">Prestação</Text>
+              <Text className="text-dark-500 text-xs w-20 text-right">Δ</Text>
             </View>
             {cenariosEuribor.map((sc) => (
               <View
                 key={sc.label}
                 className={`flex-row items-center py-2 rounded-lg px-2 ${sc.highlight ? 'bg-amber-500/10 border border-amber-500/20' : ''}`}
               >
-                <Text className="text-slate-300 text-sm flex-1">{sc.label}</Text>
-                <Text className="text-slate-400 text-xs w-20 text-center">{sc.taxa}</Text>
-                <Text className="text-slate-200 text-sm font-semibold w-24 text-right">
+                <Text className="text-dark-200 text-sm flex-1">{sc.label}</Text>
+                <Text className="text-dark-400 text-xs w-20 text-center">{sc.taxa}</Text>
+                <Text className="text-dark-100 text-sm font-semibold w-24 text-right">
                   {fmt(sc.pmt)}
                 </Text>
                 <Text
@@ -185,7 +188,7 @@ export default function CalculadoraCreditos() {
         </View>
       )}
 
-      <Text className="text-slate-600 text-xs text-center">
+      <Text className="text-dark-500 text-xs text-center">
         * Valores indicativos. Consulta sempre a tua instituição financeira.
       </Text>
     </View>
@@ -195,12 +198,13 @@ export default function CalculadoraCreditos() {
 function InputRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <View>
-      <Text className="text-slate-400 text-xs mb-1">{label}</Text>
+      <Text className="text-dark-400 text-xs mb-1">{label}</Text>
       <TextInput
         value={value}
         onChangeText={onChange}
         keyboardType="decimal-pad"
-        className="bg-slate-700 border border-slate-600 rounded-xl px-3 py-2.5 text-slate-200 text-sm"
+        style={{ color: '#334155' }}
+        className="bg-dark-700 border border-dark-600 rounded-xl px-3 py-2.5 text-sm"
       />
     </View>
   )

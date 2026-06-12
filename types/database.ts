@@ -452,7 +452,7 @@ export type Database = {
       dm_asset_kind: "VEHICLE" | "REAL_ESTATE" | "BANK_ACCOUNT" | "SAVINGS" | "OTHER"
       dm_asset_type: "ETF" | "STOCK" | "CRYPTO" | "BOND" | "OTHER"
       dm_budget_type: "NEEDS" | "WANTS" | "SAVINGS"
-      dm_commission_status: "PENDING" | "PAID" | "CANCELLED"
+      dm_commission_status: "PENDING" | "TO_PAY" | "PAID" | "CANCELLED"
       dm_plan: "FREE" | "PRO" | "FOUNDER"
     }
   }

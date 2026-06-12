@@ -23,6 +23,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // Web: detecta o token no URL hash (#access_token=...) após confirmação de email.
+    // Native: false porque deep links são tratados separadamente.
+    detectSessionInUrl: Platform.OS === 'web',
   },
 })

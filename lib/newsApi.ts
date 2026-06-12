@@ -25,13 +25,27 @@ export const SP500_SECTORS = {
 }
 
 // ─── Mapeamento ETF → tickers subjacentes para notícias ─────────────────────
+// Chaves sem sufixo de bolsa (.DE/.US) para coincidir com o que a DB guarda
 export const ETF_PROXIES: Record<string, string[]> = {
-  'VWCE.DE': ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],   // FTSE All-World top holdings
-  'SXRV.DE': ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'META'],    // NASDAQ-100 top holdings
-  'LSMC.DE': ['NVDA', 'TSM', 'AVGO', 'ASML', 'AMD'],       // Semiconductors
-  'QQQ':     ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'META'],
-  'SPY':     ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
-  'VTI':     ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  // Global
+  VWCE:  ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  VWRL:  ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  IWDA:  ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  SWDA:  ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  // NASDAQ / S&P 500
+  SXRV:  ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'META'],
+  CSPX:  ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  IUSA:  ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  IUQQ:  ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'META'],
+  QQQ:   ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'META'],
+  SPY:   ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  VTI:   ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL'],
+  // Semicondutores
+  LSMC:  ['NVDA', 'TSM', 'AVGO', 'ASML', 'AMD'],
+  // Aerospace & Defense
+  DFEN:  ['LMT', 'RTX', 'BA', 'NOC', 'GD'],
+  // Quantum
+  QUTM:  ['IBM', 'GOOGL', 'MSFT', 'IONQ', 'RGTI'],
 }
 
 function dateRange(daysBack: number) {

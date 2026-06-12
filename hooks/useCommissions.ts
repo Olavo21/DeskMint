@@ -32,7 +32,7 @@ export function useCommissions() {
   })
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status, paidAt }: { id: string; status: 'PAID' | 'CANCELLED'; paidAt?: string }) => {
+    mutationFn: async ({ id, status, paidAt }: { id: string; status: 'TO_PAY' | 'PAID' | 'PENDING' | 'CANCELLED'; paidAt?: string }) => {
       const { error } = await supabase
         .from('dm_commissions')
         .update({ status, ...(paidAt ? { paid_at: paidAt } : {}) })
@@ -46,6 +46,7 @@ export function useCommissions() {
   const data = query.data ?? []
   const totals = {
     paid:      data.filter((c) => c.status === 'PAID').reduce((s, c) => s + c.amount, 0),
+    toPay:     data.filter((c) => c.status === 'TO_PAY').reduce((s, c) => s + c.amount, 0),
     pending:   data.filter((c) => c.status === 'PENDING').reduce((s, c) => s + c.amount, 0),
     cancelled: data.filter((c) => c.status === 'CANCELLED').reduce((s, c) => s + c.amount, 0),
   }
