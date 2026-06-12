@@ -33,6 +33,7 @@ export default function RootLayout() {
         router.replace('/(tabs)')
       } else {
         setProfile(null)
+        queryClient.clear()
         router.replace('/(auth)/login')
       }
     })

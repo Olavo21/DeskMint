@@ -91,16 +91,20 @@ export default function DashboardScreen() {
                 <Text className="text-dark-50 font-semibold">Património Líquido</Text>
                 <Text className="text-mint-400 text-lg font-bold">{fmt(data?.netWorth ?? 0)}</Text>
               </View>
-              {[
-                { label: 'Peugeot 208 GT (líq.)', value: 16700 },
-                { label: 'Portfolio XTB', value: data?.portfolioValue ?? 0 },
-                { label: 'Fundo Emergência', value: data?.emergencyFund ?? 0 },
-              ].map((row) => (
-                <View key={row.label} className="flex-row justify-between items-center py-3 border-b border-dark-700">
-                  <Text className="text-dark-300 text-sm">{row.label}</Text>
-                  <Text className="text-dark-50 text-sm font-semibold">{fmt(row.value)}</Text>
+              {(data?.assets ?? []).map((asset) => (
+                <View key={asset.id} className="flex-row justify-between items-center py-3 border-b border-dark-700">
+                  <Text className="text-dark-300 text-sm">{asset.name}</Text>
+                  <Text className="text-dark-50 text-sm font-semibold">{fmt(asset.value - asset.debt)}</Text>
                 </View>
               ))}
+              <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
+                <Text className="text-dark-300 text-sm">Portefólio</Text>
+                <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.portfolioValue ?? 0)}</Text>
+              </View>
+              <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
+                <Text className="text-dark-300 text-sm">Fundo de Emergência</Text>
+                <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.emergencyFund ?? 0)}</Text>
+              </View>
             </View>
           </>
         )}

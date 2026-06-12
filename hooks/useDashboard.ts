@@ -33,7 +33,7 @@ export function useDashboard(month: number, year: number) {
       const portfolioValue = portfolio.reduce((s, a) => s + a.current_value, 0)
       const portfolioCapital = portfolio.reduce((s, a) => s + a.capital_invested, 0)
       const emergencyFund = emergency?.current_amount ?? 0
-      const assetsValue = assets.reduce((s, a) => s + a.value, 0)
+      const assetsValue = assets.reduce((s, a) => s + (a.value - a.debt), 0)
 
       return {
         income,
@@ -46,6 +46,7 @@ export function useDashboard(month: number, year: number) {
         portfolioPL: portfolioValue - portfolioCapital,
         emergencyFund,
         budgetRule: budget,
+        assets,
       }
     },
   })
