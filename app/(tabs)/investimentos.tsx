@@ -227,12 +227,12 @@ export default function InvestimentosScreen() {
         {activeTab === 'tipo' && (
           <View>
             <DonutChart segments={byType} centerLabel={fmt(totalValue)} centerSub="Por Tipo" />
-            <Legend segments={byType} fmt={fmt} />
             <View className="mx-4 mt-5 gap-2">
               {byType.map((seg) => (
                 <GroupRow key={seg.label} seg={seg} total={totalValue} fmt={fmt} />
               ))}
             </View>
+            <View className="h-24" />
           </View>
         )}
 
@@ -240,7 +240,6 @@ export default function InvestimentosScreen() {
         {activeTab === 'regiao' && (
           <View>
             <DonutChart segments={byRegion} centerLabel={fmt(totalValue)} centerSub="Por Região" />
-            <Legend segments={byRegion} fmt={fmt} />
             <View className="mx-4 mt-5 gap-2">
               {byRegion.slice().sort((a, b) => b.value - a.value).map((seg) => (
                 <GroupRow key={seg.label} seg={seg} total={totalValue} fmt={fmt} />
@@ -251,6 +250,7 @@ export default function InvestimentosScreen() {
                 A região é derivada automaticamente do ticker. ETFs globais e temáticos aparecem em "Resto do Mundo".
               </Text>
             </View>
+            <View className="h-24" />
           </View>
         )}
 

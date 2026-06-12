@@ -5,8 +5,9 @@ import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
 import Header from '../../components/ui/Header'
 
-const MONTH = 5
-const YEAR = 2026
+const now   = new Date()
+const MONTH = now.getMonth() + 1
+const YEAR  = now.getFullYear()
 
 function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -22,11 +23,14 @@ function RuleRow({ label, pct, ideal, amt, fmt }: { label: string; pct: number; 
   const over = pct > ideal && label !== 'Poupança'
   return (
     <View className="mb-3">
-      <View className="flex-row justify-between mb-1">
+      <View className="flex-row justify-between items-center mb-1">
         <Text className="text-dark-300 text-sm">{label}</Text>
-        <Text className={`text-sm font-medium ${over ? 'text-red-400' : 'text-mint-400'}`}>
-          {(pct * 100).toFixed(1)}% · {fmt(amt)}
-        </Text>
+        <View className="flex-row items-center gap-2">
+          <Text className={`text-sm font-semibold ${over ? 'text-red-400' : 'text-mint-400'}`}>
+            {(pct * 100).toFixed(1)}%
+          </Text>
+          <Text className="text-dark-300 text-sm">{fmt(amt)}</Text>
+        </View>
       </View>
       <View className="h-2 bg-dark-700 rounded-full overflow-hidden">
         <View
@@ -47,10 +51,13 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
-      <Header subtitle="Maio 2026" showSignOut />
+      <Header showSignOut />
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
 
         <View className="mt-4 mb-6">
+          <Text className="text-dark-400 text-sm capitalize">
+            {now.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+          </Text>
           <Text className="text-dark-50 text-2xl font-bold">Dashboard</Text>
         </View>
 
