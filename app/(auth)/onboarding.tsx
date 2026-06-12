@@ -51,7 +51,6 @@ export default function OnboardingScreen() {
       .upsert({
         id:              session!.user.id,
         name:            name.trim() || session!.user.email!.split('@')[0],
-        plan:            'FREE',
         currency:        'EUR',
         investor_type:   investorType,
         invest_goal:     goal,
