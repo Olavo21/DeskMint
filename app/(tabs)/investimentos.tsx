@@ -15,6 +15,7 @@ import NovoAtivoModal from '../../components/investments/NovoAtivoModal'
 import BrokerModal from '../../components/investments/BrokerModal'
 import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
 import TickerLogo from '../../components/ui/TickerLogo'
+import InvestmentChatSheet from '../../components/investments/InvestmentChatSheet'
 import { getColor } from '../../lib/portfolioColors'
 import { getRegion, getRegionLabel, REGION_COLORS } from '../../lib/assetRegions'
 import { getEtfInfo } from '../../lib/etfDatabase'
@@ -43,6 +44,7 @@ export default function InvestimentosScreen() {
   const [showModal, setShowModal]         = useState(false)
   const [showBroker, setShowBroker]       = useState(false)
   const [showManage, setShowManage]       = useState(false)
+  const [showAIChat, setShowAIChat]       = useState(false)
   const [editAsset, setEditAsset]         = useState<AssetWithPL | null>(null)
   const [editing, setEditing]             = useState<EditState | null>(null)
   const [historyRange, setHistoryRange]   = useState<Range>('Max')
@@ -332,6 +334,20 @@ export default function InvestimentosScreen() {
 
       {/* FABs — bottom-20 clears the 64px tab bar */}
       <View className="absolute bottom-20 right-4 gap-2.5 items-end">
+        {/* Investment AI chat */}
+        <TouchableOpacity
+          onPress={() => setShowAIChat(true)}
+          style={{
+            width: 40, height: 40, borderRadius: 20,
+            backgroundColor: '#0d2137',
+            borderWidth: 1, borderColor: '#14b8a640',
+            alignItems: 'center', justifyContent: 'center',
+            shadowColor: '#14b8a6', shadowOpacity: 0.25, shadowRadius: 8, elevation: 6,
+          }}
+        >
+          <Ionicons name="sparkles-outline" size={18} color="#14b8a6" />
+        </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() => setShowBroker(true)}
           className="flex-row items-center gap-2 bg-dark-800 border border-dark-600 rounded-full px-4 py-2.5"
@@ -351,6 +367,7 @@ export default function InvestimentosScreen() {
         </TouchableOpacity>
       </View>
 
+      <InvestmentChatSheet visible={showAIChat} onClose={() => setShowAIChat(false)} />
       <NovoAtivoModal visible={showModal} onClose={() => setShowModal(false)} />
       <BrokerModal visible={showBroker} onClose={() => setShowBroker(false)} />
       <ManageAssetsModal
