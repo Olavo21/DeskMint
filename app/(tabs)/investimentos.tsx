@@ -45,7 +45,7 @@ export default function InvestimentosScreen() {
   const [showManage, setShowManage]       = useState(false)
   const [editAsset, setEditAsset]         = useState<AssetWithPL | null>(null)
   const [editing, setEditing]             = useState<EditState | null>(null)
-  const [historyRange, setHistoryRange]   = useState<Range>('Todo')
+  const [historyRange, setHistoryRange]   = useState<Range>('Max')
 
   // Donut: 54% da largura mas nunca maior que 240px (evita overflow no web/tablet)
   const donutSize      = Math.min(Math.round(screenW * 0.54), 240)

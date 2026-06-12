@@ -1,9 +1,15 @@
-﻿import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, LayoutChangeEvent, ActivityIndicator } from 'react-native'
-import Svg, { Path, Defs, LinearGradient, Stop, Line, Text as SvgText } from 'react-native-svg'
+import React, { useState, useRef, useMemo, useEffect } from 'react'
+import {
+  View, Text, TouchableOpacity, LayoutChangeEvent,
+  ActivityIndicator, PanResponder,
+} from 'react-native'
+import Svg, {
+  Path, Defs, LinearGradient, Stop, Line,
+  Text as SvgText, Circle, Rect,
+} from 'react-native-svg'
 
 export type HistoryPoint = { date: string; value: number }
-export type Range = '1M' | '3M' | '6M' | '1A' | 'Todo'
+export type Range = '1M' | '3M' | 'YTD' | '1A' | '5A' | 'Max'
 
 interface Props {
   data: HistoryPoint[]
@@ -12,178 +18,291 @@ interface Props {
   isLoading?: boolean
 }
 
-const RANGES: Range[] = ['1M', '3M', '6M', '1A', 'Todo']
-const CHART_HEIGHT = 180
-const PADDING = { top: 16, bottom: 32, left: 8, right: 8 }
+const RANGES: Range[] = ['1M', '3M', 'YTD', '1A', '5A', 'Max']
+const H = 220
+const PAD = { top: 20, bottom: 34, left: 40, right: 12 }
+const TIP_W = 110
+const TIP_H = 40
 
-function formatValue(v: number) {
-  if (v >= 1000) return `${(v / 1000).toFixed(1)}k€`
-  return `${v.toFixed(0)}€`
+function fmtAxis(v: number): string {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000)     return `${(v / 1_000).toFixed(1)}k`
+  return v.toFixed(0)
 }
 
-function formatDate(iso: string, range: Range) {
+function fmtXLabel(iso: string, range: Range): string {
   const d = new Date(iso)
-  if (range === '1M' || range === '3M') {
+  if (range === '1M' || range === '3M')
     return d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })
-  }
   return d.toLocaleDateString('pt-PT', { month: 'short', year: '2-digit' })
 }
 
+function fmtTooltipDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-PT', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  })
+}
+
+function buildSmoothPath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return ''
+  const d: string[] = [`M${pts[0].x},${pts[0].y}`]
+  for (let i = 1; i < pts.length; i++) {
+    const cp = (pts[i - 1].x + pts[i].x) / 2
+    d.push(`C${cp},${pts[i - 1].y},${cp},${pts[i].y},${pts[i].x},${pts[i].y}`)
+  }
+  return d.join(' ')
+}
+
 export default function PortfolioLineChart({ data, range, onRangeChange, isLoading }: Props) {
-  const [chartWidth, setChartWidth] = useState(320)
+  const [svgWidth, setSvgWidth] = useState(320)
+  const [tip, setTip] = useState<{
+    x: number; y: number; value: number; date: string
+  } | null>(null)
+  const tipTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Refs to avoid stale closures inside the PanResponder (created once)
+  const dataRef   = useRef(data)
+  const pointsRef = useRef<{ x: number; y: number }[]>([])
+  const wRef      = useRef(0)
 
-  function onLayout(e: LayoutChangeEvent) {
-    setChartWidth(e.nativeEvent.layout.width)
-  }
+  const w = svgWidth - PAD.left - PAD.right
+  const h = H - PAD.top - PAD.bottom
 
-  const w = chartWidth - PADDING.left - PADDING.right
-  const h = CHART_HEIGHT - PADDING.top - PADDING.bottom
+  const minV = useMemo(
+    () => (data.length ? Math.min(...data.map((d) => d.value)) * 0.96 : 0),
+    [data],
+  )
+  const maxV = useMemo(
+    () => (data.length ? Math.max(...data.map((d) => d.value)) * 1.04 : 1),
+    [data],
+  )
 
-  const minV = data.length > 0 ? Math.min(...data.map((d) => d.value)) * 0.97 : 0
-  const maxV = data.length > 0 ? Math.max(...data.map((d) => d.value)) * 1.03 : 1
+  const points = useMemo(() => {
+    const n = data.length
+    return data.map((pt, i) => ({
+      x: PAD.left + (n <= 1 ? w / 2 : (i / (n - 1)) * w),
+      y: PAD.top + h - ((pt.value - minV) / (maxV - minV || 1)) * h,
+    }))
+  }, [data, w, h, minV, maxV])
 
-  function toX(i: number) {
-    return PADDING.left + (data.length <= 1 ? w / 2 : (i / (data.length - 1)) * w)
-  }
-  function toY(v: number) {
-    return PADDING.top + h - ((v - minV) / (maxV - minV || 1)) * h
-  }
+  useEffect(() => { dataRef.current   = data   }, [data])
+  useEffect(() => { pointsRef.current = points }, [points])
+  useEffect(() => { wRef.current      = w      }, [w])
 
-  // Build line path
-  const linePath = data
-    .map((pt, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)} ${toY(pt.value)}`)
-    .join(' ')
+  const linePath = useMemo(() => buildSmoothPath(points), [points])
+  const fillPath = useMemo(() => {
+    if (points.length < 2) return ''
+    const base = PAD.top + h
+    return `${linePath} L${points[points.length - 1].x},${base} L${points[0].x},${base} Z`
+  }, [linePath, points, h])
 
-  // Build fill path (close back to baseline)
-  const fillPath = data.length > 0
-    ? [
-        linePath,
-        `L ${toX(data.length - 1)} ${PADDING.top + h}`,
-        `L ${toX(0)} ${PADDING.top + h}`,
-        'Z',
-      ].join(' ')
-    : ''
+  const isPos = data.length > 1 ? data[data.length - 1].value >= data[0].value : true
+  const clr   = isPos ? '#14b8a6' : '#ef4444'
 
-  // Show 3-4 labels on X axis
-  const labelIndices = data.length <= 4
+  const gridTs = [0, 0.33, 0.66, 1]
+  const xIdxs  = data.length <= 4
     ? data.map((_, i) => i)
     : [0, Math.floor(data.length / 3), Math.floor((2 * data.length) / 3), data.length - 1]
 
-  const isPositive = data.length > 1 ? data[data.length - 1].value >= data[0].value : true
-  const lineColor = isPositive ? '#14b8a6' : '#ef4444'
-  const gradientStart = isPositive ? '#14b8a620' : '#ef444420'
+  function handleTouch(lx: number) {
+    const d  = dataRef.current
+    const ps = pointsRef.current
+    const cw = wRef.current
+    if (d.length < 2) return
+    const i  = Math.max(0, Math.min(d.length - 1, Math.round(((lx - PAD.left) / cw) * (d.length - 1))))
+    const pt = d[i]
+    const px = ps[i]
+    if (!pt || !px) return
+    setTip({ x: px.x, y: px.y, value: pt.value, date: pt.date })
+  }
+
+  const pan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder:  () => true,
+    onPanResponderGrant: (e) => {
+      if (tipTimer.current) clearTimeout(tipTimer.current)
+      handleTouch(e.nativeEvent.locationX)
+    },
+    onPanResponderMove: (e) => {
+      if (tipTimer.current) clearTimeout(tipTimer.current)
+      handleTouch(e.nativeEvent.locationX)
+    },
+    onPanResponderRelease: () => {
+      tipTimer.current = setTimeout(() => setTip(null), 2000)
+    },
+    onPanResponderTerminate: () => setTip(null),
+  })).current
+
+  const fmtCur = (v: number) =>
+    v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 
   return (
     <View>
-      {/* Range selector */}
-      <View className="flex-row justify-center gap-1 mb-4">
+      {/* ── Range selector ── */}
+      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 2, marginBottom: 16 }}>
         {RANGES.map((r) => (
           <TouchableOpacity
             key={r}
             onPress={() => onRangeChange(r)}
-            className={`px-3 py-1.5 rounded-lg ${range === r ? 'bg-teal-500/20' : ''}`}
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 8,
+              backgroundColor: range === r ? 'rgba(20,184,166,0.15)' : 'transparent',
+              borderWidth: 1,
+              borderColor: range === r ? 'rgba(20,184,166,0.35)' : 'transparent',
+            }}
           >
-            <Text className={`text-xs font-semibold ${range === r ? 'text-teal-600' : 'text-dark-400'}`}>
+            <Text style={{
+              fontSize: 12, fontWeight: '600',
+              color: range === r ? '#14b8a6' : '#64748b',
+            }}>
               {r}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Chart */}
-      <View onLayout={onLayout} style={{ height: CHART_HEIGHT }}>
+      {/* ── Chart ── */}
+      <View
+        style={{ height: H }}
+        onLayout={(e: LayoutChangeEvent) => setSvgWidth(e.nativeEvent.layout.width)}
+        {...(data.length >= 2 && !isLoading ? pan.panHandlers : {})}
+      >
         {isLoading ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator color="#14b8a6" />
           </View>
         ) : data.length < 2 ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#475569', fontSize: 13 }}>
-              Sem dados suficientes para este período
-            </Text>
+            <Text style={{ color: '#475569', fontSize: 13 }}>Sem dados para este período</Text>
           </View>
         ) : (
-          <Svg width={chartWidth} height={CHART_HEIGHT}>
+          <Svg width={svgWidth} height={H} pointerEvents="none">
             <Defs>
-              <LinearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={lineColor} stopOpacity="0.25" />
-                <Stop offset="1" stopColor={lineColor} stopOpacity="0" />
+              <LinearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0"   stopColor={clr} stopOpacity="0.32" />
+                <Stop offset="0.7" stopColor={clr} stopOpacity="0.06" />
+                <Stop offset="1"   stopColor={clr} stopOpacity="0" />
               </LinearGradient>
             </Defs>
 
-            {/* Horizontal grid lines */}
-            {[0, 0.5, 1].map((t) => {
-              const y = PADDING.top + (1 - t) * h
-              const v = minV + t * (maxV - minV)
+            {/* Grid lines + Y labels */}
+            {gridTs.map((t) => {
+              const gy = PAD.top + (1 - t) * h
+              const gv = minV + t * (maxV - minV)
               return (
                 <React.Fragment key={t}>
                   <Line
-                    x1={PADDING.left}
-                    y1={y}
-                    x2={chartWidth - PADDING.right}
-                    y2={y}
-                    stroke="#d1fae5"
-                    strokeWidth="1"
+                    x1={PAD.left} y1={gy}
+                    x2={svgWidth - PAD.right} y2={gy}
+                    stroke="#1e293b" strokeWidth="1"
                   />
                   <SvgText
-                    x={PADDING.left - 2}
-                    y={y + 4}
-                    fill="#475569"
-                    fontSize="9"
-                    textAnchor="end"
+                    x={PAD.left - 4} y={gy + 4}
+                    fill="#475569" fontSize="8.5" textAnchor="end"
                   >
-                    {formatValue(v)}
+                    {fmtAxis(gv)}
                   </SvgText>
                 </React.Fragment>
               )
             })}
 
-            {/* Gradient fill */}
-            <Path d={fillPath} fill="url(#chartGrad)" />
+            {/* Area fill */}
+            <Path d={fillPath} fill="url(#areaGrad)" />
 
             {/* Line */}
             <Path
               d={linePath}
               fill="none"
-              stroke={lineColor}
+              stroke={clr}
               strokeWidth="2"
               strokeLinejoin="round"
               strokeLinecap="round"
             />
 
+            {/* Crosshair + tooltip */}
+            {tip != null && (() => {
+              const tipX = tip.x + TIP_W + 10 > svgWidth - PAD.right
+                ? tip.x - TIP_W - 8
+                : tip.x + 8
+              const tipY = Math.max(
+                PAD.top + 2,
+                Math.min(tip.y - TIP_H / 2, PAD.top + h - TIP_H),
+              )
+              return (
+                <>
+                  {/* Vertical rule */}
+                  <Line
+                    x1={tip.x} y1={PAD.top}
+                    x2={tip.x} y2={PAD.top + h}
+                    stroke={clr} strokeWidth="1"
+                    strokeDasharray="4 3" strokeOpacity="0.65"
+                  />
+                  {/* Dot */}
+                  <Circle
+                    cx={tip.x} cy={tip.y}
+                    r={5} fill={clr} stroke="#0f172a" strokeWidth="2.5"
+                  />
+                  {/* Bubble */}
+                  <Rect
+                    x={tipX} y={tipY}
+                    width={TIP_W} height={TIP_H}
+                    rx="7" ry="7"
+                    fill="#0f172a"
+                    stroke={clr} strokeWidth="1" strokeOpacity="0.45"
+                  />
+                  <SvgText
+                    x={tipX + TIP_W / 2} y={tipY + 15}
+                    fill="#f8fafc" fontSize="11" fontWeight="700" textAnchor="middle"
+                  >
+                    {fmtCur(tip.value)}
+                  </SvgText>
+                  <SvgText
+                    x={tipX + TIP_W / 2} y={tipY + 30}
+                    fill="#64748b" fontSize="9" textAnchor="middle"
+                  >
+                    {fmtTooltipDate(tip.date)}
+                  </SvgText>
+                </>
+              )
+            })()}
+
             {/* X axis labels */}
-            {labelIndices.map((i) => (
+            {xIdxs.map((i) => (
               <SvgText
                 key={i}
-                x={toX(i)}
-                y={PADDING.top + h + 20}
-                fill="#475569"
-                fontSize="9"
-                textAnchor="middle"
+                x={points[i].x} y={PAD.top + h + 22}
+                fill="#475569" fontSize="9" textAnchor="middle"
               >
-                {formatDate(data[i].date, range)}
+                {fmtXLabel(data[i].date, range)}
               </SvgText>
             ))}
           </Svg>
         )}
       </View>
 
-      {/* Summary */}
+      {/* ── Footer summary ── */}
       {data.length >= 2 && !isLoading && (
-        <View className="flex-row justify-between mt-2 px-2">
+        <View style={{
+          flexDirection: 'row', justifyContent: 'space-between',
+          alignItems: 'center', marginTop: 8, paddingHorizontal: 4,
+        }}>
           <View>
-            <Text className="text-dark-500 text-xs">Início</Text>
-            <Text className="text-dark-300 text-sm font-semibold">
-              {data[0].value.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+            <Text style={{ color: '#64748b', fontSize: 11, marginBottom: 2 }}>Início</Text>
+            <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>
+              {fmtCur(data[0].value)}
             </Text>
           </View>
-          <View className="items-end">
-            <Text className="text-dark-500 text-xs">Variação</Text>
-            <Text
-              className="text-sm font-semibold"
-              style={{ color: isPositive ? '#14b8a6' : '#ef4444' }}
-            >
-              {isPositive ? '+' : ''}
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ color: '#64748b', fontSize: 11, marginBottom: 2 }}>Atual</Text>
+            <Text style={{ color: '#e2e8f0', fontSize: 13, fontWeight: '600' }}>
+              {fmtCur(data[data.length - 1].value)}
+            </Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{ color: '#64748b', fontSize: 11, marginBottom: 2 }}>Variação</Text>
+            <Text style={{ color: clr, fontSize: 13, fontWeight: '700' }}>
+              {isPos ? '+' : ''}
               {((data[data.length - 1].value / data[0].value - 1) * 100).toFixed(2)}%
             </Text>
           </View>
@@ -192,4 +311,3 @@ export default function PortfolioLineChart({ data, range, onRangeChange, isLoadi
     </View>
   )
 }
-

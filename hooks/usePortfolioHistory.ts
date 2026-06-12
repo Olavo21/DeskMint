@@ -6,11 +6,12 @@ import type { Range } from '../components/investments/PortfolioLineChart'
 function rangeToFromDate(range: Range): string | null {
   const now = new Date()
   switch (range) {
-    case '1M': now.setMonth(now.getMonth() - 1); break
-    case '3M': now.setMonth(now.getMonth() - 3); break
-    case '6M': now.setMonth(now.getMonth() - 6); break
-    case '1A': now.setFullYear(now.getFullYear() - 1); break
-    case 'Todo': return null
+    case '1M':  now.setMonth(now.getMonth() - 1);       break
+    case '3M':  now.setMonth(now.getMonth() - 3);       break
+    case 'YTD': return `${now.getFullYear()}-01-01`
+    case '1A':  now.setFullYear(now.getFullYear() - 1); break
+    case '5A':  now.setFullYear(now.getFullYear() - 5); break
+    case 'Max': return null
   }
   return now.toISOString().split('T')[0]
 }
