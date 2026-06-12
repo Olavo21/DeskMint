@@ -246,6 +246,17 @@ function MensalTab() {
   const portfolioPL = data?.portfolio.totalPL ?? 0
   const plPositive  = portfolioPL >= 0
 
+  // Média de dias para receber (earned_at → paid_at) das comissões PAID do mês
+  const avgDays = (() => {
+    const paid = (data?.commissions ?? []).filter((c) => c.status === 'PAID' && c.paid_at && c.earned_at)
+    if (paid.length === 0) return null
+    const sum = paid.reduce((s, c) => {
+      const diff = new Date(c.paid_at!).getTime() - new Date(c.earned_at).getTime()
+      return s + diff / (1000 * 60 * 60 * 24)
+    }, 0)
+    return Math.round(sum / paid.length)
+  })()
+
   return (
     <View>
       <MonthNav month={month} year={year} onPrev={prevMonth} onNext={nextMonth} />
@@ -256,7 +267,7 @@ function MensalTab() {
         style={{ backgroundColor: '#f0fdfa', borderWidth: 1.5, borderColor: '#99f6e4' }}
       >
         <Text className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#14b8a6' }}>
-          Rendimento Total
+          Este mês já faturaste
         </Text>
         <Text className="font-bold mb-1" style={{ fontSize: 36, color: '#0f172a', lineHeight: 42 }}>
           {fmt(totalIncome)}
@@ -275,8 +286,8 @@ function MensalTab() {
         </View>
       </View>
 
-      {/* KPIs rápidos */}
-      <View className="flex-row gap-2 mb-4">
+      {/* KPIs rápidos — 2×2 */}
+      <View className="flex-row gap-2 mb-2">
         <KpiCard
           label="Comissões pagas"
           value={fmt(data?.totalCommPaid ?? 0)}
@@ -284,16 +295,24 @@ function MensalTab() {
           icon="cash-outline"
         />
         <KpiCard
-          label="A receber"
+          label="Tens a receber"
           value={fmt(data?.totalCommPending ?? 0)}
           color="#f59e0b"
           icon="time-outline"
         />
+      </View>
+      <View className="flex-row gap-2 mb-4">
         <KpiCard
           label="Portfolio P/L"
           value={(plPositive ? '+' : '') + fmt(portfolioPL)}
           color={plPositive ? '#14b8a6' : '#ef4444'}
           icon="trending-up-outline"
+        />
+        <KpiCard
+          label="Média dias a receber"
+          value={avgDays !== null ? `${avgDays} dias` : '—'}
+          color="#6366f1"
+          icon="hourglass-outline"
         />
       </View>
 
