@@ -2,7 +2,6 @@ import { View } from 'react-native'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { usePlan } from '../../hooks/usePlan'
-import AiChatFab from '../../components/ai/AiChatFab'
 
 const TAB_COLOR_ACTIVE   = '#0d9488' // teal-600 — accessible on white (5:1 contrast)
 const TAB_COLOR_INACTIVE = '#94a3b8' // muted gray
@@ -130,7 +129,6 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
-    <AiChatFab />
     </View>
   )
 }
