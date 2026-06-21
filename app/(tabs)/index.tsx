@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useAssets } from '../../hooks/useAssets'
 import { useCredits } from '../../hooks/useCredits'
+import { useEmergencyFund } from '../../hooks/useEmergencyFund'
 import { useAuthStore } from '../../stores/authStore'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
@@ -229,9 +230,12 @@ export default function DashboardScreen() {
   const { data, isLoading } = useDashboard(MONTH, YEAR)
   const { update: updateAsset, linkCredit } = useAssets()
   const { data: credits = [] } = useCredits()
+  const { upsert: upsertEmergencyFund } = useEmergencyFund()
   const [assetsEditMode, setAssetsEditMode] = useState(false)
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
+  const [editingEmergencyFund, setEditingEmergencyFund] = useState(false)
+  const [emergencyFundInput, setEmergencyFundInput] = useState('')
 
   async function handleSaveAsset(id: string, name: string, value: number, debt: number) {
     await updateAsset.mutateAsync({ id, name, value, debt })
@@ -240,6 +244,17 @@ export default function DashboardScreen() {
 
   function handleLinkCredit(assetId: string, creditId: string | null) {
     linkCredit.mutate({ id: assetId, creditId })
+  }
+
+  function startEditEmergencyFund() {
+    setEmergencyFundInput(String(data?.emergencyFund ?? 0))
+    setEditingEmergencyFund(true)
+  }
+
+  async function saveEmergencyFund() {
+    const val = parseFloat(emergencyFundInput.replace(',', '.'))
+    if (!isNaN(val) && val >= 0) await upsertEmergencyFund.mutateAsync(val)
+    setEditingEmergencyFund(false)
   }
 
   useFocusEffect(
@@ -254,7 +269,11 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header showSignOut />
-      <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 px-4"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
 
         <View className="mt-4 mb-6">
           <Text className="text-dark-400 text-sm capitalize">
@@ -365,10 +384,53 @@ export default function DashboardScreen() {
                     <Text className="text-dark-300 text-sm">Portefólio</Text>
                     <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.portfolioValue ?? 0)}</Text>
                   </View>
-                  <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
-                    <Text className="text-dark-300 text-sm">Fundo de Emergência</Text>
-                    <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.emergencyFund ?? 0)}</Text>
-                  </View>
+                  {editingEmergencyFund ? (
+                    <View className="py-3 border-b border-dark-700">
+                      <View className="flex-row items-center gap-2">
+                        <Text className="text-dark-300 text-sm flex-1">Fundo de Emergência</Text>
+                        <TextInput
+                          className="bg-dark-700 rounded-lg px-3 py-2 text-sm border border-dark-600"
+                          style={{ color: '#0f172a', minWidth: 0, width: 110 }}
+                          value={emergencyFundInput}
+                          onChangeText={setEmergencyFundInput}
+                          keyboardType="decimal-pad"
+                          placeholder="0.00"
+                          placeholderTextColor="#94a3b8"
+                          autoFocus
+                          autoCorrect={false}
+                          autoComplete="off"
+                          importantForAutofill="no"
+                        />
+                        <TouchableOpacity
+                          className="bg-mint-600 rounded-lg px-3 py-2 items-center justify-center"
+                          onPress={saveEmergencyFund}
+                        >
+                          <Ionicons name="checkmark" size={16} color="white" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          className="bg-dark-700 rounded-lg px-2.5 py-2 items-center justify-center"
+                          onPress={() => setEditingEmergencyFund(false)}
+                        >
+                          <Ionicons name="close" size={16} color="#64748b" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
+                      <Text className="text-dark-300 text-sm">Fundo de Emergência</Text>
+                      <View className="flex-row items-center gap-3">
+                        <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.emergencyFund ?? 0)}</Text>
+                        {assetsEditMode && (
+                          <TouchableOpacity
+                            onPress={startEditEmergencyFund}
+                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                          >
+                            <Ionicons name="pencil-outline" size={17} color="#94a3b8" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  )}
                 </View>
               </>
             )}
