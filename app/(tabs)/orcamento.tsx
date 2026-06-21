@@ -79,7 +79,7 @@ function ExpenseRow({
         <View className="flex-row gap-2">
           <TextInput
             className="bg-dark-700 rounded-lg px-3 py-2 text-sm flex-1 border border-dark-600"
-            style={{ color: '#0f172a' }}
+            style={{ color: '#0f172a', minWidth: 0 }}
             value={localAmt}
             onChangeText={setLocalAmt}
             keyboardType="decimal-pad"
@@ -239,7 +239,7 @@ export default function OrcamentoScreen() {
                 <View className="flex-row gap-2 items-center">
                   <TextInput
                     className="bg-dark-800 rounded-xl px-4 py-3 text-xl font-bold flex-1 border border-dark-600"
-                    style={{ color: '#0f172a' }}
+                    style={{ color: '#0f172a', minWidth: 0 }}
                     value={salaryInput}
                     onChangeText={setSalaryInput}
                     keyboardType="decimal-pad"

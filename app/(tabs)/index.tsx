@@ -87,7 +87,7 @@ function AssetRow({ asset, editMode, isEditing, onStartEdit, onSaveEdit, onCance
         <View className="flex-row gap-2">
           <TextInput
             className="bg-dark-700 rounded-lg px-3 py-2 text-sm flex-1 border border-dark-600"
-            style={{ color: '#0f172a' }}
+            style={{ color: '#0f172a', minWidth: 0 }}
             value={localValue}
             onChangeText={setLocalValue}
             keyboardType="decimal-pad"
@@ -99,7 +99,7 @@ function AssetRow({ asset, editMode, isEditing, onStartEdit, onSaveEdit, onCance
           />
           <TextInput
             className="bg-dark-700 rounded-lg px-3 py-2 text-sm flex-1 border border-dark-600"
-            style={{ color: '#0f172a' }}
+            style={{ color: '#0f172a', minWidth: 0 }}
             value={localDebt}
             onChangeText={setLocalDebt}
             keyboardType="decimal-pad"
