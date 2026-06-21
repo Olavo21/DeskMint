@@ -52,26 +52,31 @@ export default function InvestimentosScreen() {
   const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
 
   const byAsset = useMemo<DonutSegment[]>(
-    () => (data?.assets ?? []).map((a, i) => ({ value: a.current_value, color: getColor(i), label: a.ticker })),
+    () => (data?.assets ?? []).map((a, i) => ({ value: a.current_value, color: getColor(i), label: a.ticker, pl: a.pl })),
     [data?.assets],
   )
 
   const byType = useMemo<DonutSegment[]>(() => {
-    const map: Record<string, number> = {}
-    ;(data?.assets ?? []).forEach((a) => { map[a.asset_type] = (map[a.asset_type] ?? 0) + a.current_value })
-    return Object.entries(map).map(([t, v]) => ({ value: v, color: TYPE_COLORS[t] ?? '#64748b', label: TYPE_LABELS[t] ?? t }))
+    const map: Record<string, { value: number; pl: number }> = {}
+    ;(data?.assets ?? []).forEach((a) => {
+      const cur = map[a.asset_type] ?? { value: 0, pl: 0 }
+      map[a.asset_type] = { value: cur.value + a.current_value, pl: cur.pl + a.pl }
+    })
+    return Object.entries(map).map(([t, v]) => ({ value: v.value, color: TYPE_COLORS[t] ?? '#64748b', label: TYPE_LABELS[t] ?? t, pl: v.pl }))
   }, [data?.assets])
 
   const byRegion = useMemo<DonutSegment[]>(() => {
-    const map: Record<string, number> = {}
+    const map: Record<string, { value: number; pl: number }> = {}
     ;(data?.assets ?? []).forEach((a) => {
       const r = getRegion(a.ticker, a.asset_type)
-      map[r] = (map[r] ?? 0) + a.current_value
+      const cur = map[r] ?? { value: 0, pl: 0 }
+      map[r] = { value: cur.value + a.current_value, pl: cur.pl + a.pl }
     })
     return Object.entries(map).map(([r, v]) => ({
-      value: v,
+      value: v.value,
       color: REGION_COLORS[r as keyof typeof REGION_COLORS] ?? '#64748b',
       label: getRegionLabel(r as Parameters<typeof getRegionLabel>[0]),
+      pl: v.pl,
     }))
   }, [data?.assets])
 

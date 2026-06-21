@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
-import { View, Text, Animated } from 'react-native'
+import { View, Text, Animated, PanResponder, type GestureResponderEvent } from 'react-native'
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg'
 
 const AnimatedPath = Animated.createAnimatedComponent(Path)
@@ -8,6 +8,7 @@ export type DonutSegment = {
   value: number
   color: string
   label: string
+  pl?: number // lucro/perda em euros (opcional — mostrado na tooltip se definido)
 }
 
 interface Props {
@@ -21,16 +22,19 @@ interface Props {
 
 type Arc = DonutSegment & { start: number; end: number; pct: number; i: number }
 
-const GAP = 3          // graus de espaço entre fatias
-const HIT_PADDING = 24 // largura extra (px) da área de toque invisível, para além da fatia visível
+const GAP = 1.5      // graus — micro-linha de separação reta entre fatias
+const RADIAL_PAD = 16 // tolerância radial (px) para detetar o gesto perto do anel
+const TOOLTIP_W = 160
+
+const fmtEUR = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const rad = ((deg - 90) * Math.PI) / 180
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
 }
 
-// Arco em linha central (aberto, sem preenchimento) — permite strokeLinecap="round"
-// nas pontas de cada fatia, e funciona até perto de 360° sem casos especiais.
+// Arco em linha central (aberto, sem preenchimento). Sem strokeLinecap="round" —
+// o default ("butt") já dá um corte reto, perpendicular ao raio, em cada ponta.
 function ringArcPath(cx: number, cy: number, r: number, start: number, end: number) {
   const s = start + GAP / 2
   const e = end - GAP / 2
@@ -42,50 +46,32 @@ function ringArcPath(cx: number, cy: number, r: number, start: number, end: numb
   return `M ${p1.x} ${p1.y} A ${r} ${r} 0 ${large} 1 ${p2.x} ${p2.y}`
 }
 
-function SegmentArc({
-  d, color, thickness, isActive, dimmed, onPressIn, onPressOut,
-}: {
+function SegmentArc({ d, color, thickness, isActive, dimmed }: {
   d: string
   color: string
   thickness: number
   isActive: boolean
   dimmed: boolean
-  onPressIn: () => void
-  onPressOut: () => void
 }) {
   const widthAnim = useRef(new Animated.Value(thickness)).current
 
   useEffect(() => {
     Animated.spring(widthAnim, {
-      toValue: isActive ? thickness + 10 : thickness,
+      toValue: isActive ? thickness + 6 : thickness,
       useNativeDriver: false,
-      friction: 6,
-      tension: 80,
+      friction: 7,
+      tension: 90,
     }).start()
   }, [isActive, thickness])
 
   return (
-    <>
-      <AnimatedPath
-        d={d}
-        fill="none"
-        stroke={color}
-        strokeWidth={widthAnim}
-        strokeLinecap="round"
-        opacity={dimmed ? 0.25 : 1}
-      />
-      {/* Área de toque invisível e mais larga, para um press-and-hold confortável num anel fino */}
-      <Path
-        d={d}
-        fill="none"
-        stroke="#000000"
-        strokeOpacity={0.01}
-        strokeWidth={thickness + HIT_PADDING}
-        strokeLinecap="round"
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-      />
-    </>
+    <AnimatedPath
+      d={d}
+      fill="none"
+      stroke={color}
+      strokeWidth={widthAnim}
+      opacity={dimmed ? 0.3 : 1}
+    />
   )
 }
 
@@ -97,7 +83,7 @@ export default function DonutChart({
   centerSub,
   showSegmentLabels = false,
 }: Props) {
-  const [selected, setSelected] = useState<number | null>(null)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const fadeAnim = useRef(new Animated.Value(1)).current
 
   const cx = size / 2
@@ -117,21 +103,69 @@ export default function DonutChart({
     return { ...seg, start, end, pct, i }
   })
 
-  const sel = selected !== null ? arcs[selected] : null
+  const active = activeIndex !== null ? arcs[activeIndex] : null
 
   function crossFade() {
     fadeAnim.setValue(0)
     Animated.timing(fadeAnim, { toValue: 1, duration: 120, useNativeDriver: true }).start()
   }
 
-  function handlePressIn(i: number) {
-    setSelected(i)
+  function setActive(i: number | null) {
+    if (i === activeIndex) return
+    setActiveIndex(i)
     crossFade()
   }
 
-  function handlePressOut() {
-    setSelected(null)
-    crossFade()
+  // Identifica qual a fatia sob um ponto (x,y) local ao canvas, por ângulo + distância ao centro
+  function segmentAtPoint(localX: number, localY: number): number | null {
+    const dx = localX - cx
+    const dy = localY - cy
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    if (dist < ringR - thickness / 2 - RADIAL_PAD || dist > ringR + thickness / 2 + RADIAL_PAD) return null
+
+    let deg = (Math.atan2(dy, dx) * 180) / Math.PI + 90
+    if (deg < -90) deg += 360
+    if (deg >= 270) deg -= 360
+
+    for (const arc of arcs) {
+      if (deg >= arc.start && deg < arc.end) return arc.i
+    }
+    return null
+  }
+
+  function handleGesture(e: GestureResponderEvent) {
+    const { locationX, locationY } = e.nativeEvent
+    setActive(segmentAtPoint(locationX, locationY))
+  }
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: handleGesture,
+      onPanResponderMove: handleGesture,
+      onPanResponderRelease: () => setActive(null),
+      onPanResponderTerminate: () => setActive(null),
+    })
+  ).current
+
+  // Hover por rato (web) — react-native-web expõe offsetX/offsetY tal como o DOM
+  function handleMouseMove(e: any) {
+    const { offsetX, offsetY } = e.nativeEvent
+    setActive(segmentAtPoint(offsetX, offsetY))
+  }
+
+  // Posição da tooltip — ancorada ao ângulo médio da fatia ativa, fora do anel,
+  // com clamp para nunca sair da área do gráfico.
+  let tooltipPos: { left: number; top: number } | null = null
+  if (active) {
+    const mid = (active.start + active.end) / 2
+    const p = polar(cx, cy, outerR + 14, mid)
+    const onRightHalf = p.x >= cx
+    let left = onRightHalf ? p.x + 6 : p.x - TOOLTIP_W - 6
+    left = Math.max(4, Math.min(left, size - TOOLTIP_W - 4))
+    let top = Math.max(0, Math.min(p.y - 30, size - 74))
+    tooltipPos = { left, top }
   }
 
   return (
@@ -151,8 +185,8 @@ export default function DonutChart({
           {arcs.map((arc) => {
             const d = ringArcPath(cx, cy, ringR, arc.start, arc.end)
             if (!d) return null
-            const isActive = selected === arc.i
-            const dimmed = selected !== null && !isActive
+            const isActive = activeIndex === arc.i
+            const dimmed = activeIndex !== null && !isActive
             return (
               <SegmentArc
                 key={arc.i}
@@ -161,15 +195,13 @@ export default function DonutChart({
                 thickness={thickness}
                 isActive={isActive}
                 dimmed={dimmed}
-                onPressIn={() => handlePressIn(arc.i)}
-                onPressOut={handlePressOut}
               />
             )
           })}
           {/* % labels sobre os arcos */}
           {showSegmentLabels && arcs.map((arc) => {
             if (arc.pct < 0.07) return null
-            const dimmed = selected !== null && selected !== arc.i
+            const dimmed = activeIndex !== null && activeIndex !== arc.i
             if (dimmed) return null
             const midAngle = (arc.start + arc.end) / 2
             const lp = polar(cx, cy, ringR, midAngle)
@@ -191,7 +223,15 @@ export default function DonutChart({
           })}
         </Svg>
 
-        {/* Texto central — overlay absoluto, não-interativo (o gesto está nos arcos) */}
+        {/* Camada de gesto única — arrastar/premir nativo (PanResponder) + hover do rato (web).
+            onMouseMove/onMouseLeave são extensões do react-native-web, fora dos tipos de ViewProps. */}
+        <View
+          {...panResponder.panHandlers}
+          {...({ onMouseMove: handleMouseMove, onMouseLeave: () => setActive(null) } as object)}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
+
+        {/* Texto central — overlay absoluto, não-interativo (o gesto está na camada acima) */}
         <View
           pointerEvents="none"
           style={{
@@ -203,42 +243,55 @@ export default function DonutChart({
           }}
         >
           <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
-            {sel ? (
-              <>
-                <Text
-                  style={{ color: sel.color, fontSize: 24, fontWeight: '800', textAlign: 'center' }}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  {(sel.pct * 100).toFixed(1)}%
-                </Text>
-                <Text
-                  style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 3, fontWeight: '500' }}
-                  numberOfLines={2}
-                >
-                  {sel.label}
-                </Text>
-              </>
-            ) : (
-              <>
-                {centerLabel && (
-                  <Text
-                    style={{ color: '#134e4a', fontSize: 16, fontWeight: '800', textAlign: 'center' }}
-                    numberOfLines={2}
-                    adjustsFontSizeToFit
-                  >
-                    {centerLabel}
-                  </Text>
-                )}
-                {centerSub && (
-                  <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 3, fontWeight: '500' }}>
-                    {centerSub}
-                  </Text>
-                )}
-              </>
+            {centerLabel && (
+              <Text
+                style={{ color: '#134e4a', fontSize: 16, fontWeight: '800', textAlign: 'center' }}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+              >
+                {centerLabel}
+              </Text>
+            )}
+            {centerSub && (
+              <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 3, fontWeight: '500' }}>
+                {centerSub}
+              </Text>
             )}
           </Animated.View>
         </View>
+
+        {/* Tooltip flutuante */}
+        {active && tooltipPos && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              width: TOOLTIP_W,
+              left: tooltipPos.left,
+              top: tooltipPos.top,
+              backgroundColor: 'rgba(15,23,42,0.92)',
+              borderRadius: 12,
+              paddingVertical: 8,
+              paddingHorizontal: 10,
+              shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+            }}
+          >
+            <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+              {active.label}
+            </Text>
+            <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 3 }}>
+              Alocação: {(active.pct * 100).toFixed(1)}%
+            </Text>
+            {active.pl !== undefined && (
+              <Text
+                style={{ color: active.pl >= 0 ? '#34d399' : '#f87171', fontSize: 11, marginTop: 2, fontWeight: '700' }}
+                numberOfLines={1}
+              >
+                Lucro/Perda: {active.pl >= 0 ? '+' : ''}{fmtEUR(active.pl)}
+              </Text>
+            )}
+          </View>
+        )}
       </View>
     </View>
   )
