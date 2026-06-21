@@ -45,7 +45,7 @@ export default function InvestimentosScreen() {
   const [historyRange, setHistoryRange]   = useState<Range>('Max')
 
   const donutSize      = Math.min(Math.round(screenW * 0.72), 300)
-  const donutThickness = Math.round(donutSize * 0.19)
+  const donutThickness = Math.round(donutSize * 0.13)
 
   const { data: historyData, isLoading: historyLoading } = usePortfolioHistory(historyRange)
 
