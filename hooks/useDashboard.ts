@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
-import type { DmIncome, DmBudgetRule, DmPortfolioAsset, DmEmergencyFund, DmAsset } from '../types/database'
+import { getCreditOutstandingBalance } from '../lib/creditMath'
+import type { DmIncome, DmBudgetRule, DmPortfolioAsset, DmEmergencyFund, DmAsset, DmCredit } from '../types/database'
 
 type RawExpense = {
   amount: number
@@ -18,12 +19,13 @@ export function useDashboard(month: number, year: number) {
     queryFn: async () => {
       const uid = session!.user.id
 
-      const [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, expensesRes] = await Promise.all([
+      const [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes] = await Promise.all([
         supabase.from('dm_income').select('*').eq('user_id', uid).eq('month', month).eq('year', year).maybeSingle(),
         supabase.from('dm_budget_rules').select('*').eq('user_id', uid).eq('month', month).eq('year', year).maybeSingle(),
         supabase.from('dm_portfolio_assets').select('*').eq('user_id', uid),
         supabase.from('dm_emergency_fund').select('*').eq('user_id', uid).maybeSingle(),
         supabase.from('dm_assets').select('*').eq('user_id', uid),
+        supabase.from('dm_credits').select('*').eq('user_id', uid),
         supabase.from('dm_expenses')
           .select('amount, is_fixed, dm_expense_categories(type)')
           .eq('user_id', uid)
@@ -36,6 +38,7 @@ export function useDashboard(month: number, year: number) {
       const portfolio = (portfolioRes.data as DmPortfolioAsset[]) ?? []
       const emergency = emergencyRes.data as DmEmergencyFund | null
       const assets    = (assetsRes.data as DmAsset[]) ?? []
+      const credits   = (creditsRes.data as DmCredit[]) ?? []
       const rawExp    = (expensesRes.data ?? []) as RawExpense[]
 
       // Totais reais calculados directamente de dm_expenses
@@ -48,6 +51,7 @@ export function useDashboard(month: number, year: number) {
       const portfolioCapital = portfolio.reduce((s, a) => s + a.capital_invested, 0)
       const emergencyFund    = emergency?.current_amount ?? 0
       const assetsValue      = assets.reduce((s, a) => s + (a.value - a.debt), 0)
+      const totalCreditDebt  = credits.reduce((s, c) => s + getCreditOutstandingBalance(c).balance, 0)
 
       // Preferir dm_budget_rules se existir (override manual); caso contrário derivar de despesas reais
       const budgetRule: DmBudgetRule | null = budget ?? (rawExp.length > 0 ? ({
@@ -65,10 +69,11 @@ export function useDashboard(month: number, year: number) {
         savings:     savingsAmt,
         savingsRate: income > 0 ? savingsAmt / income : 0,
         freeCash:    income - totalExpenses - savingsAmt,
-        netWorth:    assetsValue + portfolioValue + emergencyFund,
+        netWorth:    assetsValue + portfolioValue + emergencyFund - totalCreditDebt,
         portfolioValue,
         portfolioPL: portfolioValue - portfolioCapital,
         emergencyFund,
+        totalCreditDebt,
         budgetRule,
         assets,
       }

@@ -6,9 +6,8 @@ import { Ionicons } from '@expo/vector-icons'
 import CalculadoraETF from '../../components/ferramentas/CalculadoraETF'
 import QuizInvestidor from '../../components/ferramentas/QuizInvestidor'
 import PesquisaAtivos from '../../components/ferramentas/PesquisaAtivos'
-import CalculadoraCreditos from '../../components/ferramentas/CalculadoraCreditos'
 
-type Ferramenta = 'etf' | 'ativos' | 'quiz' | 'creditos'
+type Ferramenta = 'etf' | 'ativos' | 'quiz'
 
 const FERRAMENTAS: { key: Ferramenta; label: string; icon: string; desc: string; cor: string }[] = [
   {
@@ -31,13 +30,6 @@ const FERRAMENTAS: { key: Ferramenta; label: string; icon: string; desc: string;
     icon:  'shield-checkmark-outline',
     desc:  '5 perguntas para descobrir o teu perfil de risco',
     cor:   '#f59e0b',
-  },
-  {
-    key:   'creditos',
-    label: 'Créditos & Euribor',
-    icon:  'home-outline',
-    desc:  'Simulador de crédito habitação com stress test Euribor',
-    cor:   '#10b981',
   },
 ]
 
@@ -109,7 +101,6 @@ export default function FerramentasScreen() {
         {ativa === 'etf'      && <CalculadoraETF />}
         {ativa === 'ativos'   && <PesquisaAtivos />}
         {ativa === 'quiz'     && <QuizInvestidor />}
-        {ativa === 'creditos' && <CalculadoraCreditos />}
       </ScrollView>
     </SafeAreaView>
   )

@@ -9,6 +9,50 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      dm_credits: {
+        Row: {
+          created_at: string
+          id: string
+          interest_rate: number
+          kind: Database["public"]["Enums"]["dm_credit_kind"]
+          monthly_payment: number
+          name: string
+          principal_amount: number
+          rate_type: Database["public"]["Enums"]["dm_credit_rate_type"]
+          remaining_months_snapshot: number
+          snapshot_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interest_rate: number
+          kind: Database["public"]["Enums"]["dm_credit_kind"]
+          monthly_payment: number
+          name: string
+          principal_amount: number
+          rate_type?: Database["public"]["Enums"]["dm_credit_rate_type"]
+          remaining_months_snapshot: number
+          snapshot_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interest_rate?: number
+          kind?: Database["public"]["Enums"]["dm_credit_kind"]
+          monthly_payment?: number
+          name?: string
+          principal_amount?: number
+          rate_type?: Database["public"]["Enums"]["dm_credit_rate_type"]
+          remaining_months_snapshot?: number
+          snapshot_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+      }
       dm_assets: {
         Row: {
           created_at: string
@@ -449,6 +493,8 @@ export type Database = {
       }
     }
     Enums: {
+      dm_credit_kind: "VEHICLE" | "HOUSING"
+      dm_credit_rate_type: "FIXED" | "VARIABLE"
       dm_asset_kind: "VEHICLE" | "REAL_ESTATE" | "BANK_ACCOUNT" | "SAVINGS" | "OTHER"
       dm_asset_type: "ETF" | "STOCK" | "CRYPTO" | "BOND" | "OTHER"
       dm_budget_type: "NEEDS" | "WANTS" | "SAVINGS"
@@ -498,6 +544,7 @@ export type DmBudgetRule         = Tables<"dm_budget_rules">
 export type DmPortfolioAsset     = Tables<"dm_portfolio_assets">
 export type DmPortfolioSnapshot  = Tables<"dm_portfolio_snapshots">
 export type DmAsset              = Tables<"dm_assets">
+export type DmCredit             = Tables<"dm_credits">
 export type DmEmergencyFund      = Tables<"dm_emergency_fund">
 export type DmRetirementPlan     = Tables<"dm_retirement_plans">
 export type DmRetirementScenario = Tables<"dm_retirement_scenarios">

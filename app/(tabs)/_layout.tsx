@@ -66,6 +66,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="creditos"
+        options={{
+          title: 'Créditos',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="card-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="comissoes"
         options={{
           title: 'Comissões',

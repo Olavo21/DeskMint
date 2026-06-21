@@ -11,11 +11,11 @@ import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
 import type { DmAsset } from '../../types/database'
 
-function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function KpiCard({ label, value, sub, valueColor }: { label: string; value: string; sub?: string; valueColor?: string }) {
   return (
     <View className="bg-dark-800 rounded-2xl p-4 flex-1">
       <Text className="text-dark-400 text-xs mb-1">{label}</Text>
-      <Text className="text-dark-50 text-xl font-bold">{value}</Text>
+      <Text className="text-xl font-bold" style={{ color: valueColor ?? '#0f172a' }}>{value}</Text>
       {sub ? <Text className="text-dark-400 text-xs mt-1">{sub}</Text> : null}
     </View>
   )
@@ -197,6 +197,10 @@ export default function DashboardScreen() {
             <View className="flex-row gap-3 mb-6">
               <KpiCard label="Poupança" value={fmt(data?.savings ?? 0)} sub={pct(data?.savingsRate ?? 0)} />
               <KpiCard label="Disponível" value={fmt(data?.freeCash ?? 0)} sub="não alocado" />
+            </View>
+            <View className="flex-row gap-3 mb-6">
+              <KpiCard label="Investido" value={fmt(data?.portfolioValue ?? 0)} valueColor="#0d9488" />
+              <KpiCard label="Total em Dívida" value={fmt(data?.totalCreditDebt ?? 0)} valueColor="#dc2626" />
             </View>
 
             {/* 50/30/20 */}
