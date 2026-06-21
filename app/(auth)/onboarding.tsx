@@ -86,7 +86,7 @@ export default function OnboardingScreen() {
           ))}
         </View>
         <Text className="text-dark-500 text-xs">{step} / 4</Text>
-        <Text className="text-white text-xl font-bold mt-1">{STEP_TITLES[step]}</Text>
+        <Text className="text-dark-50 text-xl font-bold mt-1">{STEP_TITLES[step]}</Text>
       </View>
 
       <ScrollView className="flex-1 px-6 pt-4" keyboardShouldPersistTaps="handled">
@@ -96,12 +96,16 @@ export default function OnboardingScreen() {
           <View>
             <Text className="text-dark-400 text-sm mb-6">Como te chamamos na app?</Text>
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-4 text-lg border border-dark-700"
+              className="rounded-xl px-4 py-4 text-lg border border-dark-700"
+              style={{ backgroundColor: '#f8faf9', color: '#0f172a' }}
               placeholder="O teu nome"
               placeholderTextColor="#475569"
               value={name}
               onChangeText={setName}
               autoFocus
+              autoCorrect={false}
+              autoComplete="off"
+              importantForAutofill="no"
             />
           </View>
         )}
@@ -121,8 +125,8 @@ export default function OnboardingScreen() {
                 >
                   <Text className="text-2xl">{t.icon}</Text>
                   <View className="flex-1">
-                    <Text className="text-white font-semibold">{t.label}</Text>
-                    <Text className="text-dark-400 text-xs mt-0.5">{t.desc}</Text>
+                    <Text className="font-semibold" style={{ color: active ? '#0f172a' : '#ffffff' }}>{t.label}</Text>
+                    <Text className="text-xs mt-0.5" style={{ color: active ? '#334155' : '#94a3b8' }}>{t.desc}</Text>
                   </View>
                   {active && <View className="w-4 h-4 rounded-full" style={{ backgroundColor: t.color }} />}
                 </TouchableOpacity>
@@ -183,12 +187,16 @@ export default function OnboardingScreen() {
             <View className="mt-2">
               <Text className="text-dark-400 text-xs mb-1.5 ml-1">Aporte mensal (€)</Text>
               <TextInput
-                className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+                className="rounded-xl px-4 py-3.5 text-base border border-dark-700"
+                style={{ backgroundColor: '#f8faf9', color: '#0f172a' }}
                 placeholder="ex: 200"
                 placeholderTextColor="#475569"
                 value={monthly}
                 onChangeText={setMonthly}
                 keyboardType="decimal-pad"
+                autoCorrect={false}
+                autoComplete="off"
+                importantForAutofill="no"
               />
             </View>
           </View>
