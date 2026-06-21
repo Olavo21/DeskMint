@@ -14,10 +14,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0F172A",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0F172A"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.deskmint.app"
@@ -34,11 +32,22 @@
         {
           "fonts": []
         }
-      ],
-      "@react-native-community/datetimepicker"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/727241b8-4cd7-4649-bf85-112899526204"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "727241b8-4cd7-4649-bf85-112899526204"
+      }
     }
   }
 }

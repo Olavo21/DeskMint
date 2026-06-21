@@ -90,7 +90,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
           <TouchableOpacity onPress={handleClose}>
             <Text className="text-dark-400 text-base">Cancelar</Text>
           </TouchableOpacity>
-          <Text className="text-white text-base font-semibold">Nova Despesa</Text>
+          <Text className="text-dark-50 text-base font-semibold">Nova Despesa</Text>
           <TouchableOpacity onPress={handleSubmit} disabled={create.isPending}>
             {create.isPending
               ? <ActivityIndicator color="#14b8a6" size="small" />
@@ -147,11 +147,15 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
           <View className="mb-4">
             <Text className="text-dark-400 text-xs mb-1.5 ml-1">Descrição *</Text>
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              style={{ color: '#0f172a' }}
               placeholder="ex: Supermercado Continente"
-              placeholderTextColor="#475569"
+              placeholderTextColor="#94a3b8"
               value={description}
               onChangeText={setDescription}
+              autoCorrect={false}
+              autoComplete="off"
+              importantForAutofill="no"
             />
             {errors.description && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.description}</Text>}
           </View>
@@ -160,12 +164,16 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
           <View className="mb-4">
             <Text className="text-dark-400 text-xs mb-1.5 ml-1">Valor (€) *</Text>
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              style={{ color: '#0f172a' }}
               placeholder="0.00"
-              placeholderTextColor="#475569"
+              placeholderTextColor="#94a3b8"
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
+              autoCorrect={false}
+              autoComplete="off"
+              importantForAutofill="no"
             />
             {errors.amount && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.amount}</Text>}
           </View>
@@ -174,7 +182,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
           {selectedCat && selectedCat.type !== 'SAVINGS' && (
             <View className="bg-dark-800 rounded-xl px-4 py-3 mb-4 flex-row items-center justify-between">
               <View>
-                <Text className="text-white text-sm font-medium">Despesa fixa mensal</Text>
+                <Text className="text-dark-50 text-sm font-medium">Despesa fixa mensal</Text>
                 <Text className="text-dark-400 text-xs mt-0.5">
                   {isFixed ? 'Repete todos os meses' : 'Pontual / única'}
                 </Text>
@@ -196,7 +204,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
                 className="flex-1 bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
                 onPress={() => setShowPicker(true)}
               >
-                <Text className={paidAt ? 'text-white text-base' : 'text-dark-600 text-base'}>
+                <Text className={paidAt ? 'text-dark-50 text-base' : 'text-dark-400 text-base'}>
                   {paidAt ? fmt(paidAt) : 'Por pagar'}
                 </Text>
                 <Ionicons name="calendar-outline" size={16} color="#475569" />

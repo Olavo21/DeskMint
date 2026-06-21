@@ -1,13 +1,15 @@
-﻿import { ScrollView, View, Text, ActivityIndicator } from 'react-native'
+﻿import { useState, useCallback, useEffect } from 'react'
+import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useFocusEffect } from 'expo-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { Ionicons } from '@expo/vector-icons'
 import { useDashboard } from '../../hooks/useDashboard'
+import { useAssets } from '../../hooks/useAssets'
 import { useAuthStore } from '../../stores/authStore'
-import { supabase } from '../../lib/supabase'
+import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
-
-const now   = new Date()
-const MONTH = now.getMonth() + 1
-const YEAR  = now.getFullYear()
+import type { DmAsset } from '../../types/database'
 
 function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -42,9 +44,131 @@ function RuleRow({ label, pct, ideal, amt, fmt }: { label: string; pct: number; 
   )
 }
 
+type AssetRowProps = {
+  asset: DmAsset
+  editMode: boolean
+  isEditing: boolean
+  onStartEdit: (id: string) => void
+  onSaveEdit: (id: string, name: string, value: number, debt: number) => void
+  onCancelEdit: () => void
+  fmt: (n: number) => string
+}
+
+function AssetRow({ asset, editMode, isEditing, onStartEdit, onSaveEdit, onCancelEdit, fmt }: AssetRowProps) {
+  const [localName, setLocalName] = useState(asset.name)
+  const [localValue, setLocalValue] = useState(String(asset.value))
+  const [localDebt, setLocalDebt] = useState(String(asset.debt))
+
+  // Só repõe o texto local quando entra em modo de edição — nunca enquanto
+  // o utilizador escreve, para um refetch em segundo plano não apagar o que está a escrever.
+  useEffect(() => {
+    if (isEditing) {
+      setLocalName(asset.name)
+      setLocalValue(String(asset.value))
+      setLocalDebt(String(asset.debt))
+    }
+  }, [isEditing])
+
+  if (isEditing) {
+    return (
+      <View className="py-3 border-b border-dark-700">
+        <TextInput
+          className="bg-dark-700 rounded-lg px-3 py-2 text-sm mb-2 border border-dark-600"
+          style={{ color: '#0f172a' }}
+          value={localName}
+          onChangeText={setLocalName}
+          placeholder="Nome"
+          placeholderTextColor="#94a3b8"
+          autoFocus
+          autoCorrect={false}
+          autoComplete="off"
+          importantForAutofill="no"
+        />
+        <View className="flex-row gap-2">
+          <TextInput
+            className="bg-dark-700 rounded-lg px-3 py-2 text-sm flex-1 border border-dark-600"
+            style={{ color: '#0f172a' }}
+            value={localValue}
+            onChangeText={setLocalValue}
+            keyboardType="decimal-pad"
+            placeholder="Valor"
+            placeholderTextColor="#94a3b8"
+            autoCorrect={false}
+            autoComplete="off"
+            importantForAutofill="no"
+          />
+          <TextInput
+            className="bg-dark-700 rounded-lg px-3 py-2 text-sm flex-1 border border-dark-600"
+            style={{ color: '#0f172a' }}
+            value={localDebt}
+            onChangeText={setLocalDebt}
+            keyboardType="decimal-pad"
+            placeholder="Dívida"
+            placeholderTextColor="#94a3b8"
+            autoCorrect={false}
+            autoComplete="off"
+            importantForAutofill="no"
+          />
+          <TouchableOpacity
+            className="bg-mint-600 rounded-lg px-4 items-center justify-center"
+            onPress={() => {
+              const val = parseFloat(localValue.replace(',', '.'))
+              const debt = parseFloat(localDebt.replace(',', '.'))
+              if (!isNaN(val) && val >= 0) {
+                onSaveEdit(asset.id, localName.trim() || asset.name, val, isNaN(debt) ? 0 : debt)
+              }
+            }}
+          >
+            <Ionicons name="checkmark" size={18} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-dark-700 rounded-lg px-3 items-center justify-center"
+            onPress={onCancelEdit}
+          >
+            <Ionicons name="close" size={18} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    )
+  }
+
+  return (
+    <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
+      <Text className="text-dark-300 text-sm flex-1 mr-2">{asset.name}</Text>
+      <View className="flex-row items-center gap-3">
+        <Text className="text-dark-50 text-sm font-semibold">{fmt(asset.value - asset.debt)}</Text>
+        {editMode && (
+          <TouchableOpacity
+            onPress={() => onStartEdit(asset.id)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="pencil-outline" size={17} color="#94a3b8" />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  )
+}
+
 export default function DashboardScreen() {
   const profile = useAuthStore((s) => s.profile)
+  const qc = useQueryClient()
+  const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
   const { data, isLoading } = useDashboard(MONTH, YEAR)
+  const { update: updateAsset } = useAssets()
+  const [assetsEditMode, setAssetsEditMode] = useState(false)
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
+
+  async function handleSaveAsset(id: string, name: string, value: number, debt: number) {
+    await updateAsset.mutateAsync({ id, name, value, debt })
+    setEditingAssetId(null)
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    }, [qc])
+  )
 
   const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
   const pct = (n: number) => `${(n * 100).toFixed(1)}%`
@@ -56,7 +180,7 @@ export default function DashboardScreen() {
 
         <View className="mt-4 mb-6">
           <Text className="text-dark-400 text-sm capitalize">
-            {now.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+            {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
           </Text>
           <Text className="text-dark-50 text-2xl font-bold">Dashboard</Text>
         </View>
@@ -89,13 +213,31 @@ export default function DashboardScreen() {
             <View className="bg-dark-800 rounded-2xl p-4 mb-8">
               <View className="flex-row justify-between items-center mb-2">
                 <Text className="text-dark-50 font-semibold">Património Líquido</Text>
-                <Text className="text-mint-400 text-lg font-bold">{fmt(data?.netWorth ?? 0)}</Text>
+                <View className="flex-row items-center gap-3">
+                  <Text className="text-mint-400 text-lg font-bold">{fmt(data?.netWorth ?? 0)}</Text>
+                  <TouchableOpacity
+                    onPress={() => { setAssetsEditMode(!assetsEditMode); setEditingAssetId(null) }}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons
+                      name={assetsEditMode ? 'checkmark-done-outline' : 'create-outline'}
+                      size={18}
+                      color={assetsEditMode ? '#14b8a6' : '#94a3b8'}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
               {(data?.assets ?? []).map((asset) => (
-                <View key={asset.id} className="flex-row justify-between items-center py-3 border-b border-dark-700">
-                  <Text className="text-dark-300 text-sm">{asset.name}</Text>
-                  <Text className="text-dark-50 text-sm font-semibold">{fmt(asset.value - asset.debt)}</Text>
-                </View>
+                <AssetRow
+                  key={asset.id}
+                  asset={asset}
+                  editMode={assetsEditMode}
+                  isEditing={editingAssetId === asset.id}
+                  onStartEdit={setEditingAssetId}
+                  onSaveEdit={handleSaveAsset}
+                  onCancelEdit={() => setEditingAssetId(null)}
+                  fmt={fmt}
+                />
               ))}
               <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
                 <Text className="text-dark-300 text-sm">Portefólio</Text>

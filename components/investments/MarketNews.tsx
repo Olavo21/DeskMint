@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons'
 import { useMarketNews, NEWS_CATEGORIES, type NewsCategory, type NewsItem } from '../../hooks/useMarketNews'
 
 const HAS_KEY = !!process.env.EXPO_PUBLIC_FINNHUB_KEY
-const MAX_VISIBLE = 6
 
 function timeAgo(unix: number) {
   const diff = Math.floor((Date.now() / 1000 - unix) / 60)
@@ -16,26 +15,53 @@ function timeAgo(unix: number) {
   return `${Math.floor(diff / 1440)}d`
 }
 
-function CompactNewsCard({ item, accentColor }: { item: NewsItem; accentColor: string }) {
+function NewsCard({ item, categoryLabel, accentColor }: {
+  item: NewsItem
+  categoryLabel: string
+  accentColor: string
+}) {
   return (
     <TouchableOpacity
       onPress={() => Linking.openURL(item.url)}
       activeOpacity={0.72}
-      className="flex-row items-start gap-3 py-3"
-      style={{ borderBottomWidth: 1, borderBottomColor: '#c9d4cf' }}
+      style={{
+        width: 168,
+        backgroundColor: '#f8faf9',
+        borderWidth: 1,
+        borderColor: '#c9d4cf',
+        borderRadius: 14,
+        padding: 12,
+        justifyContent: 'space-between',
+        gap: 8,
+      }}
     >
-      <View className="mt-1.5 flex-shrink-0">
-        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: accentColor }} />
-      </View>
-      <View className="flex-1 min-w-0">
-        <Text className="text-dark-100 text-sm font-semibold leading-5" numberOfLines={2}>
-          {item.headline}
+      {/* Category pill */}
+      <View style={{
+        alignSelf: 'flex-start',
+        backgroundColor: accentColor + '18',
+        borderWidth: 1,
+        borderColor: accentColor + '44',
+        borderRadius: 20,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+      }}>
+        <Text style={{ color: accentColor, fontSize: 10, fontWeight: '700' }}>
+          {categoryLabel}
         </Text>
-        <Text className="text-dark-500 text-xs mt-0.5">
-          {item.source} · {timeAgo(item.datetime)}
-        </Text>
       </View>
-      <Ionicons name="chevron-forward-outline" size={13} color="#94a3b8" style={{ marginTop: 3, flexShrink: 0 }} />
+
+      {/* Headline */}
+      <Text
+        style={{ color: '#0f172a', fontSize: 12, fontWeight: '600', lineHeight: 17, flex: 1 }}
+        numberOfLines={3}
+      >
+        {item.headline}
+      </Text>
+
+      {/* Source + time */}
+      <Text style={{ color: '#64748b', fontSize: 10 }} numberOfLines={1}>
+        {item.source} · {timeAgo(item.datetime)}
+      </Text>
     </TouchableOpacity>
   )
 }
@@ -62,15 +88,16 @@ function NoApiKey() {
 
 function NewsFeed({ category }: { category: NewsCategory }) {
   const { data, isLoading, isError, refetch } = useMarketNews(category)
-  const [showAll, setShowAll] = useState(false)
 
-  const accentColor = NEWS_CATEGORIES.find((c) => c.key === category)?.color ?? '#14b8a6'
+  const cat = NEWS_CATEGORIES.find((c) => c.key === category)
+  const accentColor = cat?.color ?? '#14b8a6'
+  const categoryLabel = cat?.label ?? category
 
   if (!HAS_KEY) return <NoApiKey />
 
   if (isLoading) {
     return (
-      <View className="py-8 items-center">
+      <View className="py-6 items-center">
         <ActivityIndicator color="#0d9488" size="small" />
       </View>
     )
@@ -89,7 +116,7 @@ function NewsFeed({ category }: { category: NewsCategory }) {
 
   if (!data || data.length === 0) {
     return (
-      <View className="py-8 items-center">
+      <View className="py-6 items-center">
         <Text className="text-dark-500 text-sm">Nenhuma notícia recente</Text>
       </View>
     )
@@ -100,31 +127,23 @@ function NewsFeed({ category }: { category: NewsCategory }) {
     if (seen.has(item.url)) return false
     seen.add(item.url)
     return true
-  })
-
-  const visible = showAll ? unique : unique.slice(0, MAX_VISIBLE)
+  }).slice(0, 10)
 
   return (
-    <>
-      {visible.map((item, i) => (
-        <CompactNewsCard
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 10, paddingRight: 4 }}
+    >
+      {unique.map((item, i) => (
+        <NewsCard
           key={`${item.url ?? item.id}-${i}`}
           item={item}
+          categoryLabel={categoryLabel}
           accentColor={accentColor}
         />
       ))}
-      {!showAll && unique.length > MAX_VISIBLE && (
-        <TouchableOpacity
-          onPress={() => setShowAll(true)}
-          className="flex-row items-center justify-center gap-1.5 pt-3"
-        >
-          <Text className="text-teal-600 text-sm font-medium">
-            Ver mais {unique.length - MAX_VISIBLE} notícias
-          </Text>
-          <Ionicons name="chevron-down-outline" size={14} color="#0d9488" />
-        </TouchableOpacity>
-      )}
-    </>
+    </ScrollView>
   )
 }
 
@@ -171,7 +190,7 @@ export default function MarketNews() {
         </View>
       </ScrollView>
 
-      {/* Feed */}
+      {/* Horizontal card feed */}
       <NewsFeed category={category} />
     </View>
   )

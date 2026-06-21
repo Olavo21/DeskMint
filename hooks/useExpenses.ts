@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Alert } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import type { DmExpense, DmExpenseCategory, DmIncome, TablesInsert } from '../types/database'
@@ -26,16 +27,21 @@ export function useExpenses(month: number, year: number) {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      if (!session?.user.id) throw new Error('Sessão inválida')
+      const { error, count } = await supabase
         .from('dm_expenses')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('id', id)
-        .eq('user_id', session!.user.id)
+        .eq('user_id', session.user.id)
       if (error) throw error
+      if (!count) throw new Error('Despesa não encontrada ou sem permissão')
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['expenses'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+    onError: (err: Error) => {
+      Alert.alert('Erro ao eliminar', err.message)
     },
   })
 

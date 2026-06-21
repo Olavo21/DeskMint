@@ -28,7 +28,10 @@ export function useCommissions() {
         .insert({ ...payload, user_id: session!.user.id } as TablesInsert<'dm_commissions'>)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['commissions'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['commissions'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 
   const updateStatus = useMutation({
@@ -40,7 +43,10 @@ export function useCommissions() {
         .eq('user_id', session!.user.id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['commissions'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['commissions'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 
   const data = query.data ?? []

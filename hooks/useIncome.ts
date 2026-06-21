@@ -29,7 +29,7 @@ export function useIncome(month: number, year: number) {
         year,
         base_salary: totalNet,
         total_net:   totalNet,
-      })
+      }, { onConflict: 'user_id,month,year' })
       if (error) throw error
     },
     onSuccess: () => {

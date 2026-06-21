@@ -34,6 +34,14 @@ yarn-error.*
 .env
 .env.local
 .env*.local
+.env.vercel
+
+# IDE
+.idea/
+
+# Metro logs
+metro.log
+build.log
 
 # typescript
 *.tsbuildinfo
