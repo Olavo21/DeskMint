@@ -65,10 +65,11 @@ export function useDashboard(month: number, year: number) {
 
       return {
         income,
-        expenses:    totalExpenses,
-        savings:     savingsAmt,
-        savingsRate: income > 0 ? savingsAmt / income : 0,
-        freeCash:    income - totalExpenses - savingsAmt,
+        expenses:        totalExpenses,
+        savings:         savingsAmt,
+        savingsRate:     income > 0 ? savingsAmt / income : 0,
+        freeCash:        income - totalExpenses - savingsAmt,
+        availableBalance: income - totalExpenses,
         netWorth:    assetsValue + portfolioValue + emergencyFund - totalCreditDebt,
         portfolioValue,
         portfolioPL: portfolioValue - portfolioCapital,

@@ -1,16 +1,23 @@
 import Header from '../../components/ui/Header'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   ScrollView, View, Text, ActivityIndicator,
-  TouchableOpacity, TextInput, RefreshControl, Alert,
+  TouchableOpacity, TextInput, RefreshControl, Alert, Switch, Modal,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExpenses } from '../../hooks/useExpenses'
 import { useIncome } from '../../hooks/useIncome'
+import { useExpenseCategories } from '../../hooks/useExpenseCategories'
+import { useRecurringExpenses } from '../../hooks/useRecurringExpenses'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import NovaDespesaModal from '../../components/budget/NovaDespesaModal'
+import CategoryProgressBar from '../../components/budget/CategoryProgressBar'
+
+const REAL_TODAY = new Date()
+const REAL_MONTH = REAL_TODAY.getMonth() + 1
+const REAL_YEAR  = REAL_TODAY.getFullYear()
 
 type ExpenseItem = {
   id: string
@@ -151,10 +158,21 @@ export default function OrcamentoScreen() {
   const qc = useQueryClient()
   const { data, isLoading, isFetching, update, remove } = useExpenses(MONTH, YEAR)
   const { data: income, upsert: upsertIncome } = useIncome(MONTH, YEAR)
+  const { data: categories = [], updateLimit } = useExpenseCategories()
+  const recurring = useRecurringExpenses()
 
   // Ref estável para o remove.mutate — evita closures stale no Alert callback
   const removeRef = useRef(remove.mutate)
   useEffect(() => { removeRef.current = remove.mutate }, [remove.mutate])
+
+  // Rede de segurança: garante que os recorrentes do mês real já foram
+  // semeados, mesmo que o cron mensal ainda não tenha corrido. Corre uma
+  // vez por montagem do ecrã — a função SQL é idempotente.
+  const seedRef = useRef(recurring.seedCurrentMonth.mutate)
+  useEffect(() => { seedRef.current = recurring.seedCurrentMonth.mutate }, [recurring.seedCurrentMonth.mutate])
+  useEffect(() => {
+    seedRef.current({ month: REAL_MONTH, year: REAL_YEAR })
+  }, [])
 
   const [showModal, setShowModal]         = useState(false)
   const [editMode, setEditMode]           = useState(false)
@@ -162,6 +180,9 @@ export default function OrcamentoScreen() {
   const [salaryInput, setSalaryInput]     = useState('')
   const [editingId, setEditingId]         = useState<string | null>(null)
   const [deletingId, setDeletingId]       = useState<string | null>(null)
+  const [editingLimitId, setEditingLimitId] = useState<string | null>(null)
+  const [limitInput, setLimitInput]         = useState('')
+  const [showRecurring, setShowRecurring]   = useState(false)
 
   function startEditSalary() {
     setSalaryInput(String(income?.total_net ?? data?.totalIncome ?? ''))
@@ -185,6 +206,33 @@ export default function OrcamentoScreen() {
       onSettled: () => setDeletingId(null),
     })
   }, [])
+
+  // Gastos do mês agrupados por categoria, para as barras de progresso.
+  // Só mostra categorias com gasto > 0 ou com um teto já definido.
+  const categoryBudgets = useMemo(() => {
+    const spentByCategory = new Map<string, number>()
+    for (const e of data?.expenses ?? []) {
+      spentByCategory.set(e.category_id, (spentByCategory.get(e.category_id) ?? 0) + e.amount)
+    }
+    return categories
+      .map((cat) => ({ ...cat, spent: spentByCategory.get(cat.id) ?? 0 }))
+      .filter((cat) => cat.spent > 0 || cat.monthly_limit != null)
+      .sort((a, b) => b.spent - a.spent)
+  }, [data?.expenses, categories])
+
+  function openLimitEditor(categoryId: string, currentLimit: number | null) {
+    setEditingLimitId(categoryId)
+    setLimitInput(currentLimit != null ? String(currentLimit) : '')
+  }
+
+  async function saveLimit() {
+    if (!editingLimitId) return
+    const trimmed = limitInput.trim()
+    const val = trimmed === '' ? null : parseFloat(trimmed.replace(',', '.'))
+    if (val !== null && (isNaN(val) || val <= 0)) return
+    await updateLimit.mutateAsync({ id: editingLimitId, monthlyLimit: val })
+    setEditingLimitId(null)
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
@@ -279,6 +327,71 @@ export default function OrcamentoScreen() {
               </View>
             </View>
 
+            {/* Orçamento por categoria */}
+            {categoryBudgets.length > 0 && (
+              <View className="bg-dark-800 rounded-2xl p-4 mb-4">
+                <Text className="text-dark-50 font-semibold mb-3">Orçamento por Categoria</Text>
+                {categoryBudgets.map((cat) => (
+                  <CategoryProgressBar
+                    key={cat.id}
+                    name={cat.name}
+                    icon={cat.icon}
+                    spent={cat.spent}
+                    limit={cat.monthly_limit}
+                    onEditLimit={() => openLimitEditor(cat.id, cat.monthly_limit)}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* Despesas Recorrentes */}
+            {(recurring.data?.length ?? 0) > 0 && (
+              <View className="bg-dark-800 rounded-2xl p-4 mb-4">
+                <TouchableOpacity
+                  className="flex-row justify-between items-center"
+                  onPress={() => setShowRecurring(!showRecurring)}
+                >
+                  <Text className="text-dark-50 font-semibold">
+                    Despesas Recorrentes ({recurring.data!.length})
+                  </Text>
+                  <Ionicons name={showRecurring ? 'chevron-up' : 'chevron-down'} size={16} color="#94a3b8" />
+                </TouchableOpacity>
+                {showRecurring && (
+                  <View className="mt-3">
+                    {recurring.data!.map((r) => (
+                      <View key={r.id} className="flex-row items-center justify-between py-2 border-b border-dark-700">
+                        <View className="flex-1 mr-2">
+                          <Text className="text-dark-200 text-sm">{r.description}</Text>
+                          <Text className="text-dark-500 text-xs">{fmt(r.amount)} / mês</Text>
+                        </View>
+                        <View className="flex-row items-center gap-3">
+                          <Switch
+                            value={r.is_active}
+                            onValueChange={(v) => recurring.update.mutate({ id: r.id, is_active: v })}
+                            trackColor={{ false: '#334155', true: '#0d9488' }}
+                            thumbColor="white"
+                          />
+                          <TouchableOpacity
+                            onPress={() => Alert.alert(
+                              'Remover recorrência',
+                              `"${r.description}" deixa de ser criada automaticamente. As despesas já lançadas não são apagadas.`,
+                              [
+                                { text: 'Cancelar', style: 'cancel' },
+                                { text: 'Remover', style: 'destructive', onPress: () => recurring.remove.mutate(r.id) },
+                              ]
+                            )}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          >
+                            <Ionicons name="trash-outline" size={16} color="#f87171" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* Despesas fixas */}
             {(data?.fixed?.length ?? 0) > 0 && (
               <View className="bg-dark-800 rounded-2xl p-4 mb-4">
@@ -353,6 +466,53 @@ export default function OrcamentoScreen() {
           </>
         )}
       </ScrollView>
+
+      <Modal
+        visible={!!editingLimitId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingLimitId(null)}
+      >
+        <View className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <View className="bg-dark-800 rounded-2xl p-5 w-80">
+            <Text className="text-dark-50 font-semibold text-base mb-1">Teto mensal</Text>
+            <Text className="text-dark-400 text-xs mb-3">
+              Deixa em branco para remover o teto desta categoria.
+            </Text>
+            <TextInput
+              className="bg-dark-700 rounded-xl px-4 py-3 text-base border border-dark-600 mb-4"
+              style={{ color: '#0f172a', minWidth: 0 }}
+              value={limitInput}
+              onChangeText={setLimitInput}
+              keyboardType="decimal-pad"
+              placeholder="ex: 300"
+              placeholderTextColor="#94a3b8"
+              autoFocus
+              autoCorrect={false}
+              autoComplete="off"
+              importantForAutofill="no"
+            />
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                className="flex-1 bg-dark-700 rounded-xl py-3 items-center"
+                onPress={() => setEditingLimitId(null)}
+              >
+                <Text className="text-dark-300 font-medium">Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 bg-mint-600 rounded-xl py-3 items-center"
+                onPress={saveLimit}
+                disabled={updateLimit.isPending}
+              >
+                {updateLimit.isPending
+                  ? <ActivityIndicator color="white" size="small" />
+                  : <Text className="text-white font-medium">Guardar</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }

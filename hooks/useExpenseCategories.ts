@@ -1,12 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import type { DmExpenseCategory } from '../types/database'
 
 export function useExpenseCategories() {
   const session = useAuthStore((s) => s.session)
+  const qc = useQueryClient()
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['expense-categories', session?.user.id],
     enabled: !!session,
     staleTime: Infinity, // categorias raramente mudam
@@ -20,4 +21,20 @@ export function useExpenseCategories() {
       return (data ?? []) as DmExpenseCategory[]
     },
   })
+
+  const updateLimit = useMutation({
+    mutationFn: async ({ id, monthlyLimit }: { id: string; monthlyLimit: number | null }) => {
+      const { error } = await supabase
+        .from('dm_expense_categories')
+        .update({ monthly_limit: monthlyLimit })
+        .eq('id', id)
+        .eq('user_id', session!.user.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['expense-categories'] })
+    },
+  })
+
+  return { ...query, updateLimit }
 }

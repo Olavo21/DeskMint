@@ -8,6 +8,7 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
 import { useExpenses } from '../../hooks/useExpenses'
 import { useExpenseCategories } from '../../hooks/useExpenseCategories'
+import { useRecurringExpenses } from '../../hooks/useRecurringExpenses'
 import type { DmExpenseCategory } from '../../types/database'
 
 interface Props {
@@ -32,11 +33,13 @@ function fmt(d: Date) {
 export default function NovaDespesaModal({ visible, onClose, month, year }: Props) {
   const { create } = useExpenses(month, year)
   const { data: categories = [], isLoading: loadingCats } = useExpenseCategories()
+  const { create: createRecurring } = useRecurringExpenses()
 
   const [categoryId, setCategoryId]   = useState<string | null>(null)
   const [description, setDescription] = useState('')
   const [amount, setAmount]           = useState('')
   const [isFixed, setIsFixed]         = useState(true)
+  const [isRecurring, setIsRecurring] = useState(false)
   const [paidAt, setPaidAt]           = useState<Date | null>(TODAY)
   const [showPicker, setShowPicker]   = useState(false)
   const [errors, setErrors]           = useState<Record<string, string>>({})
@@ -66,12 +69,22 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
       year,
       paid_at: paidAt?.toISOString() ?? null,
     })
+
+    if (isRecurring) {
+      await createRecurring.mutateAsync({
+        category_id: categoryId!,
+        description: description.trim(),
+        amount:      Number(amount.replace(',', '.')),
+        is_fixed:    isFixed,
+      })
+    }
+
     handleClose()
   }
 
   function handleClose() {
     setCategoryId(null); setDescription(''); setAmount('')
-    setIsFixed(true); setPaidAt(TODAY); setErrors({})
+    setIsFixed(true); setIsRecurring(false); setPaidAt(TODAY); setErrors({})
     onClose()
   }
 
@@ -195,6 +208,21 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
               />
             </View>
           )}
+
+          <View className="bg-dark-800 rounded-xl px-4 py-3 mb-4 flex-row items-center justify-between">
+            <View className="flex-1 mr-3">
+              <Text className="text-dark-50 text-sm font-medium">Repetir todos os meses</Text>
+              <Text className="text-dark-400 text-xs mt-0.5">
+                Cria automaticamente esta despesa em todos os meses seguintes
+              </Text>
+            </View>
+            <Switch
+              value={isRecurring}
+              onValueChange={setIsRecurring}
+              trackColor={{ false: '#334155', true: '#0d9488' }}
+              thumbColor="white"
+            />
+          </View>
 
           {/* Data de pagamento */}
           <View className="mb-4">

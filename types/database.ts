@@ -211,10 +211,46 @@ export type Database = {
           user_id?: string
         }
       }
+      dm_recurring_expenses: {
+        Row: {
+          amount: number
+          category_id: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          is_fixed: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          is_fixed?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          is_fixed?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+      }
       dm_expense_categories: {
         Row: {
           icon: string | null
           id: string
+          monthly_limit: number | null
           name: string
           type: Database["public"]["Enums"]["dm_budget_type"]
           user_id: string
@@ -222,6 +258,7 @@ export type Database = {
         Insert: {
           icon?: string | null
           id?: string
+          monthly_limit?: number | null
           name: string
           type: Database["public"]["Enums"]["dm_budget_type"]
           user_id: string
@@ -229,6 +266,7 @@ export type Database = {
         Update: {
           icon?: string | null
           id?: string
+          monthly_limit?: number | null
           name?: string
           type?: Database["public"]["Enums"]["dm_budget_type"]
           user_id?: string
@@ -540,6 +578,7 @@ export type DmIncome             = Tables<"dm_income">
 export type DmCommission         = Tables<"dm_commissions">
 export type DmExpenseCategory    = Tables<"dm_expense_categories">
 export type DmExpense            = Tables<"dm_expenses">
+export type DmRecurringExpense   = Tables<"dm_recurring_expenses">
 export type DmBudgetRule         = Tables<"dm_budget_rules">
 export type DmPortfolioAsset     = Tables<"dm_portfolio_assets">
 export type DmPortfolioSnapshot  = Tables<"dm_portfolio_snapshots">
