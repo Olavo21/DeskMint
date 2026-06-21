@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Modal, View, Text, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, Platform, Pressable,
@@ -8,10 +8,12 @@ import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { useCommissions } from '../../hooks/useCommissions'
 import { useCommissionTypes } from '../../hooks/useCommissionTypes'
+import type { DmCommission } from '../../types/database'
 
 interface Props {
   visible: boolean
   onClose: () => void
+  editing?: DmCommission | null
 }
 
 const TODAY = new Date()
@@ -30,9 +32,10 @@ function Field({ label, children, error }: { label: string; children: React.Reac
   )
 }
 
-export default function NovaComissaoModal({ visible, onClose }: Props) {
-  const { create } = useCommissions()
+export default function NovaComissaoModal({ visible, onClose, editing = null }: Props) {
+  const { create, update } = useCommissions()
   const { data: types = [] } = useCommissionTypes()
+  const isEditing = !!editing
 
   const [typeId, setTypeId]           = useState<string | null>(null)
   const [description, setDescription] = useState('')
@@ -47,6 +50,20 @@ export default function NovaComissaoModal({ visible, onClose }: Props) {
   const [showEarned, setShowEarned]     = useState(false)
   const [showExpected, setShowExpected] = useState(false)
 
+  // Pré-preenche os campos só quando o modal abre em modo edição —
+  // nunca enquanto o utilizador escreve, para um refetch não apagar o que está a escrever.
+  useEffect(() => {
+    if (visible && editing) {
+      setTypeId(editing.type_id ?? null)
+      setDescription(editing.description)
+      setClient(editing.client ?? '')
+      setAmount(String(editing.amount))
+      setNotes(editing.notes ?? '')
+      setEarnedAt(new Date(editing.earned_at))
+      setExpectedAt(editing.expected_at ? new Date(editing.expected_at) : null)
+    }
+  }, [visible, editing])
+
   function validate() {
     const e: Record<string, string> = {}
     if (!description.trim())        e.description = 'Descrição obrigatória'
@@ -60,16 +77,29 @@ export default function NovaComissaoModal({ visible, onClose }: Props) {
     if (Object.keys(e).length > 0) { setErrors(e); return }
     setErrors({})
 
-    await create.mutateAsync({
-      description:  description.trim(),
-      client:       client.trim() || null,
-      amount:       Number(amount.replace(',', '.')),
-      status:       'PENDING',
-      earned_at:    earnedAt.toISOString(),
-      expected_at:  expectedAt?.toISOString() ?? null,
-      notes:        notes.trim() || null,
-      type_id:      typeId,
-    })
+    if (isEditing) {
+      await update.mutateAsync({
+        id:          editing!.id,
+        description: description.trim(),
+        client:      client.trim() || null,
+        amount:      Number(amount.replace(',', '.')),
+        earnedAt:    earnedAt.toISOString(),
+        expectedAt:  expectedAt?.toISOString() ?? null,
+        notes:       notes.trim() || null,
+        typeId,
+      })
+    } else {
+      await create.mutateAsync({
+        description:  description.trim(),
+        client:       client.trim() || null,
+        amount:       Number(amount.replace(',', '.')),
+        status:       'PENDING',
+        earned_at:    earnedAt.toISOString(),
+        expected_at:  expectedAt?.toISOString() ?? null,
+        notes:        notes.trim() || null,
+        type_id:      typeId,
+      })
+    }
     handleClose()
   }
 
@@ -88,9 +118,9 @@ export default function NovaComissaoModal({ visible, onClose }: Props) {
           <TouchableOpacity onPress={handleClose}>
             <Text className="text-dark-400 text-base">Cancelar</Text>
           </TouchableOpacity>
-          <Text className="text-white text-base font-semibold">Nova Comissão</Text>
-          <TouchableOpacity onPress={handleSubmit} disabled={create.isPending}>
-            {create.isPending
+          <Text className="text-white text-base font-semibold">{isEditing ? 'Editar Comissão' : 'Nova Comissão'}</Text>
+          <TouchableOpacity onPress={handleSubmit} disabled={create.isPending || update.isPending}>
+            {(create.isPending || update.isPending)
               ? <ActivityIndicator color="#14b8a6" size="small" />
               : <Text className="text-mint-400 text-base font-semibold">Guardar</Text>
             }
@@ -224,7 +254,7 @@ export default function NovaComissaoModal({ visible, onClose }: Props) {
           </Field>
 
           {/* Erro de submit */}
-          {create.isError && (
+          {(create.isError || update.isError) && (
             <View className="bg-red-900/50 border border-red-700 rounded-xl px-4 py-3 mb-4">
               <Text className="text-red-400 text-sm">Erro ao guardar. Tenta novamente.</Text>
             </View>
@@ -234,11 +264,11 @@ export default function NovaComissaoModal({ visible, onClose }: Props) {
           <TouchableOpacity
             className="bg-mint-600 rounded-xl py-4 items-center mt-2 mb-8"
             onPress={handleSubmit}
-            disabled={create.isPending}
+            disabled={create.isPending || update.isPending}
           >
-            {create.isPending
+            {(create.isPending || update.isPending)
               ? <ActivityIndicator color="white" />
-              : <Text className="text-white font-semibold text-base">Guardar Comissão</Text>
+              : <Text className="text-white font-semibold text-base">{isEditing ? 'Guardar Alterações' : 'Guardar Comissão'}</Text>
             }
           </TouchableOpacity>
 

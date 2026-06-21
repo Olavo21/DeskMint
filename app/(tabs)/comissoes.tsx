@@ -1,10 +1,11 @@
 import Header from '../../components/ui/Header'
 import { useState } from 'react'
-import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useCommissions } from '../../hooks/useCommissions'
 import NovaComissaoModal from '../../components/commissions/NovaComissaoModal'
+import CommissionsCalendar from '../../components/commissions/CommissionsCalendar'
 import type { DmCommission } from '../../types/database'
 
 type Status = DmCommission['status']
@@ -55,13 +56,19 @@ function CommissionCard({
   bloco,
   onAdvance,
   onRevert,
+  onEdit,
+  onDelete,
   isUpdating,
+  isDeleting,
 }: {
   c: DmCommission
   bloco: (typeof BLOCOS)[number]
   onAdvance: (id: string, nextStatus: Status) => void
   onRevert:  (id: string) => void
+  onEdit:    (c: DmCommission) => void
+  onDelete:  (id: string, description: string) => void
   isUpdating: boolean
+  isDeleting: boolean
 }) {
   const isOverdue = c.expected_at && new Date(c.expected_at) < new Date() && c.status !== 'PAID'
 
@@ -89,9 +96,26 @@ function CommissionCard({
             )}
           </View>
         </View>
-        <Text className="font-bold text-base" style={{ color: bloco.color }}>
-          {fmt(c.amount)}
-        </Text>
+        <View className="items-end gap-1.5">
+          <Text className="font-bold text-base" style={{ color: bloco.color }}>
+            {fmt(c.amount)}
+          </Text>
+          <View className="flex-row items-center gap-2.5">
+            <TouchableOpacity onPress={() => onEdit(c)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="pencil-outline" size={15} color="#64748b" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onDelete(c.id, c.description)}
+              disabled={isDeleting}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {isDeleting
+                ? <ActivityIndicator size="small" color="#ef4444" />
+                : <Ionicons name="trash-outline" size={15} color="#ef4444" />
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       {/* Acções */}
@@ -139,14 +163,20 @@ function BlocoNotas({
   commissions,
   onAdvance,
   onRevert,
+  onEdit,
+  onDelete,
   isUpdating,
+  deletingId,
   initialCollapsed = false,
 }: {
   bloco: (typeof BLOCOS)[number]
   commissions: DmCommission[]
   onAdvance: (id: string, s: Status) => void
   onRevert:  (id: string) => void
+  onEdit:    (c: DmCommission) => void
+  onDelete:  (id: string, description: string) => void
   isUpdating: boolean
+  deletingId: string | null
   initialCollapsed?: boolean
 }) {
   const [collapsed, setCollapsed] = useState(initialCollapsed)
@@ -197,7 +227,10 @@ function BlocoNotas({
                 bloco={bloco}
                 onAdvance={onAdvance}
                 onRevert={onRevert}
+                onEdit={onEdit}
+                onDelete={onDelete}
                 isUpdating={isUpdating}
+                isDeleting={deletingId === c.id}
               />
             ))
           )}
@@ -208,8 +241,11 @@ function BlocoNotas({
 }
 
 export default function ComissoesScreen() {
-  const { data, isLoading, updateStatus, totals } = useCommissions()
+  const { data, isLoading, updateStatus, remove, totals } = useCommissions()
   const [showModal, setShowModal] = useState(false)
+  const [editingCommission, setEditingCommission] = useState<DmCommission | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
 
   function advance(id: string, status: Status) {
     updateStatus.mutate({
@@ -223,15 +259,44 @@ export default function ComissoesScreen() {
     updateStatus.mutate({ id, status: 'PENDING' })
   }
 
+  function startEdit(c: DmCommission) {
+    setEditingCommission(c)
+    setShowModal(true)
+  }
+
+  function closeModal() {
+    setShowModal(false)
+    setEditingCommission(null)
+  }
+
+  function handleDelete(id: string, description: string) {
+    Alert.alert(
+      'Eliminar comissão',
+      `Tens a certeza que queres eliminar "${description}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar', style: 'destructive', onPress: () => {
+            setDeletingId(id)
+            remove.mutate(id, { onSettled: () => setDeletingId(null) })
+          },
+        },
+      ]
+    )
+  }
+
   const all = data ?? []
-  const pending = all.filter((c) => c.status === 'PENDING')
-  const toPay   = all.filter((c) => c.status === 'TO_PAY')
-  const paid    = all.filter((c) => c.status === 'PAID')
+  const dayFiltered = selectedDay
+    ? all.filter((c) => c.earned_at.slice(0, 10) === selectedDay || c.paid_at?.slice(0, 10) === selectedDay)
+    : all
+  const pending = dayFiltered.filter((c) => c.status === 'PENDING')
+  const toPay   = dayFiltered.filter((c) => c.status === 'TO_PAY')
+  const paid    = dayFiltered.filter((c) => c.status === 'PAID')
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header />
-      <NovaComissaoModal visible={showModal} onClose={() => setShowModal(false)} />
+      <NovaComissaoModal visible={showModal} onClose={closeModal} editing={editingCommission} />
 
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
 
@@ -257,6 +322,22 @@ export default function ComissoesScreen() {
           </View>
         </View>
 
+        {/* Calendário mensal de produtividade */}
+        <CommissionsCalendar commissions={all} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
+
+        {/* Chip de filtro por dia */}
+        {selectedDay && (
+          <TouchableOpacity
+            onPress={() => setSelectedDay(null)}
+            className="flex-row items-center gap-2 self-start bg-mint-900/40 border border-mint-700/50 rounded-full px-3 py-1.5 mb-4"
+          >
+            <Text className="text-mint-400 text-xs font-medium">
+              A mostrar: {new Date(selectedDay).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+            </Text>
+            <Ionicons name="close-circle" size={14} color="#2dd4bf" />
+          </TouchableOpacity>
+        )}
+
         {isLoading ? (
           <ActivityIndicator color="#14b8a6" className="mt-10" />
         ) : (
@@ -266,21 +347,30 @@ export default function ComissoesScreen() {
               commissions={pending}
               onAdvance={advance}
               onRevert={revert}
+              onEdit={startEdit}
+              onDelete={handleDelete}
               isUpdating={updateStatus.isPending}
+              deletingId={deletingId}
             />
             <BlocoNotas
               bloco={BLOCOS[1]}
               commissions={toPay}
               onAdvance={advance}
               onRevert={revert}
+              onEdit={startEdit}
+              onDelete={handleDelete}
               isUpdating={updateStatus.isPending}
+              deletingId={deletingId}
             />
             <BlocoNotas
               bloco={BLOCOS[2]}
               commissions={paid}
               onAdvance={advance}
               onRevert={revert}
+              onEdit={startEdit}
+              onDelete={handleDelete}
               isUpdating={updateStatus.isPending}
+              deletingId={deletingId}
               initialCollapsed
             />
           </>
