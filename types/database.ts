@@ -56,6 +56,7 @@ export type Database = {
       dm_assets: {
         Row: {
           created_at: string
+          credit_id: string | null
           debt: number
           id: string
           name: string
@@ -67,6 +68,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          credit_id?: string | null
           debt?: number
           id?: string
           name: string
@@ -78,6 +80,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          credit_id?: string | null
           debt?: number
           id?: string
           name?: string

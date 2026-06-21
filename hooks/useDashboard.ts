@@ -50,8 +50,19 @@ export function useDashboard(month: number, year: number) {
       const portfolioValue   = portfolio.reduce((s, a) => s + a.current_value, 0)
       const portfolioCapital = portfolio.reduce((s, a) => s + a.capital_invested, 0)
       const emergencyFund    = emergency?.current_amount ?? 0
-      const assetsValue      = assets.reduce((s, a) => s + (a.value - a.debt), 0)
       const totalCreditDebt  = credits.reduce((s, c) => s + getCreditOutstandingBalance(c).balance, 0)
+
+      // Para um asset vinculado a um crédito (ex: carro financiado), a dívida
+      // apresentada deixa de ser o valor estático guardado e passa a ser o
+      // saldo em dívida real desse crédito — desce automaticamente mês a mês
+      // conforme as prestações são pagas, sem qualquer edição manual.
+      const creditsById = new Map(credits.map((c) => [c.id, c]))
+      const assetsWithLiveDebt = assets.map((a) => {
+        const linkedCredit = a.credit_id ? creditsById.get(a.credit_id) : undefined
+        const effectiveDebt = linkedCredit ? getCreditOutstandingBalance(linkedCredit).balance : a.debt
+        return { ...a, effectiveDebt, linkedCredit }
+      })
+      const assetsValue = assetsWithLiveDebt.reduce((s, a) => s + (a.value - a.effectiveDebt), 0)
 
       // Preferir dm_budget_rules se existir (override manual); caso contrário derivar de despesas reais
       const budgetRule: DmBudgetRule | null = budget ?? (rawExp.length > 0 ? ({
@@ -76,7 +87,7 @@ export function useDashboard(month: number, year: number) {
         emergencyFund,
         totalCreditDebt,
         budgetRule,
-        assets,
+        assets: assetsWithLiveDebt,
       }
     },
   })

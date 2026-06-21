@@ -20,5 +20,21 @@ export function useAssets() {
     },
   })
 
-  return { update }
+  // Vincula (ou desvincula, com creditId=null) um asset a um crédito —
+  // a dívida apresentada passa a vir do saldo em dívida real desse crédito.
+  const linkCredit = useMutation({
+    mutationFn: async ({ id, creditId }: { id: string; creditId: string | null }) => {
+      const { error } = await supabase
+        .from('dm_assets')
+        .update({ credit_id: creditId })
+        .eq('id', id)
+        .eq('user_id', session!.user.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+
+  return { update, linkCredit }
 }

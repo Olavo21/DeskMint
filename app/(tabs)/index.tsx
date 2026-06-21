@@ -6,11 +6,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useAssets } from '../../hooks/useAssets'
+import { useCredits } from '../../hooks/useCredits'
 import { useAuthStore } from '../../stores/authStore'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
 import QuickAddFab from '../../components/budget/QuickAddFab'
-import type { DmAsset } from '../../types/database'
+import type { DmAsset, DmCredit } from '../../types/database'
+
+type AssetWithLiveDebt = DmAsset & { effectiveDebt: number; linkedCredit?: DmCredit }
 
 function PremiumCard({
   label, value, sub, icon, color, onPress,
@@ -71,19 +74,25 @@ function RuleRow({ label, pct, ideal, amt, fmt }: { label: string; pct: number; 
 }
 
 type AssetRowProps = {
-  asset: DmAsset
+  asset: AssetWithLiveDebt
   editMode: boolean
   isEditing: boolean
+  credits: DmCredit[]
   onStartEdit: (id: string) => void
   onSaveEdit: (id: string, name: string, value: number, debt: number) => void
   onCancelEdit: () => void
+  onLinkCredit: (assetId: string, creditId: string | null) => void
   fmt: (n: number) => string
 }
 
-function AssetRow({ asset, editMode, isEditing, onStartEdit, onSaveEdit, onCancelEdit, fmt }: AssetRowProps) {
+function AssetRow({
+  asset, editMode, isEditing, credits,
+  onStartEdit, onSaveEdit, onCancelEdit, onLinkCredit, fmt,
+}: AssetRowProps) {
   const [localName, setLocalName] = useState(asset.name)
   const [localValue, setLocalValue] = useState(String(asset.value))
   const [localDebt, setLocalDebt] = useState(String(asset.debt))
+  const isLinked = !!asset.linkedCredit
 
   // Só repõe o texto local quando entra em modo de edição — nunca enquanto
   // o utilizador escreve, para um refetch em segundo plano não apagar o que está a escrever.
@@ -110,31 +119,37 @@ function AssetRow({ asset, editMode, isEditing, onStartEdit, onSaveEdit, onCance
           autoComplete="off"
           importantForAutofill="no"
         />
-        <View className="flex-row gap-2">
+        <View className="flex-row gap-2 mb-2">
           <TextInput
             className="bg-dark-700 rounded-lg px-3 py-2 text-sm flex-1 border border-dark-600"
             style={{ color: '#0f172a', minWidth: 0 }}
             value={localValue}
             onChangeText={setLocalValue}
             keyboardType="decimal-pad"
-            placeholder="Valor"
+            placeholder="Valor de mercado"
             placeholderTextColor="#94a3b8"
             autoCorrect={false}
             autoComplete="off"
             importantForAutofill="no"
           />
-          <TextInput
-            className="bg-dark-700 rounded-lg px-3 py-2 text-sm flex-1 border border-dark-600"
-            style={{ color: '#0f172a', minWidth: 0 }}
-            value={localDebt}
-            onChangeText={setLocalDebt}
-            keyboardType="decimal-pad"
-            placeholder="Dívida"
-            placeholderTextColor="#94a3b8"
-            autoCorrect={false}
-            autoComplete="off"
-            importantForAutofill="no"
-          />
+          {isLinked ? (
+            <View className="flex-1 bg-dark-700 rounded-lg px-3 py-2 border border-dark-600 justify-center">
+              <Text className="text-dark-400 text-xs" numberOfLines={1}>Dívida (automática)</Text>
+            </View>
+          ) : (
+            <TextInput
+              className="bg-dark-700 rounded-lg px-3 py-2 text-sm flex-1 border border-dark-600"
+              style={{ color: '#0f172a', minWidth: 0 }}
+              value={localDebt}
+              onChangeText={setLocalDebt}
+              keyboardType="decimal-pad"
+              placeholder="Dívida"
+              placeholderTextColor="#94a3b8"
+              autoCorrect={false}
+              autoComplete="off"
+              importantForAutofill="no"
+            />
+          )}
           <TouchableOpacity
             className="bg-mint-600 rounded-lg px-4 items-center justify-center"
             onPress={() => {
@@ -154,15 +169,46 @@ function AssetRow({ asset, editMode, isEditing, onStartEdit, onSaveEdit, onCance
             <Ionicons name="close" size={18} color="#64748b" />
           </TouchableOpacity>
         </View>
+
+        {isLinked ? (
+          <View className="flex-row items-center gap-1.5 bg-mint-900/40 rounded-lg px-2.5 py-1.5 self-start">
+            <Ionicons name="link" size={12} color="#2dd4bf" />
+            <Text className="text-mint-400 text-xs">Vinculado a "{asset.linkedCredit!.name}"</Text>
+            <TouchableOpacity onPress={() => onLinkCredit(asset.id, null)} hitSlop={8} className="ml-1">
+              <Ionicons name="close-circle" size={14} color="#2dd4bf" />
+            </TouchableOpacity>
+          </View>
+        ) : credits.length > 0 ? (
+          <View className="flex-row flex-wrap gap-1.5">
+            {credits.map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                onPress={() => onLinkCredit(asset.id, c.id)}
+                className="flex-row items-center gap-1 border border-dashed border-dark-600 rounded-lg px-2 py-1"
+              >
+                <Ionicons name="link-outline" size={12} color="#94a3b8" />
+                <Text className="text-dark-400 text-xs">Vincular a "{c.name}"</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
       </View>
     )
   }
 
   return (
     <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
-      <Text className="text-dark-300 text-sm flex-1 mr-2">{asset.name}</Text>
+      <View className="flex-1 mr-2">
+        <Text className="text-dark-300 text-sm">{asset.name}</Text>
+        {isLinked && (
+          <View className="flex-row items-center gap-1 mt-0.5">
+            <Ionicons name="link" size={10} color="#64748b" />
+            <Text className="text-dark-500 text-xs">{asset.linkedCredit!.name}</Text>
+          </View>
+        )}
+      </View>
       <View className="flex-row items-center gap-3">
-        <Text className="text-dark-50 text-sm font-semibold">{fmt(asset.value - asset.debt)}</Text>
+        <Text className="text-dark-50 text-sm font-semibold">{fmt(asset.value - asset.effectiveDebt)}</Text>
         {editMode && (
           <TouchableOpacity
             onPress={() => onStartEdit(asset.id)}
@@ -181,7 +227,8 @@ export default function DashboardScreen() {
   const qc = useQueryClient()
   const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
   const { data, isLoading } = useDashboard(MONTH, YEAR)
-  const { update: updateAsset } = useAssets()
+  const { update: updateAsset, linkCredit } = useAssets()
+  const { data: credits = [] } = useCredits()
   const [assetsEditMode, setAssetsEditMode] = useState(false)
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
@@ -189,6 +236,10 @@ export default function DashboardScreen() {
   async function handleSaveAsset(id: string, name: string, value: number, debt: number) {
     await updateAsset.mutateAsync({ id, name, value, debt })
     setEditingAssetId(null)
+  }
+
+  function handleLinkCredit(assetId: string, creditId: string | null) {
+    linkCredit.mutate({ id: assetId, creditId })
   }
 
   useFocusEffect(
@@ -302,9 +353,11 @@ export default function DashboardScreen() {
                       asset={asset}
                       editMode={assetsEditMode}
                       isEditing={editingAssetId === asset.id}
+                      credits={credits}
                       onStartEdit={setEditingAssetId}
                       onSaveEdit={handleSaveAsset}
                       onCancelEdit={() => setEditingAssetId(null)}
+                      onLinkCredit={handleLinkCredit}
                       fmt={fmt}
                     />
                   ))}
