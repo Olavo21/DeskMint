@@ -41,6 +41,15 @@ function PremiumCard({
   )
 }
 
+function NetWorthBanner({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="bg-mint-900/30 border border-mint-700/40 rounded-2xl px-5 py-4 mb-3 items-center">
+      <Text className="text-mint-400 text-xs mb-0.5">{label}</Text>
+      <Text className="text-dark-50 text-3xl font-bold">{value}</Text>
+    </View>
+  )
+}
+
 function KpiCard({ label, value, sub, valueColor }: { label: string; value: string; sub?: string; valueColor?: string }) {
   return (
     <View className="bg-dark-800 rounded-2xl p-4 flex-1">
@@ -286,6 +295,9 @@ export default function DashboardScreen() {
           <ActivityIndicator color="#14b8a6" className="mt-20" />
         ) : (
           <>
+            {/* Património Líquido — indicador estático, sem navegação */}
+            <NetWorthBanner label="Património Líquido" value={fmt(data?.netWorth ?? 0)} />
+
             {/* 3 Cartões Premium */}
             <PremiumCard
               label="Saldo Disponível"
@@ -296,9 +308,9 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(tabs)/orcamento')}
             />
             <PremiumCard
-              label="Total Guardado / Investido"
-              value={fmt(data?.netWorth ?? 0)}
-              sub="património líquido acumulado"
+              label="Total Investido"
+              value={fmt(data?.portfolioValue ?? 0)}
+              sub="ETFs, ações e cripto"
               icon="trending-up-outline"
               color="#2563eb"
               onPress={() => router.push('/(tabs)/investimentos')}
