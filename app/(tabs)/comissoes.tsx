@@ -100,18 +100,23 @@ function CommissionCard({
           <Text className="font-bold text-base" style={{ color: bloco.color }}>
             {fmt(c.amount)}
           </Text>
-          <View className="flex-row items-center gap-2.5">
-            <TouchableOpacity onPress={() => onEdit(c)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="pencil-outline" size={15} color="#64748b" />
+          <View className="flex-row items-center">
+            <TouchableOpacity
+              onPress={() => onEdit(c)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="pencil-outline" size={17} color="#64748b" />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => onDelete(c.id, c.description)}
               disabled={isDeleting}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
             >
               {isDeleting
                 ? <ActivityIndicator size="small" color="#ef4444" />
-                : <Ionicons name="trash-outline" size={15} color="#ef4444" />
+                : <Ionicons name="trash-outline" size={17} color="#ef4444" />
               }
             </TouchableOpacity>
           </View>
