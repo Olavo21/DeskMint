@@ -384,10 +384,10 @@ export default function ComissoesScreen() {
         <View className="h-24" />
       </ScrollView>
 
-      {/* FAB — mesmo padrão que Investimentos */}
+      {/* FAB — posição mais baixa para não sobrepor os ícones de ação do último cartão visível */}
       <TouchableOpacity
         onPress={() => setShowModal(true)}
-        className="absolute bottom-20 right-4 flex-row items-center gap-2 bg-teal-500 rounded-full px-5 py-3"
+        className="absolute bottom-2 right-4 flex-row items-center gap-2 bg-teal-500 rounded-full px-5 py-2"
         style={{ shadowColor: '#14b8a6', shadowOpacity: 0.5, shadowRadius: 12, elevation: 8 }}
       >
         <Ionicons name="add" size={18} color="#fff" />
