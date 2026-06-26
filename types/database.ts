@@ -443,6 +443,9 @@ export type Database = {
           time_horizon: 'SHORT' | 'MEDIUM' | 'LONG' | null
           monthly_invest: number | null
           onboarding_done: boolean
+          founder_number: number | null
+          plan_expires_at: string | null
+          plan_updated_at: string
         }
         Insert: {
           avatar?: string | null
@@ -459,6 +462,9 @@ export type Database = {
           time_horizon?: 'SHORT' | 'MEDIUM' | 'LONG' | null
           monthly_invest?: number | null
           onboarding_done?: boolean
+          founder_number?: number | null
+          plan_expires_at?: string | null
+          plan_updated_at?: string
         }
         Update: {
           avatar?: string | null
@@ -475,6 +481,9 @@ export type Database = {
           time_horizon?: 'SHORT' | 'MEDIUM' | 'LONG' | null
           monthly_invest?: number | null
           onboarding_done?: boolean
+          founder_number?: number | null
+          plan_expires_at?: string | null
+          plan_updated_at?: string
         }
       }
       dm_retirement_plans: {

@@ -5,17 +5,16 @@ import { usePlan, PLAN_NAMES, FOUNDER_SLOTS } from '../../hooks/usePlan'
 interface Props {
   children: React.ReactNode
   feature: string          // descrição da funcionalidade bloqueada
-  requiredPlan?: 'BASE' | 'PRO' | 'FOUNDER'
+  requiredPlan?: 'PRO' | 'FOUNDER'
   onUpgrade?: () => void
 }
 
-export default function PlanGate({ children, feature, requiredPlan = 'BASE', onUpgrade }: Props) {
+const PLAN_RANK = { FREE: 0, PRO: 1, FOUNDER: 2 }
+
+export default function PlanGate({ children, feature, requiredPlan = 'PRO', onUpgrade }: Props) {
   const plan = usePlan()
 
-  // verificar acesso com base no plano requerido
-  const hasAccess = plan.isFounder ||
-    (['PRO', 'FOUNDER'] as string[]).includes(plan.plan) ||
-    (requiredPlan === 'BASE' && (['BASE', 'PRO', 'FOUNDER'] as string[]).includes(plan.plan))
+  const hasAccess = PLAN_RANK[plan.plan] >= PLAN_RANK[requiredPlan]
 
   if (hasAccess) return <>{children}</>
 

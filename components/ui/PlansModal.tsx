@@ -44,16 +44,6 @@ const PLAN_DATA = [
     aiLabel: '—',
   },
   {
-    key: 'BASE',
-    name: 'Base',
-    color: '#3b82f6',
-    monthlyPrice: 4.99,
-    annualPrice: 3.99,
-    cta: 'Escolher Base',
-    features: [true, true, true, true, false, false, false, true],
-    aiLabel: '5 msg/dia',
-  },
-  {
     key: 'PRO',
     name: 'Premium',
     color: '#8b5cf6',

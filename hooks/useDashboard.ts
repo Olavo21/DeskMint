@@ -33,6 +33,10 @@ export function useDashboard(month: number, year: number) {
           .eq('year', year),
       ])
 
+      const results = [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes]
+      const failed = results.find((r) => r.error)
+      if (failed?.error) throw failed.error
+
       const income    = (incomeRes.data as DmIncome | null)?.total_net ?? 0
       const budget    = budgetRes.data as DmBudgetRule | null
       const portfolio = (portfolioRes.data as DmPortfolioAsset[]) ?? []

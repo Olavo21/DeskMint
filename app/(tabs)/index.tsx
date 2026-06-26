@@ -1,5 +1,5 @@
 ﻿import { useState, useCallback, useEffect } from 'react'
-import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native'
+import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, TextInput, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ import { useDashboard } from '../../hooks/useDashboard'
 import { useAssets } from '../../hooks/useAssets'
 import { useCredits } from '../../hooks/useCredits'
 import { useEmergencyFund } from '../../hooks/useEmergencyFund'
+import { useSubscription } from '../../hooks/useSubscription'
 import { useAuthStore } from '../../stores/authStore'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
@@ -50,6 +51,27 @@ function NetWorthBanner({ label, value }: { label: string; value: string }) {
   )
 }
 
+function DashboardError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View className="items-center justify-center mt-20 px-6">
+      <Ionicons name="cloud-offline-outline" size={48} color="#94a3b8" />
+      <Text className="text-dark-50 text-base font-semibold mt-4 text-center">
+        Não foi possível carregar os teus dados financeiros
+      </Text>
+      <Text className="text-dark-400 text-sm mt-1 text-center">
+        Verifica a tua ligação à internet e tenta novamente.
+      </Text>
+      <TouchableOpacity
+        onPress={onRetry}
+        className="bg-mint-600 rounded-xl px-5 py-3 mt-5 flex-row items-center gap-2"
+      >
+        <Ionicons name="refresh" size={16} color="white" />
+        <Text className="text-white font-semibold text-sm">Tentar Novamente</Text>
+      </TouchableOpacity>
+    </View>
+  )
+}
+
 function KpiCard({ label, value, sub, valueColor }: { label: string; value: string; sub?: string; valueColor?: string }) {
   return (
     <View className="bg-dark-800 rounded-2xl p-4 flex-1">
@@ -88,6 +110,7 @@ type AssetRowProps = {
   editMode: boolean
   isEditing: boolean
   credits: DmCredit[]
+  canLinkCreditToAsset: boolean
   onStartEdit: (id: string) => void
   onSaveEdit: (id: string, name: string, value: number, debt: number) => void
   onCancelEdit: () => void
@@ -96,7 +119,7 @@ type AssetRowProps = {
 }
 
 function AssetRow({
-  asset, editMode, isEditing, credits,
+  asset, editMode, isEditing, credits, canLinkCreditToAsset,
   onStartEdit, onSaveEdit, onCancelEdit, onLinkCredit, fmt,
 }: AssetRowProps) {
   const [localName, setLocalName] = useState(asset.name)
@@ -193,10 +216,20 @@ function AssetRow({
             {credits.map((c) => (
               <TouchableOpacity
                 key={c.id}
-                onPress={() => onLinkCredit(asset.id, c.id)}
+                onPress={() => {
+                  if (!canLinkCreditToAsset) {
+                    Alert.alert(
+                      'Disponível no plano Pro',
+                      'Vincular créditos a ativos é uma funcionalidade Pro. Faz upgrade para a desbloquear.'
+                    )
+                    return
+                  }
+                  onLinkCredit(asset.id, c.id)
+                }}
                 className="flex-row items-center gap-1 border border-dashed border-dark-600 rounded-lg px-2 py-1"
+                style={{ opacity: canLinkCreditToAsset ? 1 : 0.5 }}
               >
-                <Ionicons name="link-outline" size={12} color="#94a3b8" />
+                <Ionicons name={canLinkCreditToAsset ? 'link-outline' : 'lock-closed-outline'} size={12} color="#94a3b8" />
                 <Text className="text-dark-400 text-xs">Vincular a "{c.name}"</Text>
               </TouchableOpacity>
             ))}
@@ -236,10 +269,11 @@ export default function DashboardScreen() {
   const profile = useAuthStore((s) => s.profile)
   const qc = useQueryClient()
   const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
-  const { data, isLoading } = useDashboard(MONTH, YEAR)
+  const { data, isLoading, isError, refetch } = useDashboard(MONTH, YEAR)
   const { update: updateAsset, linkCredit } = useAssets()
   const { data: credits = [] } = useCredits()
   const { upsert: upsertEmergencyFund } = useEmergencyFund()
+  const { canLinkCreditToAsset } = useSubscription()
   const [assetsEditMode, setAssetsEditMode] = useState(false)
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
@@ -293,6 +327,8 @@ export default function DashboardScreen() {
 
         {isLoading ? (
           <ActivityIndicator color="#14b8a6" className="mt-20" />
+        ) : isError ? (
+          <DashboardError onRetry={() => refetch()} />
         ) : (
           <>
             {/* Património Líquido — indicador estático, sem navegação */}
@@ -385,6 +421,7 @@ export default function DashboardScreen() {
                       editMode={assetsEditMode}
                       isEditing={editingAssetId === asset.id}
                       credits={credits}
+                      canLinkCreditToAsset={canLinkCreditToAsset}
                       onStartEdit={setEditingAssetId}
                       onSaveEdit={handleSaveAsset}
                       onCancelEdit={() => setEditingAssetId(null)}

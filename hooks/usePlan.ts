@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/authStore'
 
-type Plan = 'FREE' | 'BASE' | 'PRO' | 'FOUNDER'
+type Plan = 'FREE' | 'PRO' | 'FOUNDER'
 
 export type PlanFeatures = {
   // Tabs
@@ -30,17 +30,6 @@ const PLAN_FEATURES: Record<Plan, PlanFeatures> = {
     isFounder:              false,
     founderNumber:          null,
   },
-  BASE: {
-    canAccessInvestimentos: false,
-    canAccessComissoes:     true,
-    canAccessRelatorios:    false,
-    canAccessFiscal:        true,
-    fullDashboard:          false,
-    aiMessages:             5,
-    plan:                   'BASE',
-    isFounder:              false,
-    founderNumber:          null,
-  },
   PRO: {
     canAccessInvestimentos: true,
     canAccessComissoes:     true,
@@ -67,24 +56,29 @@ const PLAN_FEATURES: Record<Plan, PlanFeatures> = {
 
 export function usePlan(): PlanFeatures {
   const profile = useAuthStore((s) => s.profile)
-  const plan = (profile?.plan ?? 'FREE') as Plan
+  let plan = (profile?.plan ?? 'FREE') as Plan
+
+  // FOUNDER é vitalício (sem expiração). Para os restantes planos pagos,
+  // uma subscrição expirada reverte o acesso para FREE.
+  if (plan !== 'FOUNDER' && profile?.plan_expires_at && new Date(profile.plan_expires_at) < new Date()) {
+    plan = 'FREE'
+  }
+
   const features = PLAN_FEATURES[plan] ?? PLAN_FEATURES.FREE
   return {
     ...features,
-    founderNumber: (profile as any)?.founder_number ?? null,
+    founderNumber: profile?.founder_number ?? null,
   }
 }
 
 export const PLAN_NAMES: Record<Plan, string> = {
   FREE:    'Gratuito',
-  BASE:    'Base',
-  PRO:     'Pro',
+  PRO:     'Premium',
   FOUNDER: 'Founder',
 }
 
 export const PLAN_COLORS: Record<Plan, string> = {
   FREE:    '#64748b',
-  BASE:    '#3b82f6',
   PRO:     '#8b5cf6',
   FOUNDER: '#f59e0b',
 }

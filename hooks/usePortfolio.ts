@@ -63,6 +63,9 @@ export function usePortfolio() {
         supabase.from('dm_assets').select('*').eq('user_id', uid),
       ])
 
+      const failed = [portfolioRes, emergencyRes, assetsRes].find((r) => r.error)
+      if (failed?.error) throw failed.error
+
       const raw = (portfolioRes.data ?? []) as DmPortfolioAsset[]
       const totalValue   = raw.reduce((s, a) => s + a.current_value, 0)
       const totalCapital = raw.reduce((s, a) => s + a.capital_invested, 0)

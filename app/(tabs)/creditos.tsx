@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, RefreshControl } from 'react-native'
+import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, RefreshControl, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useQueryClient } from '@tanstack/react-query'
 import Header from '../../components/ui/Header'
 import { useCredits } from '../../hooks/useCredits'
 import { useIncome } from '../../hooks/useIncome'
+import { useSubscription } from '../../hooks/useSubscription'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import CreditoCard from '../../components/creditos/CreditoCard'
 import DicasFinanceiras from '../../components/creditos/DicasFinanceiras'
@@ -17,12 +18,20 @@ export default function CreditosScreen() {
   const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
   const { data: credits = [], isLoading, isFetching, remove } = useCredits()
   const { data: income } = useIncome(MONTH, YEAR)
+  const { canAddMoreCredits } = useSubscription()
 
   const [showModal, setShowModal]   = useState(false)
   const [editing, setEditing]       = useState<DmCredit | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   function handleNew() {
+    if (!canAddMoreCredits) {
+      Alert.alert(
+        'Disponível no plano Pro',
+        'O plano gratuito permite apenas 1 crédito registado. Faz upgrade para adicionar mais.'
+      )
+      return
+    }
     setEditing(null)
     setShowModal(true)
   }
@@ -61,9 +70,10 @@ export default function CreditosScreen() {
           </View>
           <TouchableOpacity
             className="bg-mint-600 rounded-xl px-3 py-2 flex-row items-center gap-1"
+            style={{ opacity: canAddMoreCredits ? 1 : 0.5 }}
             onPress={handleNew}
           >
-            <Ionicons name="add" size={16} color="white" />
+            <Ionicons name={canAddMoreCredits ? 'add' : 'lock-closed'} size={16} color="white" />
             <Text className="text-dark-50 font-medium text-xs">Novo</Text>
           </TouchableOpacity>
         </View>
