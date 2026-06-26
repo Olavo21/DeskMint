@@ -25,9 +25,9 @@ function fmt(d: Date) {
 function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
   return (
     <View className="mb-4">
-      <Text className="text-dark-400 text-xs mb-1.5 ml-1">{label}</Text>
+      <Text className="text-dark-300 text-xs mb-1.5 ml-1">{label}</Text>
       {children}
-      {error ? <Text className="text-red-400 text-xs mt-1 ml-1">{error}</Text> : null}
+      {error ? <Text className="text-red-700 text-xs mt-1 ml-1">{error}</Text> : null}
     </View>
   )
 }
@@ -116,13 +116,13 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-4 border-b border-dark-700">
           <TouchableOpacity onPress={handleClose}>
-            <Text className="text-dark-400 text-base">Cancelar</Text>
+            <Text className="text-dark-300 text-base">Cancelar</Text>
           </TouchableOpacity>
           <Text className="text-base font-semibold" style={{ color: '#0f172a' }}>{isEditing ? 'Editar Comissão' : 'Nova Comissão'}</Text>
           <TouchableOpacity onPress={handleSubmit} disabled={create.isPending || update.isPending}>
             {(create.isPending || update.isPending)
               ? <ActivityIndicator color="#14b8a6" size="small" />
-              : <Text className="text-mint-400 text-base font-semibold">Guardar</Text>
+              : <Text className="text-mint-800 text-base font-semibold">Guardar</Text>
             }
           </TouchableOpacity>
         </View>
@@ -196,7 +196,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
           {/* Datas */}
           <View className="flex-row gap-3 mb-4">
             <View className="flex-1">
-              <Text className="text-dark-400 text-xs mb-1.5 ml-1">Data gerada *</Text>
+              <Text className="text-dark-300 text-xs mb-1.5 ml-1">Data gerada *</Text>
               <Pressable
                 className="bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
                 onPress={() => setShowEarned(true)}
@@ -206,13 +206,13 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
               </Pressable>
             </View>
             <View className="flex-1">
-              <Text className="text-dark-400 text-xs mb-1.5 ml-1">Pagamento previsto</Text>
+              <Text className="text-dark-300 text-xs mb-1.5 ml-1">Pagamento previsto</Text>
               <Pressable
                 className="bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
                 onPress={() => setShowExpected(true)}
               >
                 <Text
-                  className={expectedAt ? 'text-base' : 'text-dark-600 text-base'}
+                  className={expectedAt ? 'text-base' : 'text-dark-300 text-base'}
                   style={expectedAt ? { color: '#0f172a' } : undefined}
                 >
                   {expectedAt ? fmt(expectedAt) : 'Opcional'}
@@ -260,14 +260,14 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
 
           {/* Erro de submit */}
           {(create.isError || update.isError) && (
-            <View className="bg-red-900/50 border border-red-700 rounded-xl px-4 py-3 mb-4">
-              <Text className="text-red-400 text-sm">Erro ao guardar. Tenta novamente.</Text>
+            <View className="bg-red-100 border border-red-300 rounded-xl px-4 py-3 mb-4">
+              <Text className="text-red-800 text-sm">Erro ao guardar. Tenta novamente.</Text>
             </View>
           )}
 
           {/* Botão principal (alternativa ao header) */}
           <TouchableOpacity
-            className="bg-mint-600 rounded-xl py-4 items-center mt-2 mb-8"
+            className="bg-mint-700 rounded-xl py-4 items-center mt-2 mb-8"
             onPress={handleSubmit}
             disabled={create.isPending || update.isPending}
           >
