@@ -118,7 +118,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
           <TouchableOpacity onPress={handleClose}>
             <Text className="text-dark-400 text-base">Cancelar</Text>
           </TouchableOpacity>
-          <Text className="text-white text-base font-semibold">{isEditing ? 'Editar Comissão' : 'Nova Comissão'}</Text>
+          <Text className="text-base font-semibold" style={{ color: '#0f172a' }}>{isEditing ? 'Editar Comissão' : 'Nova Comissão'}</Text>
           <TouchableOpacity onPress={handleSubmit} disabled={create.isPending || update.isPending}>
             {(create.isPending || update.isPending)
               ? <ActivityIndicator color="#14b8a6" size="small" />
@@ -159,7 +159,8 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
           {/* Descrição */}
           <Field label="Descrição *" error={errors.description}>
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              style={{ color: '#0f172a' }}
               placeholder="ex: Venda contrato Janeiro"
               placeholderTextColor="#475569"
               value={description}
@@ -170,7 +171,8 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
           {/* Cliente */}
           <Field label="Cliente / Fonte">
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              style={{ color: '#0f172a' }}
               placeholder="Nome do cliente (opcional)"
               placeholderTextColor="#475569"
               value={client}
@@ -181,7 +183,8 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
           {/* Valor */}
           <Field label="Valor (€) *" error={errors.amount}>
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
+              style={{ color: '#0f172a' }}
               placeholder="0.00"
               placeholderTextColor="#475569"
               value={amount}
@@ -198,7 +201,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
                 className="bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
                 onPress={() => setShowEarned(true)}
               >
-                <Text className="text-white text-base">{fmt(earnedAt)}</Text>
+                <Text className="text-base" style={{ color: '#0f172a' }}>{fmt(earnedAt)}</Text>
                 <Ionicons name="calendar-outline" size={16} color="#475569" />
               </Pressable>
             </View>
@@ -208,7 +211,10 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
                 className="bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
                 onPress={() => setShowExpected(true)}
               >
-                <Text className={expectedAt ? 'text-white text-base' : 'text-dark-600 text-base'}>
+                <Text
+                  className={expectedAt ? 'text-base' : 'text-dark-600 text-base'}
+                  style={expectedAt ? { color: '#0f172a' } : undefined}
+                >
                   {expectedAt ? fmt(expectedAt) : 'Opcional'}
                 </Text>
                 <Ionicons name="calendar-outline" size={16} color="#475569" />
@@ -223,7 +229,6 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(_, d) => { setShowEarned(Platform.OS === 'ios'); if (d) setEarnedAt(d) }}
-              maximumDate={TODAY}
               locale="pt-PT"
             />
           )}
@@ -241,7 +246,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
           {/* Notas */}
           <Field label="Notas">
             <TextInput
-              className="bg-dark-800 text-white rounded-xl px-4 py-3 text-base border border-dark-700"
+              className="bg-dark-800 rounded-xl px-4 py-3 text-base border border-dark-700"
               placeholder="Observações (opcional)"
               placeholderTextColor="#475569"
               value={notes}
@@ -249,7 +254,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
               multiline
               numberOfLines={3}
               textAlignVertical="top"
-              style={{ minHeight: 80 }}
+              style={{ minHeight: 80, color: '#0f172a' }}
             />
           </Field>
 
