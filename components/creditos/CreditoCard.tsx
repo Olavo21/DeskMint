@@ -67,8 +67,8 @@ export default function CreditoCard({ credit, onEdit, onDelete, isDeleting }: Pr
       </View>
 
       <View className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-3">
-        <Text className="text-red-400 text-xs mb-1">Valor Total em Dívida</Text>
-        <Text className="text-red-400 text-2xl font-bold">{fmt(balance)}</Text>
+        <Text className="text-red-700 text-xs mb-1">Valor Total em Dívida</Text>
+        <Text className="text-red-700 text-2xl font-bold">{fmt(balance)}</Text>
       </View>
 
       <View className="flex-row justify-between mb-3">
@@ -90,7 +90,7 @@ export default function CreditoCard({ credit, onEdit, onDelete, isDeleting }: Pr
         className="flex-row items-center justify-center gap-1.5 py-2 border-t border-dark-700"
         onPress={() => setExpanded(!expanded)}
       >
-        <Text className="text-mint-400 text-sm font-medium">
+        <Text className="text-mint-800 text-sm font-medium">
           {expanded ? 'Ocultar simulador' : 'Simular amortização antecipada'}
         </Text>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color="#2dd4bf" />
@@ -118,7 +118,7 @@ export default function CreditoCard({ credit, onEdit, onDelete, isDeleting }: Pr
                   <View key={sc.label} className="flex-row justify-between items-center py-1.5">
                     <Text className="text-dark-300 text-sm">{sc.label}</Text>
                     <Text className="text-dark-50 text-sm font-medium">{fmt(novaPmt)}</Text>
-                    <Text className="text-red-400 text-sm font-semibold">+{fmt(delta)}</Text>
+                    <Text className="text-red-700 text-sm font-semibold">+{fmt(delta)}</Text>
                   </View>
                 )
               })}

@@ -112,13 +112,13 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-4 border-b border-dark-700">
           <TouchableOpacity onPress={handleClose}>
-            <Text className="text-dark-400 text-base">Cancelar</Text>
+            <Text className="text-dark-300 text-base">Cancelar</Text>
           </TouchableOpacity>
           <Text className="text-dark-50 text-base font-semibold">Novo Ativo</Text>
           <TouchableOpacity onPress={handleSubmit} disabled={save.isPending}>
             {save.isPending
               ? <ActivityIndicator color="#14b8a6" size="small" />
-              : <Text className="text-mint-400 text-base font-semibold">Guardar</Text>
+              : <Text className="text-mint-800 text-base font-semibold">Guardar</Text>
             }
           </TouchableOpacity>
         </View>
@@ -126,7 +126,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
         <ScrollView className="flex-1 px-4 pt-5" keyboardShouldPersistTaps="handled">
 
           {/* Tipo */}
-          <Text className="text-dark-400 text-xs mb-2 ml-1">Tipo de ativo</Text>
+          <Text className="text-dark-300 text-xs mb-2 ml-1">Tipo de ativo</Text>
           <View className="flex-row flex-wrap gap-2 mb-5">
             {TYPES.map((t) => {
               const active = assetType === t.key
@@ -141,7 +141,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                   }}
                 >
                   <Text>{t.icon}</Text>
-                  <Text className={`text-sm font-medium ${active ? 'text-mint-400' : 'text-dark-400'}`}>{t.label}</Text>
+                  <Text className={`text-sm font-medium ${active ? 'text-mint-800' : 'text-dark-400'}`}>{t.label}</Text>
                 </TouchableOpacity>
               )
             })}
@@ -149,7 +149,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
 
           {/* Nome */}
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Nome *</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Nome *</Text>
             <TextInput
               className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               placeholder="ex: Apple Inc."
@@ -157,12 +157,12 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
               value={name}
               onChangeText={setName}
             />
-            {errors.name && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.name}</Text>}
+            {errors.name && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.name}</Text>}
           </View>
 
           {/* Ticker com autocomplete */}
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Ticker / Pesquisar *</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Ticker / Pesquisar *</Text>
             <View className="flex-row items-center bg-dark-800 rounded-xl px-4 border border-dark-700">
               <Ionicons name="search-outline" size={15} color="#475569" />
               <TextInput
@@ -179,7 +179,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
               />
               {searchLoading && <ActivityIndicator size="small" color="#14b8a6" />}
             </View>
-            {errors.ticker && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.ticker}</Text>}
+            {errors.ticker && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.ticker}</Text>}
 
             {/* Sugestões */}
             {showSuggestions && results.length > 0 && (
@@ -193,7 +193,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                   >
                     <View className="flex-1">
                       <Text className="text-dark-50 text-sm font-semibold">{r.displaySymbol}</Text>
-                      <Text className="text-dark-400 text-xs" numberOfLines={1}>{r.description}</Text>
+                      <Text className="text-dark-300 text-xs" numberOfLines={1}>{r.description}</Text>
                     </View>
                     <View className="bg-dark-600 rounded px-2 py-0.5 ml-2">
                       <Text className="text-dark-300 text-xs">{r.type}</Text>
@@ -206,7 +206,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
 
           {/* Broker */}
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-2 ml-1">Broker</Text>
+            <Text className="text-dark-300 text-xs mb-2 ml-1">Broker</Text>
             <View className="flex-row flex-wrap gap-2">
               {COMMON_BROKERS.map((b) => (
                 <TouchableOpacity
@@ -234,7 +234,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
           {/* Unidades + Preço médio */}
           <View className="flex-row gap-3 mb-4">
             <View className="flex-1">
-              <Text className="text-dark-400 text-xs mb-1.5 ml-1">Nº unidades</Text>
+              <Text className="text-dark-300 text-xs mb-1.5 ml-1">Nº unidades</Text>
               <TextInput
                 className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3.5 text-base border border-dark-700"
                 placeholder="0"
@@ -245,7 +245,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
               />
             </View>
             <View className="flex-1">
-              <Text className="text-dark-400 text-xs mb-1.5 ml-1">Preço médio (€)</Text>
+              <Text className="text-dark-300 text-xs mb-1.5 ml-1">Preço médio (€)</Text>
               <TextInput
                 className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3.5 text-base border border-dark-700"
                 placeholder="0.00"
@@ -269,7 +269,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
 
           {/* Valor atual */}
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Valor atual (€) *</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Valor atual (€) *</Text>
             <TextInput
               className="bg-dark-800 text-dark-50 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               placeholder="Consulta no broker e insere aqui"
@@ -278,7 +278,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
               onChangeText={setCurrentValue}
               keyboardType="decimal-pad"
             />
-            {errors.currentValue && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.currentValue}</Text>}
+            {errors.currentValue && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.currentValue}</Text>}
           </View>
 
           {/* Ação satélite */}
@@ -296,8 +296,8 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
           </View>
 
           {save.isError && (
-            <View className="bg-red-900/50 border border-red-700 rounded-xl px-4 py-3 mb-4">
-              <Text className="text-red-400 text-sm">Erro ao guardar. Verifica os dados e tenta novamente.</Text>
+            <View className="bg-red-100 border border-red-300 rounded-xl px-4 py-3 mb-4">
+              <Text className="text-red-800 text-sm">Erro ao guardar. Verifica os dados e tenta novamente.</Text>
             </View>
           )}
 

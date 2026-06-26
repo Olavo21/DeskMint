@@ -336,7 +336,7 @@ export default function ComissoesScreen() {
             onPress={() => setSelectedDay(null)}
             className="flex-row items-center gap-2 self-start bg-mint-900/40 border border-mint-700/50 rounded-full px-3 py-1.5 mb-4"
           >
-            <Text className="text-mint-400 text-xs font-medium">
+            <Text className="text-mint-800 text-xs font-medium">
               A mostrar: {new Date(selectedDay).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
             </Text>
             <Ionicons name="close-circle" size={14} color="#2dd4bf" />

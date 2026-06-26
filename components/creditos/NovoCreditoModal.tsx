@@ -96,20 +96,20 @@ export default function NovoCreditoModal({ visible, onClose, credit }: Props) {
 
         <View className="flex-row items-center justify-between px-4 py-4 border-b border-dark-700">
           <TouchableOpacity onPress={onClose}>
-            <Text className="text-dark-400 text-base">Cancelar</Text>
+            <Text className="text-dark-300 text-base">Cancelar</Text>
           </TouchableOpacity>
           <Text className="text-dark-50 text-base font-semibold">{isEditing ? 'Editar Crédito' : 'Novo Crédito'}</Text>
           <TouchableOpacity onPress={handleSubmit} disabled={isPending}>
             {isPending
               ? <ActivityIndicator color="#14b8a6" size="small" />
-              : <Text className="text-mint-400 text-base font-semibold">Guardar</Text>
+              : <Text className="text-mint-800 text-base font-semibold">Guardar</Text>
             }
           </TouchableOpacity>
         </View>
 
         <ScrollView className="flex-1 px-4 pt-5" keyboardShouldPersistTaps="handled">
 
-          <Text className="text-dark-400 text-xs mb-2 ml-1">Tipo de Crédito *</Text>
+          <Text className="text-dark-300 text-xs mb-2 ml-1">Tipo de Crédito *</Text>
           <View className="flex-row gap-2 mb-4">
             {KIND_OPTIONS.map((opt) => {
               const selected = kind === opt.key
@@ -130,7 +130,7 @@ export default function NovoCreditoModal({ visible, onClose, credit }: Props) {
           </View>
 
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Designação *</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Designação *</Text>
             <TextInput
               className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               style={{ color: '#0f172a', minWidth: 0 }}
@@ -142,11 +142,11 @@ export default function NovoCreditoModal({ visible, onClose, credit }: Props) {
               autoComplete="off"
               importantForAutofill="no"
             />
-            {errors.name && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.name}</Text>}
+            {errors.name && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.name}</Text>}
           </View>
 
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Valor Total Financiado (€) *</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Valor Total Financiado (€) *</Text>
             <TextInput
               className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               style={{ color: '#0f172a', minWidth: 0 }}
@@ -159,12 +159,12 @@ export default function NovoCreditoModal({ visible, onClose, credit }: Props) {
               autoComplete="off"
               importantForAutofill="no"
             />
-            {errors.principal && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.principal}</Text>}
+            {errors.principal && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.principal}</Text>}
           </View>
 
           <View className="flex-row gap-3 mb-4">
             <View className="flex-1">
-              <Text className="text-dark-400 text-xs mb-1.5 ml-1">Prestação Mensal (€) *</Text>
+              <Text className="text-dark-300 text-xs mb-1.5 ml-1">Prestação Mensal (€) *</Text>
               <TextInput
                 className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
                 style={{ color: '#0f172a', minWidth: 0 }}
@@ -177,10 +177,10 @@ export default function NovoCreditoModal({ visible, onClose, credit }: Props) {
                 autoComplete="off"
                 importantForAutofill="no"
               />
-              {errors.monthlyPayment && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.monthlyPayment}</Text>}
+              {errors.monthlyPayment && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.monthlyPayment}</Text>}
             </View>
             <View className="flex-1">
-              <Text className="text-dark-400 text-xs mb-1.5 ml-1">Meses Restantes *</Text>
+              <Text className="text-dark-300 text-xs mb-1.5 ml-1">Meses Restantes *</Text>
               <TextInput
                 className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
                 style={{ color: '#0f172a', minWidth: 0 }}
@@ -193,11 +193,11 @@ export default function NovoCreditoModal({ visible, onClose, credit }: Props) {
                 autoComplete="off"
                 importantForAutofill="no"
               />
-              {errors.remainingMonths && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.remainingMonths}</Text>}
+              {errors.remainingMonths && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.remainingMonths}</Text>}
             </View>
           </View>
 
-          <Text className="text-dark-400 text-xs mb-2 ml-1">Tipo de Taxa</Text>
+          <Text className="text-dark-300 text-xs mb-2 ml-1">Tipo de Taxa</Text>
           <View className="flex-row gap-2 mb-4">
             {RATE_TYPE_OPTIONS.map((opt) => {
               const selected = rateType === opt.key
@@ -217,7 +217,7 @@ export default function NovoCreditoModal({ visible, onClose, credit }: Props) {
           </View>
 
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Taxa de Juro — TAEG/TAN (%) *</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Taxa de Juro — TAEG/TAN (%) *</Text>
             <TextInput
               className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               style={{ color: '#0f172a', minWidth: 0 }}
@@ -230,17 +230,17 @@ export default function NovoCreditoModal({ visible, onClose, credit }: Props) {
               autoComplete="off"
               importantForAutofill="no"
             />
-            {errors.interestRate && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.interestRate}</Text>}
+            {errors.interestRate && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.interestRate}</Text>}
           </View>
 
           {(create.isError || update.isError) && (
-            <View className="bg-red-900/50 border border-red-700 rounded-xl px-4 py-3 mb-4">
-              <Text className="text-red-400 text-sm">Erro ao guardar. Tenta novamente.</Text>
+            <View className="bg-red-100 border border-red-300 rounded-xl px-4 py-3 mb-4">
+              <Text className="text-red-800 text-sm">Erro ao guardar. Tenta novamente.</Text>
             </View>
           )}
 
           <TouchableOpacity
-            className="bg-mint-600 rounded-xl py-4 items-center mb-8"
+            className="bg-mint-700 rounded-xl py-4 items-center mb-8"
             onPress={handleSubmit}
             disabled={isPending}
           >

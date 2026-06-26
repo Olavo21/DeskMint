@@ -45,7 +45,7 @@ function PremiumCard({
 function NetWorthBanner({ label, value }: { label: string; value: string }) {
   return (
     <View className="bg-mint-900/30 border border-mint-700/40 rounded-2xl px-5 py-4 mb-3 items-center">
-      <Text className="text-mint-400 text-xs mb-0.5">{label}</Text>
+      <Text className="text-mint-800 text-xs mb-0.5">{label}</Text>
       <Text className="text-dark-50 text-3xl font-bold">{value}</Text>
     </View>
   )
@@ -89,7 +89,7 @@ function RuleRow({ label, pct, ideal, amt, fmt }: { label: string; pct: number; 
       <View className="flex-row justify-between items-center mb-1">
         <Text className="text-dark-300 text-sm">{label}</Text>
         <View className="flex-row items-center gap-2">
-          <Text className={`text-sm font-semibold ${over ? 'text-red-400' : 'text-mint-400'}`}>
+          <Text className={`text-sm font-semibold ${over ? 'text-red-700' : 'text-mint-800'}`}>
             {(pct * 100).toFixed(1)}%
           </Text>
           <Text className="text-dark-300 text-sm">{fmt(amt)}</Text>
@@ -206,7 +206,7 @@ function AssetRow({
         {isLinked ? (
           <View className="flex-row items-center gap-1.5 bg-mint-900/40 rounded-lg px-2.5 py-1.5 self-start">
             <Ionicons name="link" size={12} color="#2dd4bf" />
-            <Text className="text-mint-400 text-xs">Vinculado a "{asset.linkedCredit!.name}"</Text>
+            <Text className="text-mint-800 text-xs">Vinculado a "{asset.linkedCredit!.name}"</Text>
             <TouchableOpacity onPress={() => onLinkCredit(asset.id, null)} hitSlop={8} className="ml-1">
               <Ionicons name="close-circle" size={14} color="#2dd4bf" />
             </TouchableOpacity>
@@ -403,7 +403,7 @@ export default function DashboardScreen() {
                   <View className="flex-row justify-between items-center mb-2">
                     <Text className="text-dark-50 font-semibold">Património Líquido</Text>
                     <View className="flex-row items-center gap-3">
-                      <Text className="text-mint-400 text-lg font-bold">{fmt(data?.netWorth ?? 0)}</Text>
+                      <Text className="text-mint-800 text-lg font-bold">{fmt(data?.netWorth ?? 0)}</Text>
                       <TouchableOpacity
                         onPress={() => { setAssetsEditMode(!assetsEditMode); setEditingAssetId(null) }}
                         hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}

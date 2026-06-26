@@ -101,13 +101,13 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-4 border-b border-dark-700">
           <TouchableOpacity onPress={handleClose}>
-            <Text className="text-dark-400 text-base">Cancelar</Text>
+            <Text className="text-dark-300 text-base">Cancelar</Text>
           </TouchableOpacity>
           <Text className="text-dark-50 text-base font-semibold">Nova Despesa</Text>
           <TouchableOpacity onPress={handleSubmit} disabled={create.isPending}>
             {create.isPending
               ? <ActivityIndicator color="#14b8a6" size="small" />
-              : <Text className="text-mint-400 text-base font-semibold">Guardar</Text>
+              : <Text className="text-mint-800 text-base font-semibold">Guardar</Text>
             }
           </TouchableOpacity>
         </View>
@@ -115,9 +115,9 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
         <ScrollView className="flex-1 px-4 pt-5" keyboardShouldPersistTaps="handled">
 
           {/* Selector de categoria */}
-          <Text className="text-dark-400 text-xs mb-2 ml-1">Categoria *</Text>
+          <Text className="text-dark-300 text-xs mb-2 ml-1">Categoria *</Text>
           {errors.category && (
-            <Text className="text-red-400 text-xs mb-2 ml-1">{errors.category}</Text>
+            <Text className="text-red-700 text-xs mb-2 ml-1">{errors.category}</Text>
           )}
 
           {loadingCats ? (
@@ -127,7 +127,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
               const cfg = TYPE_COLORS[type]
               return (
                 <View key={type} className="mb-3">
-                  <Text className="text-dark-500 text-xs mb-2 uppercase tracking-wider">{cfg.label}s</Text>
+                  <Text className="text-dark-300 text-xs mb-2 uppercase tracking-wider">{cfg.label}s</Text>
                   <View className="flex-row flex-wrap gap-2">
                     {items.map((cat) => {
                       const selected = categoryId === cat.id
@@ -158,7 +158,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
 
           {/* Descrição */}
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Descrição *</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Descrição *</Text>
             <TextInput
               className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               style={{ color: '#0f172a' }}
@@ -170,12 +170,12 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
               autoComplete="off"
               importantForAutofill="no"
             />
-            {errors.description && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.description}</Text>}
+            {errors.description && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.description}</Text>}
           </View>
 
           {/* Valor */}
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Valor (€) *</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Valor (€) *</Text>
             <TextInput
               className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
               style={{ color: '#0f172a' }}
@@ -188,7 +188,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
               autoComplete="off"
               importantForAutofill="no"
             />
-            {errors.amount && <Text className="text-red-400 text-xs mt-1 ml-1">{errors.amount}</Text>}
+            {errors.amount && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.amount}</Text>}
           </View>
 
           {/* Fixo / Variável (só para NEEDS e WANTS) */}
@@ -226,7 +226,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
 
           {/* Data de pagamento */}
           <View className="mb-4">
-            <Text className="text-dark-400 text-xs mb-1.5 ml-1">Pago a</Text>
+            <Text className="text-dark-300 text-xs mb-1.5 ml-1">Pago a</Text>
             <View className="flex-row gap-2">
               <Pressable
                 className="flex-1 bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
@@ -264,20 +264,20 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
             <Ionicons name="calendar-outline" size={16} color="#475569" />
             <Text className="text-dark-400 text-sm">
               A registar em{' '}
-              <Text className="text-white font-medium">
+              <Text className="font-medium" style={{ color: '#0f172a' }}>
                 {new Date(year, month - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
               </Text>
             </Text>
           </View>
 
           {create.isError && (
-            <View className="bg-red-900/50 border border-red-700 rounded-xl px-4 py-3 mb-4">
-              <Text className="text-red-400 text-sm">Erro ao guardar. Tenta novamente.</Text>
+            <View className="bg-red-100 border border-red-300 rounded-xl px-4 py-3 mb-4">
+              <Text className="text-red-800 text-sm">Erro ao guardar. Tenta novamente.</Text>
             </View>
           )}
 
           <TouchableOpacity
-            className="bg-mint-600 rounded-xl py-4 items-center mb-8"
+            className="bg-mint-700 rounded-xl py-4 items-center mb-8"
             onPress={handleSubmit}
             disabled={create.isPending}
           >

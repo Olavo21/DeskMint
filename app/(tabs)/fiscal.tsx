@@ -379,7 +379,7 @@ export default function FiscalScreen() {
             </View>
           )}
 
-          <Text className="text-dark-600 text-xs leading-5">
+          <Text className="text-dark-300 text-xs leading-5">
             * Estimativa simplificada. Não considera custos de transação, deduções ou englobamento. Consulta sempre um fiscalista.
           </Text>
         </Section>

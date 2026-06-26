@@ -91,7 +91,7 @@ export default function PlansModal({ visible, onClose }: Props) {
             <Ionicons name="person-circle-outline" size={20} color="#14b8a6" />
             <Text className="text-dark-300 text-sm">
               Plano actual:{' '}
-              <Text className="text-white font-semibold">
+              <Text className="font-semibold" style={{ color: '#0f172a' }}>
                 {plan === 'FOUNDER' ? `Founder #${founderNumber ?? '?'}` : plan === 'PRO' ? 'Premium' : plan}
               </Text>
             </Text>
@@ -103,7 +103,7 @@ export default function PlansModal({ visible, onClose }: Props) {
               className={`flex-1 py-2 rounded-lg items-center ${billing === 'monthly' ? 'bg-dark-600' : ''}`}
               onPress={() => setBilling('monthly')}
             >
-              <Text className={`text-sm font-medium ${billing === 'monthly' ? 'text-white' : 'text-dark-500'}`}>
+              <Text className={`text-sm font-medium ${billing === 'monthly' ? 'text-dark-50' : 'text-dark-500'}`}>
                 Mensal
               </Text>
             </TouchableOpacity>
@@ -111,10 +111,10 @@ export default function PlansModal({ visible, onClose }: Props) {
               className={`flex-1 py-2 rounded-lg items-center ${billing === 'annual' ? 'bg-dark-600' : ''}`}
               onPress={() => setBilling('annual')}
             >
-              <Text className={`text-sm font-medium ${billing === 'annual' ? 'text-white' : 'text-dark-500'}`}>
+              <Text className={`text-sm font-medium ${billing === 'annual' ? 'text-dark-50' : 'text-dark-500'}`}>
                 Anual
               </Text>
-              <Text className="text-mint-500 text-xs font-semibold">-20%</Text>
+              <Text className="text-mint-800 text-xs font-semibold">-20%</Text>
             </TouchableOpacity>
           </View>
 
@@ -168,7 +168,7 @@ export default function PlansModal({ visible, onClose }: Props) {
                   {FEATURES.map((f, i) => (
                     <View key={f} className="flex-row items-center gap-2">
                       <Check ok={p.features[i]} />
-                      <Text className={`text-sm flex-1 ${p.features[i] ? 'text-dark-200' : 'text-dark-600'}`}>
+                      <Text className={`text-sm flex-1 ${p.features[i] ? 'text-white' : 'text-dark-500'}`}>
                         {f}{f === 'Agente IA' ? ` · ${p.aiLabel}` : ''}
                       </Text>
                     </View>
@@ -195,7 +195,7 @@ export default function PlansModal({ visible, onClose }: Props) {
             )
           })}
 
-          <Text className="text-dark-600 text-xs text-center mb-8 leading-4">
+          <Text className="text-dark-300 text-xs text-center mb-8 leading-4">
             Pagamentos seguros via Stripe · Cancela quando quiseres{'\n'}
             Plano anual pago de uma vez, sem renovação automática
           </Text>

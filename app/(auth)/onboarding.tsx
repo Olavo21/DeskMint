@@ -154,7 +154,7 @@ export default function OnboardingScreen() {
                     }}
                   >
                     <Text className="text-2xl mb-1">{g.icon}</Text>
-                    <Text className={`text-sm font-medium text-center ${active ? 'text-mint-400' : 'text-dark-300'}`}>{g.label}</Text>
+                    <Text className={`text-sm font-medium text-center ${active ? 'text-mint-800' : 'text-white'}`}>{g.label}</Text>
                   </TouchableOpacity>
                 )
               })}
@@ -176,7 +176,7 @@ export default function OnboardingScreen() {
                   style={{ backgroundColor: active ? '#14b8a622' : '#1e293b', borderColor: active ? '#14b8a6' : '#334155' }}
                 >
                   <View>
-                    <Text className={`font-semibold ${active ? 'text-mint-400' : 'text-white'}`}>{h.label}</Text>
+                    <Text className={`font-semibold ${active ? 'text-mint-800' : 'text-white'}`}>{h.label}</Text>
                     <Text className="text-dark-500 text-xs">{h.sub}</Text>
                   </View>
                   {active && <View className="w-3 h-3 rounded-full bg-mint-500" />}

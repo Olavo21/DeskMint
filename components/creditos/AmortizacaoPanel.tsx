@@ -43,14 +43,14 @@ export default function AmortizacaoPanel({ balance, annualRatePct, monthlyPaymen
 
       <View className="flex-row gap-3">
         <View className="flex-1 bg-mint-900/40 rounded-lg p-3 items-center">
-          <Text className="text-mint-400 text-xs mb-1">Poupas em juros</Text>
-          <Text className="text-mint-400 text-lg font-bold" numberOfLines={1} adjustsFontSizeToFit>
+          <Text className="text-mint-800 text-xs mb-1">Poupas em juros</Text>
+          <Text className="text-mint-800 text-lg font-bold" numberOfLines={1} adjustsFontSizeToFit>
             {fmt(sim.interestSaved)}
           </Text>
         </View>
         <View className="flex-1 bg-mint-900/40 rounded-lg p-3 items-center">
-          <Text className="text-mint-400 text-xs mb-1">Reduzes o prazo</Text>
-          <Text className="text-mint-400 text-lg font-bold" numberOfLines={1} adjustsFontSizeToFit>
+          <Text className="text-mint-800 text-xs mb-1">Reduzes o prazo</Text>
+          <Text className="text-mint-800 text-lg font-bold" numberOfLines={1} adjustsFontSizeToFit>
             {Math.round(sim.monthsSaved)} meses
           </Text>
         </View>

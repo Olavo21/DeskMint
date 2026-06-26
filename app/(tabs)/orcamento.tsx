@@ -351,7 +351,7 @@ export default function OrcamentoScreen() {
               <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-dark-50 font-semibold">Despesas Fixas</Text>
-                  <Text className="text-red-400 font-semibold">{fmt(data!.totalFixed)}</Text>
+                  <Text className="text-red-700 font-semibold">{fmt(data!.totalFixed)}</Text>
                 </View>
                 {data!.fixed.map((e: any) => (
                   <ExpenseRow
@@ -374,7 +374,7 @@ export default function OrcamentoScreen() {
               <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-dark-50 font-semibold">Despesas Variáveis</Text>
-                  <Text className="text-red-400 font-semibold">{fmt(data!.totalVariable)}</Text>
+                  <Text className="text-red-700 font-semibold">{fmt(data!.totalVariable)}</Text>
                 </View>
                 {data!.variable.map((e: any) => (
                   <ExpenseRow
@@ -397,7 +397,7 @@ export default function OrcamentoScreen() {
               <View className="bg-dark-800 rounded-2xl p-4 mb-8">
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-dark-50 font-semibold">Poupança & Investimento</Text>
-                  <Text className="text-mint-400 font-semibold">{fmt(data!.totalSavings)}</Text>
+                  <Text className="text-mint-800 font-semibold">{fmt(data!.totalSavings)}</Text>
                 </View>
                 {data!.savings.map((e: any) => (
                   <ExpenseRow
