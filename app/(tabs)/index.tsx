@@ -308,6 +308,8 @@ export default function DashboardScreen() {
 
   const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
   const pct = (n: number) => `${(n * 100).toFixed(1)}%`
+  const lazerAmt = (data?.budgetRule?.wants_amt ?? 0) + (data?.freeCash ?? 0)
+  const lazerPct = data?.income ? lazerAmt / data.income : 0
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
@@ -379,7 +381,7 @@ export default function DashboardScreen() {
                 </View>
                 <View className="flex-row gap-3 mb-6">
                   <KpiCard label="Poupança" value={fmt(data?.savings ?? 0)} sub={pct(data?.savingsRate ?? 0)} />
-                  <KpiCard label="Disponível" value={fmt(data?.freeCash ?? 0)} sub="não alocado" />
+                  <KpiCard label="Disponível/Lazer" value={fmt(data?.freeCash ?? 0)} sub="não alocado" />
                 </View>
                 <View className="flex-row gap-3 mb-6">
                   <KpiCard label="Investido" value={fmt(data?.portfolioValue ?? 0)} valueColor="#0d9488" />
@@ -391,7 +393,7 @@ export default function DashboardScreen() {
                   <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                     <Text className="text-dark-50 font-semibold mb-3">Regra 50 / 30 / 20</Text>
                     <RuleRow label="Necessidades" pct={data.budgetRule.needs_pct} ideal={0.5} amt={data.budgetRule.needs_amt} fmt={fmt} />
-                    <RuleRow label="Desejos" pct={data.budgetRule.wants_pct} ideal={0.3} amt={data.budgetRule.wants_amt} fmt={fmt} />
+                    <RuleRow label="Disponível/Lazer" pct={lazerPct} ideal={0.3} amt={lazerAmt} fmt={fmt} />
                     <RuleRow label="Poupança" pct={data.budgetRule.savings_pct} ideal={0.2} amt={data.budgetRule.savings_amt} fmt={fmt} />
                   </View>
                 )}
