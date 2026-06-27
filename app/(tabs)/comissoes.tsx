@@ -1,9 +1,10 @@
 import Header from '../../components/ui/Header'
 import { useState } from 'react'
-import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
+import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useCommissions } from '../../hooks/useCommissions'
+import { confirmDestructive } from '../../lib/confirmDialog'
 import NovaComissaoModal from '../../components/commissions/NovaComissaoModal'
 import CommissionsCalendar from '../../components/commissions/CommissionsCalendar'
 import type { DmCommission } from '../../types/database'
@@ -275,18 +276,14 @@ export default function ComissoesScreen() {
   }
 
   function handleDelete(id: string, description: string) {
-    Alert.alert(
+    confirmDestructive(
       'Eliminar comissão',
       `Tens a certeza que queres eliminar "${description}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar', style: 'destructive', onPress: () => {
-            setDeletingId(id)
-            remove.mutate(id, { onSettled: () => setDeletingId(null) })
-          },
-        },
-      ]
+      'Eliminar',
+      () => {
+        setDeletingId(id)
+        remove.mutate(id, { onSettled: () => setDeletingId(null) })
+      }
     )
   }
 

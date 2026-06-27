@@ -52,7 +52,7 @@ export function useCommissions() {
 
   const update = useMutation({
     mutationFn: async ({
-      id, description, client, amount, earnedAt, expectedAt, notes, typeId,
+      id, description, client, amount, earnedAt, expectedAt, serviceDate, notes, typeId,
     }: {
       id: string
       description: string
@@ -60,6 +60,7 @@ export function useCommissions() {
       amount: number
       earnedAt: string
       expectedAt: string | null
+      serviceDate: string | null
       notes: string | null
       typeId: string | null
     }) => {
@@ -67,7 +68,7 @@ export function useCommissions() {
         .from('dm_commissions')
         .update({
           description, client, amount,
-          earned_at: earnedAt, expected_at: expectedAt,
+          earned_at: earnedAt, expected_at: expectedAt, service_date: serviceDate,
           notes, type_id: typeId,
         })
         .eq('id', id)

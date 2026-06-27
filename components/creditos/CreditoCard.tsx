@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { getCreditOutstandingBalance, calcMonthlyPayment } from '../../lib/creditMath'
 import type { DmCredit } from '../../types/database'
 import AmortizacaoPanel from './AmortizacaoPanel'
+import { confirmDestructive } from '../../lib/confirmDialog'
 
 const KIND_LABEL: Record<DmCredit['kind'], { label: string; icon: string }> = {
   VEHICLE: { label: 'Automóvel', icon: '🚗' },
@@ -31,13 +32,11 @@ export default function CreditoCard({ credit, onEdit, onDelete, isDeleting }: Pr
   const { remainingMonths, balance } = getCreditOutstandingBalance(credit)
 
   function handleDeletePress() {
-    Alert.alert(
+    confirmDestructive(
       'Eliminar crédito',
       `Tens a certeza que queres eliminar "${credit.name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => onDelete(credit.id) },
-      ]
+      'Eliminar',
+      () => onDelete(credit.id)
     )
   }
 

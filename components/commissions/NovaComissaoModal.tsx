@@ -44,11 +44,13 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
   const [notes, setNotes]             = useState('')
   const [earnedAt, setEarnedAt]       = useState(TODAY)
   const [expectedAt, setExpectedAt]   = useState<Date | null>(null)
+  const [serviceDate, setServiceDate] = useState(TODAY)
   const [errors, setErrors]           = useState<Record<string, string>>({})
 
   // controlo de date pickers (Android abre um dialog, iOS usa inline)
   const [showEarned, setShowEarned]     = useState(false)
   const [showExpected, setShowExpected] = useState(false)
+  const [showService, setShowService]   = useState(false)
 
   // Pré-preenche os campos só quando o modal abre em modo edição —
   // nunca enquanto o utilizador escreve, para um refetch não apagar o que está a escrever.
@@ -61,6 +63,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
       setNotes(editing.notes ?? '')
       setEarnedAt(new Date(editing.earned_at))
       setExpectedAt(editing.expected_at ? new Date(editing.expected_at) : null)
+      setServiceDate(editing.service_date ? new Date(editing.service_date) : TODAY)
     }
   }, [visible, editing])
 
@@ -85,6 +88,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
         amount:      Number(amount.replace(',', '.')),
         earnedAt:    earnedAt.toISOString(),
         expectedAt:  expectedAt?.toISOString() ?? null,
+        serviceDate: serviceDate.toISOString(),
         notes:       notes.trim() || null,
         typeId,
       })
@@ -96,6 +100,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
         status:       'PENDING',
         earned_at:    earnedAt.toISOString(),
         expected_at:  expectedAt?.toISOString() ?? null,
+        service_date: serviceDate.toISOString(),
         notes:        notes.trim() || null,
         type_id:      typeId,
       })
@@ -105,7 +110,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
 
   function handleClose() {
     setTypeId(null); setDescription(''); setClient(''); setAmount(''); setNotes('')
-    setEarnedAt(TODAY); setExpectedAt(null); setErrors({})
+    setEarnedAt(TODAY); setExpectedAt(null); setServiceDate(TODAY); setErrors({})
     onClose()
   }
 
@@ -193,6 +198,17 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
             />
           </Field>
 
+          {/* Data do serviço */}
+          <Field label="Data do Serviço *">
+            <Pressable
+              className="bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
+              onPress={() => setShowService(true)}
+            >
+              <Text className="text-base" style={{ color: '#0f172a' }}>{fmt(serviceDate)}</Text>
+              <Ionicons name="calendar-outline" size={16} color="#475569" />
+            </Pressable>
+          </Field>
+
           {/* Datas */}
           <View className="flex-row gap-3 mb-4">
             <View className="flex-1">
@@ -239,6 +255,15 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(_, d) => { setShowExpected(Platform.OS === 'ios'); if (d) setExpectedAt(d) }}
               minimumDate={earnedAt}
+              locale="pt-PT"
+            />
+          )}
+          {showService && (
+            <DateTimePicker
+              value={serviceDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(_, d) => { setShowService(Platform.OS === 'ios'); if (d) setServiceDate(d) }}
               locale="pt-PT"
             />
           )}

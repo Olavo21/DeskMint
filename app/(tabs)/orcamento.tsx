@@ -2,7 +2,7 @@ import Header from '../../components/ui/Header'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   ScrollView, View, Text, ActivityIndicator,
-  TouchableOpacity, TextInput, RefreshControl, Alert, Switch,
+  TouchableOpacity, TextInput, RefreshControl, Switch,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -13,6 +13,7 @@ import { useRecurringExpenses } from '../../hooks/useRecurringExpenses'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import NovaDespesaModal from '../../components/budget/NovaDespesaModal'
 import { getExpenseEmoji } from '../../lib/expenseEmoji'
+import { confirmDestructive } from '../../lib/confirmDialog'
 
 const REAL_TODAY = new Date()
 const REAL_MONTH = REAL_TODAY.getMonth() + 1
@@ -55,13 +56,11 @@ function ExpenseRow({
   }, [isEditing])
 
   function handleTrashPress() {
-    Alert.alert(
+    confirmDestructive(
       'Eliminar despesa',
       `Tens a certeza que queres eliminar "${e.description}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => onDelete(e.id) },
-      ]
+      'Eliminar',
+      () => onDelete(e.id)
     )
   }
 
@@ -326,13 +325,11 @@ export default function OrcamentoScreen() {
                             thumbColor="white"
                           />
                           <TouchableOpacity
-                            onPress={() => Alert.alert(
+                            onPress={() => confirmDestructive(
                               'Remover recorrência',
                               `"${r.description}" deixa de ser criada automaticamente. As despesas já lançadas não são apagadas.`,
-                              [
-                                { text: 'Cancelar', style: 'cancel' },
-                                { text: 'Remover', style: 'destructive', onPress: () => recurring.remove.mutate(r.id) },
-                              ]
+                              'Remover',
+                              () => recurring.remove.mutate(r.id)
                             )}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                           >
