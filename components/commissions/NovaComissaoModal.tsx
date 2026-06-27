@@ -5,7 +5,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import DateTimePicker from '@react-native-community/datetimepicker'
+import DateTimePicker from '../ui/CrossDateTimePicker'
 import { useCommissions } from '../../hooks/useCommissions'
 import { useCommissionTypes } from '../../hooks/useCommissionTypes'
 import type { DmCommission } from '../../types/database'

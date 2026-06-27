@@ -4,7 +4,7 @@ import {
   ScrollView, ActivityIndicator, Switch, Platform, Pressable,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import DateTimePicker from '@react-native-community/datetimepicker'
+import DateTimePicker from '../ui/CrossDateTimePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { useExpenses } from '../../hooks/useExpenses'
 import { useExpenseCategories } from '../../hooks/useExpenseCategories'
