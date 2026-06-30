@@ -6,10 +6,18 @@ import { Ionicons } from '@expo/vector-icons'
 import CalculadoraETF from '../../components/ferramentas/CalculadoraETF'
 import QuizInvestidor from '../../components/ferramentas/QuizInvestidor'
 import PesquisaAtivos from '../../components/ferramentas/PesquisaAtivos'
+import SimuladorFIRE from '../../components/ferramentas/SimuladorFIRE'
 
-type Ferramenta = 'etf' | 'ativos' | 'quiz'
+type Ferramenta = 'etf' | 'ativos' | 'quiz' | 'fire'
 
 const FERRAMENTAS: { key: Ferramenta; label: string; icon: string; desc: string; cor: string }[] = [
+  {
+    key:   'fire',
+    label: 'Simulador FIRE',
+    icon:  'flame-outline',
+    desc:  'Calcula em quantos anos atinges a tua Independência Financeira',
+    cor:   '#f59e0b',
+  },
   {
     key:   'etf',
     label: 'Calculadora ETF',
@@ -98,6 +106,7 @@ export default function FerramentasScreen() {
           </>
         )}
 
+        {ativa === 'fire'     && <SimuladorFIRE />}
         {ativa === 'etf'      && <CalculadoraETF />}
         {ativa === 'ativos'   && <PesquisaAtivos />}
         {ativa === 'quiz'     && <QuizInvestidor />}
