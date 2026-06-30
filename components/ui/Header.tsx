@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import { View, Text, Image, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
 import { useAuthStore } from '../../stores/authStore'
+import { useDashboardStore } from '../../stores/dashboardStore'
 import { supabase } from '../../lib/supabase'
 import { usePlan, PLAN_COLORS } from '../../hooks/usePlan'
+import { useDashboard } from '../../hooks/useDashboard'
+import { useBudgetTargets } from '../../hooks/useBudgetTargets'
+import { computeBudgetAlerts } from '../../lib/budgetAlerts'
 import PlansModal from './PlansModal'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -20,6 +25,16 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
   const profile = useAuthStore((s) => s.profile)
   const plan = usePlan()
   const [showPlans, setShowPlans] = useState(false)
+  const { selectedMonth, selectedYear } = useDashboardStore()
+  const { data: dashboard } = useDashboard(selectedMonth, selectedYear)
+  const targets = useBudgetTargets()
+
+  const alertCount = dashboard?.budgetRule
+    ? computeBudgetAlerts(
+        { needs: dashboard.budgetRule.needs_pct, wants: dashboard.lazerPct ?? 0, savings: dashboard.budgetRule.savings_pct },
+        targets
+      ).filter((a) => a.severity !== 'ok').length
+    : 0
 
   return (
     <>
@@ -47,9 +62,29 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
         </View>
       </View>
 
-      {/* Direita — plano + sair */}
+      {/* Direita — notificações + plano + sair */}
       <View className="flex-row items-center gap-2">
         {rightElement}
+        {/* Sino de notificações inteligentes */}
+        <TouchableOpacity
+          onPress={() => router.push('/notificacoes' as any)}
+          className="w-8 h-8 rounded-full items-center justify-center"
+          style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
+        >
+          <Ionicons name="notifications-outline" size={16} color="#ccfbef" />
+          {alertCount > 0 && (
+            <View
+              className="absolute items-center justify-center"
+              style={{
+                top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8,
+                backgroundColor: '#ef4444', paddingHorizontal: 3,
+                borderWidth: 1.5, borderColor: '#115e59',
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 9, fontWeight: '700' }}>{alertCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
         {/* Badge de plano */}
         <TouchableOpacity
           onPress={() => setShowPlans(true)}

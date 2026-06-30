@@ -78,12 +78,20 @@ export function useDashboard(month: number, year: number) {
         savings_pct: income > 0 ? savingsAmt / income : 0,
       } as DmBudgetRule) : null)
 
+      const freeCash = income - totalExpenses - savingsAmt
+      // "Disponível/Lazer" soma o gasto real em Desejos ao dinheiro ainda não
+      // alocado — reflete o peso real desse dinheiro disponível no rendimento.
+      const lazerAmt = (budgetRule?.wants_amt ?? 0) + freeCash
+      const lazerPct = income > 0 ? lazerAmt / income : 0
+
       return {
         income,
         expenses:        totalExpenses,
         savings:         savingsAmt,
         savingsRate:     income > 0 ? savingsAmt / income : 0,
-        freeCash:        income - totalExpenses - savingsAmt,
+        freeCash,
+        lazerAmt,
+        lazerPct,
         availableBalance: income - totalExpenses,
         netWorth:    assetsValue + portfolioValue + emergencyFund - totalCreditDebt,
         portfolioValue,

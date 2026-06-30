@@ -446,6 +446,9 @@ export type Database = {
           founder_number: number | null
           plan_expires_at: string | null
           plan_updated_at: string
+          target_needs: number
+          target_wants: number
+          target_savings: number
         }
         Insert: {
           avatar?: string | null
@@ -465,6 +468,9 @@ export type Database = {
           founder_number?: number | null
           plan_expires_at?: string | null
           plan_updated_at?: string
+          target_needs?: number
+          target_wants?: number
+          target_savings?: number
         }
         Update: {
           avatar?: string | null

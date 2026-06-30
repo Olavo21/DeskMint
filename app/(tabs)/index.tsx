@@ -9,6 +9,7 @@ import { useAssets } from '../../hooks/useAssets'
 import { useCredits } from '../../hooks/useCredits'
 import { useEmergencyFund } from '../../hooks/useEmergencyFund'
 import { useSubscription } from '../../hooks/useSubscription'
+import { useBudgetTargets } from '../../hooks/useBudgetTargets'
 import { useAuthStore } from '../../stores/authStore'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
@@ -274,6 +275,7 @@ export default function DashboardScreen() {
   const { data: credits = [] } = useCredits()
   const { upsert: upsertEmergencyFund } = useEmergencyFund()
   const { canLinkCreditToAsset } = useSubscription()
+  const targets = useBudgetTargets()
   const [assetsEditMode, setAssetsEditMode] = useState(false)
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
@@ -308,8 +310,8 @@ export default function DashboardScreen() {
 
   const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
   const pct = (n: number) => `${(n * 100).toFixed(1)}%`
-  const lazerAmt = (data?.budgetRule?.wants_amt ?? 0) + (data?.freeCash ?? 0)
-  const lazerPct = data?.income ? lazerAmt / data.income : 0
+  const lazerAmt = data?.lazerAmt ?? 0
+  const lazerPct = data?.lazerPct ?? 0
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
@@ -388,13 +390,15 @@ export default function DashboardScreen() {
                   <KpiCard label="Total em Dívida" value={fmt(data?.totalCreditDebt ?? 0)} valueColor="#dc2626" />
                 </View>
 
-                {/* 50/30/20 */}
+                {/* Necessidades/Lazer/Poupança — metas personalizadas do utilizador */}
                 {data?.budgetRule && (
                   <View className="bg-dark-800 rounded-2xl p-4 mb-4">
-                    <Text className="text-dark-50 font-semibold mb-3">Regra 50 / 30 / 20</Text>
-                    <RuleRow label="Necessidades" pct={data.budgetRule.needs_pct} ideal={0.5} amt={data.budgetRule.needs_amt} fmt={fmt} />
-                    <RuleRow label="Disponível/Lazer" pct={lazerPct} ideal={0.3} amt={lazerAmt} fmt={fmt} />
-                    <RuleRow label="Poupança" pct={data.budgetRule.savings_pct} ideal={0.2} amt={data.budgetRule.savings_amt} fmt={fmt} />
+                    <Text className="text-dark-50 font-semibold mb-3">
+                      Regra {Math.round(targets.needs * 100)} / {Math.round(targets.wants * 100)} / {Math.round(targets.savings * 100)}
+                    </Text>
+                    <RuleRow label="Necessidades" pct={data.budgetRule.needs_pct} ideal={targets.needs} amt={data.budgetRule.needs_amt} fmt={fmt} />
+                    <RuleRow label="Disponível/Lazer" pct={lazerPct} ideal={targets.wants} amt={lazerAmt} fmt={fmt} />
+                    <RuleRow label="Poupança" pct={data.budgetRule.savings_pct} ideal={targets.savings} amt={data.budgetRule.savings_amt} fmt={fmt} />
                   </View>
                 )}
 
