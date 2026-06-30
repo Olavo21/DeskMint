@@ -5,60 +5,138 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Trading 212 API types
+// ── Web Crypto helpers ─────────────────────────────────────────────────────
+
+async function deriveKey(secret: string): Promise<CryptoKey> {
+  const raw = new TextEncoder().encode(secret)
+  const keyMaterial = await crypto.subtle.importKey('raw', raw, 'PBKDF2', false, ['deriveKey'])
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: new TextEncoder().encode('deskmint-v1'), iterations: 100_000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  )
+}
+
+async function encrypt(plaintext: string, secret: string): Promise<string> {
+  const key = await deriveKey(secret)
+  const iv  = crypto.getRandomValues(new Uint8Array(12))
+  const ct  = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext))
+  const b64 = (buf: Uint8Array) => btoa(String.fromCharCode(...buf))
+  return `${b64(iv)}.${b64(new Uint8Array(ct))}`
+}
+
+async function decrypt(blob: string, secret: string): Promise<string> {
+  const [ivB64, ctB64] = blob.split('.')
+  if (!ivB64 || !ctB64) throw new Error('connection_key_invalid')
+  const iv  = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0))
+  const ct  = Uint8Array.from(atob(ctB64), (c) => c.charCodeAt(0))
+  const key = await deriveKey(secret)
+  const pt  = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct)
+  return new TextDecoder().decode(pt)
+}
+
+// ── Response helpers ───────────────────────────────────────────────────────
+
+function ok(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+function fail(status: number, message: string): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+// ── Trading 212 types ──────────────────────────────────────────────────────
+
 interface T212Position {
-  ticker:               string
-  quantity:             number
-  averagePrice:         number
-  currentPrice:         number
-  ppl:                  number
-  fxPpl:                number
-  initialFillDate:      string
-  frontend:             string
-  maxBuy:               number
-  maxSell:              number
-  pieQuantity:          number
+  ticker:          string
+  quantity:        number
+  averagePrice:    number
+  currentPrice:    number
+  ppl:             number
+  fxPpl:           number
+  initialFillDate: string
+  frontend:        string
+  maxBuy:          number
+  maxSell:         number
+  pieQuantity:     number
 }
 
 function detectAssetType(ticker: string): string {
   const cryptos = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOT', 'MATIC']
   if (cryptos.includes(ticker.toUpperCase())) return 'CRYPTO'
-  // Trading 212 ETF tickers often end with _EQ or contain common ETF names
-  // Most positions from T212 are stocks or ETFs
   if (ticker.includes('_EQ')) return 'STOCK'
   return 'ETF'
 }
 
+// ── Handler ────────────────────────────────────────────────────────────────
+
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
-    // Auth via Supabase JWT
+    // ── Auth ──────────────────────────────────────────────────────────────
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    if (!authHeader) return fail(401, 'Unauthorized')
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // Verify JWT and get user
     const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+      authHeader.replace('Bearer ', ''),
     )
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    if (authError || !user) return fail(401, 'Invalid token')
+
+    // ── Encryption secret ─────────────────────────────────────────────────
+    const encSecret = Deno.env.get('ENCRYPTION_SECRET')
+    if (!encSecret) return fail(500, 'ENCRYPTION_SECRET not configured')
+
+    // ── Parse action ──────────────────────────────────────────────────────
+    let action = 'sync'
+    let body: Record<string, string> = {}
+
+    if (req.method === 'POST' && req.body) {
+      try {
+        body   = await req.json()
+        action = body.action ?? 'sync'
+      } catch {
+        // empty body → default sync
+      }
     }
 
-    // Fetch the user's Trading 212 connection
+    // ── save_key ──────────────────────────────────────────────────────────
+    if (action === 'save_key') {
+      const { broker, display_name, api_key } = body
+      if (!api_key) return fail(400, 'api_key required')
+      if (!broker)  return fail(400, 'broker required')
+
+      const encrypted = await encrypt(api_key, encSecret)
+
+      const { error: upsertErr } = await supabase
+        .from('dm_broker_connections')
+        .upsert({
+          user_id:       user.id,
+          broker,
+          display_name:  display_name ?? broker,
+          api_key:       encrypted,
+          status:        'active',
+          error_message: null,
+        }, { onConflict: 'user_id,broker' })
+
+      if (upsertErr) return fail(500, upsertErr.message)
+      return ok({ saved: true })
+    }
+
+    // ── sync ──────────────────────────────────────────────────────────────
     const { data: conn, error: connError } = await supabase
       .from('dm_broker_connections')
       .select('id, api_key')
@@ -68,36 +146,43 @@ Deno.serve(async (req: Request) => {
       .single()
 
     if (connError || !conn?.api_key) {
-      return new Response(JSON.stringify({ error: 'Ligação Trading 212 não encontrada ou sem API key.' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return fail(404, 'Ligação Trading 212 não encontrada ou sem API key.')
     }
 
-    // Call Trading 212 API — live account endpoint
-    // If using practice/demo account, use https://demo.trading212.com/api/v0/equity/portfolio
+    // Decrypt internally — never logged, never returned
+    let apiKey: string
+    try {
+      apiKey = await decrypt(conn.api_key, encSecret)
+    } catch {
+      await supabase
+        .from('dm_broker_connections')
+        .update({ status: 'error', error_message: 'connection_key_invalid — re-save your API key' })
+        .eq('id', conn.id)
+      return fail(400, 'connection_key_invalid')
+    }
+
+    // Call Trading 212 API
     const t212Res = await fetch('https://live.trading212.com/api/v0/equity/portfolio', {
-      headers: { Authorization: conn.api_key },
+      headers: { Authorization: apiKey },
     })
+
+    apiKey = '' // clear from memory immediately after use
 
     if (!t212Res.ok) {
       const errText = await t212Res.text()
-      // Mark connection as error
       await supabase
         .from('dm_broker_connections')
         .update({ status: 'error', error_message: `T212 API ${t212Res.status}: ${errText}` })
         .eq('id', conn.id)
-      return new Response(JSON.stringify({ error: `Trading 212 API error: ${t212Res.status}` }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return fail(502, `Trading 212 API error: ${t212Res.status}`)
     }
 
     const positions: T212Position[] = await t212Res.json()
 
-    // Map T212 positions → dm_portfolio_assets rows
     const upserts = positions.map((pos) => ({
       user_id:          user.id,
       ticker:           pos.ticker,
-      name:             pos.ticker,          // T212 doesn't return full name in portfolio endpoint
+      name:             pos.ticker,
       asset_type:       detectAssetType(pos.ticker),
       broker:           'Trading 212',
       units:            pos.quantity,
@@ -113,30 +198,19 @@ Deno.serve(async (req: Request) => {
     if (upserts.length > 0) {
       const { error: upsertError } = await supabase
         .from('dm_portfolio_assets')
-        .upsert(upserts, {
-          onConflict: 'user_id,ticker',
-          ignoreDuplicates: false,
-        })
-
-      if (upsertError) {
-        return new Response(JSON.stringify({ error: upsertError.message }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+        .upsert(upserts, { onConflict: 'user_id,ticker', ignoreDuplicates: false })
+      if (upsertError) return fail(500, upsertError.message)
     }
 
-    // Update last_sync_at and clear any errors
     await supabase
       .from('dm_broker_connections')
       .update({ last_sync_at: new Date().toISOString(), status: 'active', error_message: null })
       .eq('id', conn.id)
 
-    return new Response(JSON.stringify({ synced: upserts.length }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return ok({ synced: upserts.length })
+
+  } catch (_e) {
+    // Never include stack traces or key material in error responses
+    return fail(500, 'internal_error')
   }
 })
