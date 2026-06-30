@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, TextInput } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import SimuladorMaisValias from '../../components/fiscal/SimuladorMaisValias'
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 type Status = 'obrigatorio' | 'atencao' | 'isento' | 'info'
@@ -149,8 +150,13 @@ export default function FiscalScreen() {
           </View>
         </View>
 
+        {/* ─── Simulador com Portfólio Real ────────────────────────────── */}
+        <Section title="Simulador com o teu Portfólio" icon="🧮" defaultOpen>
+          <SimuladorMaisValias />
+        </Section>
+
         {/* ─── Contas Estrangeiras ─────────────────────────────────────── */}
-        <Section title="Contas e Brokers Estrangeiros" icon="🏦" defaultOpen>
+        <Section title="Contas e Brokers Estrangeiros" icon="🏦">
           <Alert status="obrigatorio"
             text="Todos os rendimentos obtidos em bancos ou brokers estrangeiros devem ser declarados no IRS em Anexo J — independentemente do valor." />
 
