@@ -7,8 +7,9 @@ import CalculadoraETF from '../../components/ferramentas/CalculadoraETF'
 import QuizInvestidor from '../../components/ferramentas/QuizInvestidor'
 import PesquisaAtivos from '../../components/ferramentas/PesquisaAtivos'
 import SimuladorFIRE from '../../components/ferramentas/SimuladorFIRE'
+import OtimizadorDebito from '../../components/ferramentas/OtimizadorDebito'
 
-type Ferramenta = 'etf' | 'ativos' | 'quiz' | 'fire'
+type Ferramenta = 'etf' | 'ativos' | 'quiz' | 'fire' | 'debito'
 
 const FERRAMENTAS: { key: Ferramenta; label: string; icon: string; desc: string; cor: string }[] = [
   {
@@ -17,6 +18,13 @@ const FERRAMENTAS: { key: Ferramenta; label: string; icon: string; desc: string;
     icon:  'flame-outline',
     desc:  'Calcula em quantos anos atinges a tua Independência Financeira',
     cor:   '#f59e0b',
+  },
+  {
+    key:   'debito',
+    label: 'Otimizador de Débito',
+    icon:  'git-compare-outline',
+    desc:  'Amortizar ou investir o capital extra? A matemática decide.',
+    cor:   '#8b5cf6',
   },
   {
     key:   'etf',
@@ -107,6 +115,7 @@ export default function FerramentasScreen() {
         )}
 
         {ativa === 'fire'     && <SimuladorFIRE />}
+        {ativa === 'debito'   && <OtimizadorDebito />}
         {ativa === 'etf'      && <CalculadoraETF />}
         {ativa === 'ativos'   && <PesquisaAtivos />}
         {ativa === 'quiz'     && <QuizInvestidor />}
