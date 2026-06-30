@@ -8,14 +8,22 @@ import QuizInvestidor from '../../components/ferramentas/QuizInvestidor'
 import PesquisaAtivos from '../../components/ferramentas/PesquisaAtivos'
 import SimuladorFIRE from '../../components/ferramentas/SimuladorFIRE'
 import OtimizadorDebito from '../../components/ferramentas/OtimizadorDebito'
+import MotorFIRE from '../../components/ferramentas/MotorFIRE'
 
-type Ferramenta = 'etf' | 'ativos' | 'quiz' | 'fire' | 'debito'
+type Ferramenta = 'etf' | 'ativos' | 'quiz' | 'fire' | 'debito' | 'motor-fire'
 
 const FERRAMENTAS: { key: Ferramenta; label: string; icon: string; desc: string; cor: string }[] = [
   {
+    key:   'motor-fire',
+    label: 'Motor FIRE',
+    icon:  'flame-outline',
+    desc:  'Projeção FIRE a 50 anos com taxa ponderada do teu portfólio real',
+    cor:   '#f97316',
+  },
+  {
     key:   'fire',
     label: 'Simulador FIRE',
-    icon:  'flame-outline',
+    icon:  'trending-up-outline',
     desc:  'Calcula em quantos anos atinges a tua Independência Financeira',
     cor:   '#f59e0b',
   },
@@ -114,8 +122,9 @@ export default function FerramentasScreen() {
           </>
         )}
 
-        {ativa === 'fire'     && <SimuladorFIRE />}
-        {ativa === 'debito'   && <OtimizadorDebito />}
+        {ativa === 'motor-fire' && <MotorFIRE />}
+        {ativa === 'fire'       && <SimuladorFIRE />}
+        {ativa === 'debito'     && <OtimizadorDebito />}
         {ativa === 'etf'      && <CalculadoraETF />}
         {ativa === 'ativos'   && <PesquisaAtivos />}
         {ativa === 'quiz'     && <QuizInvestidor />}
