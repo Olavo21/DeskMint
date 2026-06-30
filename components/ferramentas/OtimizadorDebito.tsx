@@ -192,11 +192,15 @@ function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
     : isAmortizar ? 'Amortizar é mais vantajoso'
     :               'Investir gera mais retorno'
 
+  const tempoTexto = result.mesesRestantes < 12
+    ? `${result.mesesRestantes} meses`
+    : `${(result.mesesRestantes / 12).toFixed(1)} anos`
+
   const verdictMsg = isEmpate
     ? `Com ${fmt2(extraMensal)}/mês extra, amortizar e investir têm resultados próximos (diferença < €50/ano). Em caso de dúvida, prefere amortizar — o retorno é garantido.`
     : isAmortizar
       ? `Amortizar poupa-te ${fmt(result.jurosPoupados)} em juros garantidos e sem risco ao longo do crédito (${result.mesesEconomizados} meses mais cedo). A TAEG de ${credit.interest_rate.toFixed(2)}% supera o retorno estimado de ${taxaMercado.toFixed(1)}% do mercado.`
-      : `Investir gera ${fmt(result.ganhoInvestimento)} estimados em ${Math.round(result.mesesRestantes / 12)} anos, superando o custo do crédito em ${fmt(result.diferencaAnual)}/ano. O retorno de ${taxaMercado.toFixed(1)}% supera a TAEG de ${credit.interest_rate.toFixed(2)}%.`
+      : `Investir gera ${fmt(result.ganhoInvestimento)} estimados em ${tempoTexto}, superando o custo do crédito em ${fmt(result.diferencaAnual)}/ano. O retorno de ${taxaMercado.toFixed(1)}% supera a TAEG de ${credit.interest_rate.toFixed(2)}%.`
 
   return (
     <View style={{ backgroundColor: bgColor, borderRadius: 20, borderWidth: 1, borderColor, padding: 20, gap: 16 }}>
