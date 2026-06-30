@@ -9,10 +9,18 @@ import PesquisaAtivos from '../../components/ferramentas/PesquisaAtivos'
 import SimuladorFIRE from '../../components/ferramentas/SimuladorFIRE'
 import OtimizadorDebito from '../../components/ferramentas/OtimizadorDebito'
 import MotorFIRE from '../../components/ferramentas/MotorFIRE'
+import TrianguloFinanceiro from '../../components/ferramentas/TrianguloFinanceiro'
 
-type Ferramenta = 'etf' | 'ativos' | 'quiz' | 'fire' | 'debito' | 'motor-fire'
+type Ferramenta = 'etf' | 'ativos' | 'quiz' | 'fire' | 'debito' | 'motor-fire' | 'triangulo'
 
 const FERRAMENTAS: { key: Ferramenta; label: string; icon: string; desc: string; cor: string }[] = [
+  {
+    key:   'triangulo',
+    label: 'Triângulo Financeiro',
+    icon:  'triangle-outline',
+    desc:  'Liquidez · Emergência · Investimento — rebalanceia em 3 passos',
+    cor:   '#10b981',
+  },
   {
     key:   'motor-fire',
     label: 'Motor FIRE',
@@ -122,6 +130,7 @@ export default function FerramentasScreen() {
           </>
         )}
 
+        {ativa === 'triangulo'   && <TrianguloFinanceiro />}
         {ativa === 'motor-fire' && <MotorFIRE />}
         {ativa === 'fire'       && <SimuladorFIRE />}
         {ativa === 'debito'     && <OtimizadorDebito />}
