@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
+import { fmt } from '../../utils/format'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useAssets } from '../../hooks/useAssets'
 import { useCredits } from '../../hooks/useCredits'
@@ -18,27 +19,37 @@ import type { DmAsset, DmCredit } from '../../types/database'
 
 type AssetWithLiveDebt = DmAsset & { effectiveDebt: number; linkedCredit?: DmCredit }
 
-function PremiumCard({
-  label, value, sub, icon, color, onPress,
-}: { label: string; value: string; sub?: string; icon: string; color: string; onPress: () => void }) {
+const CARD = {
+  backgroundColor: '#ffffff',
+  borderRadius: 16,
+  borderWidth: 1,
+  borderColor: '#e2e8f0',
+  flex: 1,
+  padding: 16,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.05,
+  shadowRadius: 3,
+  elevation: 2,
+} as const
+
+function MiniCard({ label, value, sub, icon, color, onPress }: {
+  label: string; value: string; sub?: string; icon: string; color: string; onPress: () => void
+}) {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      className="bg-dark-800 rounded-2xl p-5 mb-3 flex-row items-center"
-    >
-      <View
-        className="w-12 h-12 rounded-2xl items-center justify-center mr-4"
-        style={{ backgroundColor: color + '1a' }}
-      >
-        <Ionicons name={icon as 'wallet-outline'} size={22} color={color} />
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={CARD}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+        <View style={{ width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: color + '1a' }}>
+          <Ionicons name={icon as any} size={14} color={color} />
+        </View>
+        <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' }} numberOfLines={1}>
+          {label}
+        </Text>
       </View>
-      <View className="flex-1">
-        <Text className="text-dark-400 text-xs mb-0.5">{label}</Text>
-        <Text className="text-2xl font-bold" style={{ color }}>{value}</Text>
-        {sub ? <Text className="text-dark-400 text-xs mt-0.5">{sub}</Text> : null}
-      </View>
-      <Ionicons name="chevron-forward" size={18} color="#475569" />
+      <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800', letterSpacing: -0.3 }} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+      {sub && <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 5 }}>{sub}</Text>}
     </TouchableOpacity>
   )
 }
@@ -83,59 +94,44 @@ function KpiCard({ label, value, sub, valueColor }: { label: string; value: stri
   )
 }
 
-function EmergencyProgressCard({ atual, despesaMensal }: { atual: number; despesaMensal: number }) {
+function EmergencyCard({ atual, despesaMensal }: { atual: number; despesaMensal: number }) {
   const safeDespesa = despesaMensal > 50 ? despesaMensal : 1000
   const alvo        = safeDespesa * 6
-  const pct         = alvo > 0 ? Math.min(atual / alvo, 1) : 0
+  const progress    = alvo > 0 ? Math.min(atual / alvo, 1) : 0
   const faltam      = Math.max(0, alvo - atual)
-  const meses       = Math.floor(atual / safeDespesa)
-  const isOk        = pct >= 1
-  const color       = isOk ? '#14b8a6' : pct >= 0.5 ? '#f59e0b' : '#ef4444'
-  const fmtE        = (v: number) =>
-    v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  const isOk        = progress >= 1
+  const barColor    = isOk ? '#14b8a6' : '#3b82f6'
 
   return (
-    <View style={{ backgroundColor: '#1e293b', borderRadius: 20, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: '#334155' }}>
-
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <Ionicons name="shield-checkmark-outline" size={15} color={color} />
-        <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>
-          Fundo de Emergência
-        </Text>
-      </View>
-
-      {/* Valor em grande + percentagem */}
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-        <Text style={{ color, fontSize: 28, fontWeight: '800', letterSpacing: -0.5 }}>
-          {fmtE(atual)}
-        </Text>
-        <Text style={{ color, fontSize: 13, fontWeight: '700' }}>
-          {Math.round(pct * 100)}%
-        </Text>
-      </View>
-
-      {/* Barra de progresso — loading style */}
-      <View style={{ height: 8, backgroundColor: '#0f172a', borderRadius: 4, flexDirection: 'row', overflow: 'hidden' }}>
-        {pct > 0 && <View style={{ flex: pct,     backgroundColor: color }} />}
-        {pct < 1 && <View style={{ flex: 1 - pct                        }} />}
-      </View>
-
-      {/* Sub info */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-        <Text style={{ color: '#475569', fontSize: 11 }}>{meses}/6 meses cobertos</Text>
-        <Text style={{ color: '#475569', fontSize: 11 }}>objetivo: {fmtE(alvo)}</Text>
-      </View>
-
-      {/* Rodapé — só se não atingido */}
-      {!isOk && (
-        <View style={{ marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#0f172a', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Ionicons name="warning-outline" size={13} color={color} />
-          <Text style={{ color, fontSize: 12, fontWeight: '500', flex: 1 }}>
-            Faltam {fmtE(faltam)} para blindar a tua segurança.
-          </Text>
+    <View style={{ ...CARD, overflow: 'hidden' }}>
+      {/* Cabeçalho idêntico ao MiniCard */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+        <View style={{ width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#14b8a61a' }}>
+          <Ionicons name="shield-checkmark-outline" size={14} color="#14b8a6" />
         </View>
-      )}
+        <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          Emergência
+        </Text>
+      </View>
+
+      {/* Valor — mesma tipografia que MiniCard */}
+      <Text style={{ color: '#0f172a', fontSize: 20, fontWeight: '800', letterSpacing: -0.3 }} numberOfLines={1} adjustsFontSizeToFit>
+        {fmt(atual)}
+      </Text>
+
+      {/* Linhas secundárias discretas */}
+      <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4 }}>
+        {isOk ? 'Objetivo atingido ✓' : `Faltam ${fmt(faltam)}`}
+      </Text>
+      <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 1 }}>
+        Alvo {fmt(alvo)}
+      </Text>
+
+      {/* Barra em fluxo normal — sem position absolute */}
+      <View style={{ width: '100%', height: 4, backgroundColor: '#f1f5f9', borderRadius: 2, marginTop: 10, flexDirection: 'row', overflow: 'hidden' }}>
+        {progress > 0 && <View style={{ flex: progress,     backgroundColor: barColor, borderRadius: 2 }} />}
+        {progress < 1 && <View style={{ flex: 1 - progress                                             }} />}
+      </View>
     </View>
   )
 }
@@ -365,7 +361,6 @@ export default function DashboardScreen() {
     }, [qc])
   )
 
-  const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
   const pct = (n: number) => `${(n * 100).toFixed(1)}%`
   const lazerAmt = data?.lazerAmt ?? 0
   const lazerPct = data?.lazerPct ?? 0
@@ -395,35 +390,30 @@ export default function DashboardScreen() {
             {/* Património Líquido — indicador estático, sem navegação */}
             <NetWorthBanner label="Património Líquido" value={fmt(data?.netWorth ?? 0)} />
 
-            {/* 3 Cartões Premium */}
-            <PremiumCard
-              label="Saldo Disponível"
-              value={fmt(data?.availableBalance ?? 0)}
-              sub="receitas − despesas correntes"
-              icon="wallet-outline"
-              color="#0d9488"
-              onPress={() => router.push('/(tabs)/orcamento')}
-            />
-            <EmergencyProgressCard
-              atual={data?.emergencyFund ?? 0}
-              despesaMensal={data?.expenses ?? 0}
-            />
-            <PremiumCard
-              label="Total Investido"
-              value={fmt(data?.portfolioValue ?? 0)}
-              sub="ETFs, ações e cripto"
-              icon="trending-up-outline"
-              color="#2563eb"
-              onPress={() => router.push('/(tabs)/investimentos')}
-            />
-            <PremiumCard
-              label="Total em Dívida"
-              value={fmt(data?.totalCreditDebt ?? 0)}
-              sub="passivos e créditos consolidados"
-              icon="card-outline"
-              color="#dc2626"
-              onPress={() => router.push('/(tabs)/creditos')}
-            />
+            {/* ── Grelha 2×2 ─────────────────────────────────────────── */}
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+              <MiniCard
+                label="Saldo Disponível" value={fmt(data?.availableBalance ?? 0)}
+                sub="receitas − despesas" icon="wallet-outline" color="#0d9488"
+                onPress={() => router.push('/(tabs)/orcamento')}
+              />
+              <MiniCard
+                label="Total Investido" value={fmt(data?.portfolioValue ?? 0)}
+                sub="ETFs, ações e cripto" icon="trending-up-outline" color="#2563eb"
+                onPress={() => router.push('/(tabs)/investimentos')}
+              />
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+              <EmergencyCard
+                atual={data?.emergencyFund ?? 0}
+                despesaMensal={data?.expenses ?? 0}
+              />
+              <MiniCard
+                label="Total em Dívida" value={fmt(data?.totalCreditDebt ?? 0)}
+                sub="passivos e créditos" icon="card-outline" color="#dc2626"
+                onPress={() => router.push('/(tabs)/creditos')}
+              />
+            </View>
 
             <TouchableOpacity
               className="flex-row items-center justify-center gap-1.5 py-3 mb-2"
