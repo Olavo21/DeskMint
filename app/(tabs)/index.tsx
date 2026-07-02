@@ -83,6 +83,63 @@ function KpiCard({ label, value, sub, valueColor }: { label: string; value: stri
   )
 }
 
+function EmergencyProgressCard({ atual, despesaMensal }: { atual: number; despesaMensal: number }) {
+  const safeDespesa = despesaMensal > 50 ? despesaMensal : 1000
+  const alvo        = safeDespesa * 6
+  const pct         = alvo > 0 ? Math.min(atual / alvo, 1) : 0
+  const faltam      = Math.max(0, alvo - atual)
+  const meses       = Math.floor(atual / safeDespesa)
+  const isOk        = pct >= 1
+  const color       = isOk ? '#14b8a6' : pct >= 0.5 ? '#f59e0b' : '#ef4444'
+  const fmtE        = (v: number) =>
+    v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+
+  return (
+    <View style={{ backgroundColor: '#1e293b', borderRadius: 20, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: '#334155' }}>
+
+      {/* Header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <Ionicons name="shield-checkmark-outline" size={15} color={color} />
+        <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>
+          Fundo de Emergência
+        </Text>
+      </View>
+
+      {/* Valor em grande + percentagem */}
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+        <Text style={{ color, fontSize: 28, fontWeight: '800', letterSpacing: -0.5 }}>
+          {fmtE(atual)}
+        </Text>
+        <Text style={{ color, fontSize: 13, fontWeight: '700' }}>
+          {Math.round(pct * 100)}%
+        </Text>
+      </View>
+
+      {/* Barra de progresso — loading style */}
+      <View style={{ height: 8, backgroundColor: '#0f172a', borderRadius: 4, flexDirection: 'row', overflow: 'hidden' }}>
+        {pct > 0 && <View style={{ flex: pct,     backgroundColor: color }} />}
+        {pct < 1 && <View style={{ flex: 1 - pct                        }} />}
+      </View>
+
+      {/* Sub info */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+        <Text style={{ color: '#475569', fontSize: 11 }}>{meses}/6 meses cobertos</Text>
+        <Text style={{ color: '#475569', fontSize: 11 }}>objetivo: {fmtE(alvo)}</Text>
+      </View>
+
+      {/* Rodapé — só se não atingido */}
+      {!isOk && (
+        <View style={{ marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#0f172a', flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Ionicons name="warning-outline" size={13} color={color} />
+          <Text style={{ color, fontSize: 12, fontWeight: '500', flex: 1 }}>
+            Faltam {fmtE(faltam)} para blindar a tua segurança.
+          </Text>
+        </View>
+      )}
+    </View>
+  )
+}
+
 function RuleRow({ label, pct, ideal, amt, fmt }: { label: string; pct: number; ideal: number; amt: number; fmt: (n: number) => string }) {
   const over = pct > ideal && label !== 'Poupança'
   return (
@@ -346,6 +403,10 @@ export default function DashboardScreen() {
               icon="wallet-outline"
               color="#0d9488"
               onPress={() => router.push('/(tabs)/orcamento')}
+            />
+            <EmergencyProgressCard
+              atual={data?.emergencyFund ?? 0}
+              despesaMensal={data?.expenses ?? 0}
             />
             <PremiumCard
               label="Total Investido"
