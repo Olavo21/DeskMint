@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useCredits } from '../../hooks/useCredits'
@@ -7,11 +7,10 @@ import {
   simulateExtraAmortization,
 } from '../../lib/creditMath'
 import type { DmCredit } from '../../types/database'
+import { fmt, fmt2 } from '../../utils/format'
+import StepperInput from '../ui/StepperInput'
 
-// ── Formatação ─────────────────────────────────────────────────────────────
-
-const fmt  = (v: number) => v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-const fmt2 = (v: number) => v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 })
+type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 
 const KIND_LABEL: Record<string, string> = {
   VEHICLE: 'Automóvel',
@@ -76,46 +75,6 @@ function calcularOtimizacao(
   }
 }
 
-// ── StepperInput ───────────────────────────────────────────────────────────
-
-function StepperInput({ label, value, step, min, max, suffix, decimals = 0, onChange }: {
-  label: string; value: number; step: number; min: number; max: number
-  suffix: string; decimals?: number; onChange: (v: number) => void
-}) {
-  const dec = () => onChange(parseFloat(Math.max(min, value - step).toFixed(decimals)))
-  const inc = () => onChange(parseFloat(Math.min(max, value + step).toFixed(decimals)))
-  return (
-    <View style={{ flex: 1 }}>
-      <Text style={{ color: '#64748b', fontSize: 11, marginBottom: 6 }}>{label}</Text>
-      <View style={{
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#0f172a', borderRadius: 12,
-        borderWidth: 1, borderColor: '#334155', overflow: 'hidden',
-      }}>
-        <TouchableOpacity
-          onPress={dec}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 0 }}
-          style={{ width: 40, height: 46, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#1e293b' }}
-        >
-          <Text style={{ color: '#94a3b8', fontSize: 22, lineHeight: 24 }}>−</Text>
-        </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: 'center', paddingVertical: 12 }}>
-          <Text style={{ color: '#2dd4bf', fontSize: 14, fontWeight: '700' }}>
-            {value.toFixed(decimals)}{suffix}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={inc}
-          hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
-          style={{ width: 40, height: 46, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: '#1e293b' }}
-        >
-          <Text style={{ color: '#2dd4bf', fontSize: 22, lineHeight: 24 }}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  )
-}
-
 // ── CreditCard (picker) ────────────────────────────────────────────────────
 
 function CreditCard({ credit, selected, balance, remainingMonths, onPress }: {
@@ -168,7 +127,7 @@ function CreditCard({ credit, selected, balance, remainingMonths, onPress }: {
 
 // ── VerdictCard ────────────────────────────────────────────────────────────
 
-function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
+const VerdictCard = React.memo(function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
   result:      OtimizacaoResult
   credit:      DmCredit
   extraMensal: number
@@ -180,12 +139,13 @@ function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
   const mainColor   = isEmpate ? '#64748b' : isAmortizar ? '#f59e0b' : '#14b8a6'
   const bgColor     = isEmpate ? '#1e293b' : isAmortizar ? '#1c1400' : '#042f2e'
   const borderColor = isEmpate ? '#33415540' : isAmortizar ? '#f59e0b30' : '#14b8a630'
-  const icon: any   = isEmpate ? 'remove-circle-outline'
+  const icon: IoniconName = isEmpate
+    ? 'remove-circle-outline'
     : isAmortizar ? 'shield-checkmark-outline' : 'trending-up-outline'
 
-  const maxVal       = Math.max(result.ganhoAmortizarAnual, result.ganhoInvestirAnual, 1)
-  const barAmortFlex = Math.max(result.ganhoAmortizarAnual / maxVal, 0.03)
-  const barInvestFlex = Math.max(result.ganhoInvestirAnual / maxVal, 0.03)
+  const maxVal        = Math.max(result.ganhoAmortizarAnual, result.ganhoInvestirAnual, 1)
+  const barAmortFlex  = Math.max(result.ganhoAmortizarAnual / maxVal, 0.03)
+  const barInvestFlex = Math.max(result.ganhoInvestirAnual  / maxVal, 0.03)
 
   const verdictTitle =
     isEmpate    ? 'Resultado semelhante — decide pelo risco'
@@ -205,7 +165,6 @@ function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
   return (
     <View style={{ backgroundColor: bgColor, borderRadius: 20, borderWidth: 1, borderColor, padding: 20, gap: 16 }}>
 
-      {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: mainColor + '20', alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name={icon} size={20} color={mainColor} />
@@ -222,10 +181,8 @@ function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
         </View>
       </View>
 
-      {/* Mensagem */}
       <Text style={{ color: '#94a3b8', fontSize: 13, lineHeight: 21 }}>{verdictMsg}</Text>
 
-      {/* Barras comparativas */}
       <View style={{ gap: 10 }}>
         <View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -233,7 +190,7 @@ function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
             <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '700' }}>{fmt(result.ganhoAmortizarAnual)}</Text>
           </View>
           <View style={{ height: 8, backgroundColor: '#0f172a', borderRadius: 4, flexDirection: 'row', overflow: 'hidden' }}>
-            <View style={{ flex: barAmortFlex, height: 8, backgroundColor: '#f59e0b' }} />
+            <View style={{ flex: barAmortFlex,     height: 8, backgroundColor: '#f59e0b' }} />
             <View style={{ flex: 1 - barAmortFlex }} />
           </View>
         </View>
@@ -243,13 +200,12 @@ function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
             <Text style={{ color: '#14b8a6', fontSize: 11, fontWeight: '700' }}>{fmt(result.ganhoInvestirAnual)}</Text>
           </View>
           <View style={{ height: 8, backgroundColor: '#0f172a', borderRadius: 4, flexDirection: 'row', overflow: 'hidden' }}>
-            <View style={{ flex: barInvestFlex, height: 8, backgroundColor: '#14b8a6' }} />
+            <View style={{ flex: barInvestFlex,    height: 8, backgroundColor: '#14b8a6' }} />
             <View style={{ flex: 1 - barInvestFlex }} />
           </View>
         </View>
       </View>
 
-      {/* Rodapé com métricas */}
       <View style={{ backgroundColor: '#0f172a', borderRadius: 14, padding: 14, gap: 8 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ color: '#475569', fontSize: 12 }}>Crédito liquidado</Text>
@@ -278,7 +234,7 @@ function VerdictCard({ result, credit, extraMensal, taxaMercado }: {
       </Text>
     </View>
   )
-}
+})
 
 // ── Componente principal ───────────────────────────────────────────────────
 
@@ -290,26 +246,54 @@ export default function OtimizadorDebito() {
 
   const creditList = credits ?? []
 
-  // Auto-selecciona o primeiro crédito quando os dados carregam
-  useEffect(() => {
-    if (!selectedId && creditList.length > 0) {
-      setSelectedId(creditList[0].id)
+  // Processamento defensivo: dados corrompidos no DB retornam null em vez de crashar
+  const creditData = useMemo(() => {
+    try {
+      return creditList.map((c) => ({ ...c, ...getCreditOutstandingBalance(c) }))
+    } catch {
+      return null
     }
-  }, [creditList.length])
+  }, [creditList])
 
-  const creditData = useMemo(
-    () => creditList.map((c) => ({ ...c, ...getCreditOutstandingBalance(c) })),
-    [creditList],
-  )
+  const hasDataError   = creditData === null
+  const safeCreditData = creditData ?? []
 
-  const selectedCredit = creditData.find((c) => c.id === selectedId) ?? null
+  useEffect(() => {
+    if (!selectedId && safeCreditData.length > 0) {
+      setSelectedId(safeCreditData[0].id)
+    }
+  }, [safeCreditData.length, selectedId])
 
-  const result = useMemo(
-    () => selectedCredit && extraMensal > 0
-      ? calcularOtimizacao(selectedCredit, extraMensal, taxaMercado)
-      : null,
-    [selectedCredit, extraMensal, taxaMercado],
-  )
+  const selectedCredit = safeCreditData.find((c) => c.id === selectedId) ?? null
+
+  const result = useMemo(() => {
+    if (!selectedCredit || extraMensal <= 0) return null
+    try {
+      return calcularOtimizacao(selectedCredit, extraMensal, taxaMercado)
+    } catch {
+      return null
+    }
+  }, [selectedCredit, extraMensal, taxaMercado])
+
+  // ── Fallback visual para dados corrompidos ─────────────────────────────
+  if (hasDataError) {
+    return (
+      <View style={{
+        backgroundColor: '#1e293b', borderRadius: 16,
+        borderWidth: 1, borderColor: '#ef444440',
+        padding: 28, alignItems: 'center', gap: 12,
+      }}>
+        <Ionicons name="warning-outline" size={36} color="#ef4444" />
+        <Text style={{ color: '#ef4444', fontSize: 14, fontWeight: '700', textAlign: 'center' }}>
+          Erro ao carregar dados do crédito
+        </Text>
+        <Text style={{ color: '#475569', fontSize: 12, textAlign: 'center', lineHeight: 18 }}>
+          Os dados de um crédito estão incompletos ou corrompidos.{'\n'}
+          Verifica o separador Créditos e volta a tentar.
+        </Text>
+      </View>
+    )
+  }
 
   return (
     <View style={{ gap: 14 }}>
@@ -317,7 +301,7 @@ export default function OtimizadorDebito() {
       {/* ── CreditPicker ────────────────────────────────────────────────── */}
       {isLoading ? (
         <ActivityIndicator color="#14b8a6" style={{ paddingVertical: 20 }} />
-      ) : creditList.length === 0 ? (
+      ) : safeCreditData.length === 0 ? (
         <View style={{
           backgroundColor: '#1e293b', borderRadius: 16,
           borderWidth: 1, borderColor: '#334155',
@@ -333,7 +317,7 @@ export default function OtimizadorDebito() {
           <Text style={{ color: '#64748b', fontSize: 11, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>
             Seleciona o crédito
           </Text>
-          {creditData.map((c) => (
+          {safeCreditData.map((c) => (
             <CreditCard
               key={c.id}
               credit={c}
@@ -347,7 +331,7 @@ export default function OtimizadorDebito() {
       )}
 
       {/* ── Steppers ────────────────────────────────────────────────────── */}
-      {creditList.length > 0 && (
+      {safeCreditData.length > 0 && (
         <View style={{
           backgroundColor: '#1e293b', borderRadius: 20,
           borderWidth: 1, borderColor: '#334155', padding: 16, gap: 14,
@@ -360,11 +344,13 @@ export default function OtimizadorDebito() {
               label="Capital extra mensal"
               value={extraMensal} step={50} min={50} max={5000} suffix="€"
               onChange={setExtraMensal}
+              buttonWidth={40} controlHeight={46} valueFontSize={14}
             />
             <StepperInput
               label="Retorno de mercado"
               value={taxaMercado} step={0.5} min={0.5} max={20} suffix="%" decimals={1}
               onChange={setTaxaMercado}
+              buttonWidth={40} controlHeight={46} valueFontSize={14}
             />
           </View>
         </View>

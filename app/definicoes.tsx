@@ -6,40 +6,7 @@ import { router } from 'expo-router'
 import { useAuthStore } from '../stores/authStore'
 import { usePlan, PLAN_NAMES, PLAN_COLORS } from '../hooks/usePlan'
 import { supabase } from '../lib/supabase'
-
-// ── StepperRow ──────────────────────────────────────────────────────────────
-
-function StepperRow({ label, value, color, onChange }: {
-  label: string; value: number; color: string; onChange: (v: number) => void
-}) {
-  const canDec = value > 5
-  const canInc = value < 90
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
-        <Text style={{ color: '#94a3b8', fontSize: 14 }}>{label}</Text>
-      </View>
-      <View style={{ flexDirection: 'row', backgroundColor: '#0f172a', borderRadius: 12, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' }}>
-        <TouchableOpacity
-          onPress={() => onChange(Math.max(5, value - 5))}
-          style={{ width: 38, height: 42, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#1e293b' }}
-        >
-          <Text style={{ color: canDec ? '#94a3b8' : '#334155', fontSize: 20, lineHeight: 22 }}>−</Text>
-        </TouchableOpacity>
-        <View style={{ width: 56, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color, fontSize: 15, fontWeight: '700' }}>{value}%</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => onChange(Math.min(90, value + 5))}
-          style={{ width: 38, height: 42, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: '#1e293b' }}
-        >
-          <Text style={{ color: canInc ? '#2dd4bf' : '#334155', fontSize: 20, lineHeight: 22 }}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  )
-}
+import StepperInput from '../components/ui/StepperInput'
 
 // ── Ecrã ────────────────────────────────────────────────────────────────────
 
@@ -107,11 +74,11 @@ export default function DefinicoesScreen() {
             Define como distribuir o teu rendimento mensal
           </Text>
 
-          <StepperRow label="Necessidades" value={needs}   color="#f59e0b" onChange={setNeeds}   />
+          <StepperInput label="Necessidades" value={needs}   step={5} min={5} max={90} suffix="%" onChange={setNeeds}   layout="horizontal" dotColor="#f59e0b" valueColor="#f59e0b" controlHeight={42} />
           <View style={{ height: 1, backgroundColor: '#0f172a' }} />
-          <StepperRow label="Lazer"        value={wants}   color="#8b5cf6" onChange={setWants}   />
+          <StepperInput label="Lazer"        value={wants}   step={5} min={5} max={90} suffix="%" onChange={setWants}   layout="horizontal" dotColor="#8b5cf6" valueColor="#8b5cf6" controlHeight={42} />
           <View style={{ height: 1, backgroundColor: '#0f172a' }} />
-          <StepperRow label="Poupança"     value={savings} color="#2dd4bf" onChange={setSavings} />
+          <StepperInput label="Poupança"     value={savings} step={5} min={5} max={90} suffix="%" onChange={setSavings} layout="horizontal" dotColor="#2dd4bf"                       controlHeight={42} />
 
           {/* Barra tricolor */}
           <View style={{ flexDirection: 'row', height: 10, borderRadius: 6, overflow: 'hidden', backgroundColor: '#0f172a', marginTop: 18 }}>

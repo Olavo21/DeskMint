@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
+import React, { useState, useMemo } from 'react'
+import { View, Text, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import {
@@ -8,73 +8,28 @@ import {
   type ProjectionPoint,
   type ProjectionResult,
 } from '../../utils/fireMath'
+import { fmt, fmt2, pct } from '../../utils/format'
+import StepperInput from '../ui/StepperInput'
 
-// ── Formatação ─────────────────────────────────────────────────────────────
-
-const fmt  = (v: number) => v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-const fmt2 = (v: number) => v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 })
-const pct  = (v: number) => `${(v * 100).toFixed(1)}%`
+type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 
 const MILESTONE_AGES = [30, 35, 40, 45, 50, 55, 60]
 
-// ── StepperInput ───────────────────────────────────────────────────────────
-
-function StepperInput({ label, value, step, min, max, suffix, decimals = 0, onChange }: {
-  label: string; value: number; step: number; min: number; max: number
-  suffix: string; decimals?: number; onChange: (v: number) => void
-}) {
-  const dec = () => onChange(parseFloat(Math.max(min, value - step).toFixed(decimals)))
-  const inc = () => onChange(parseFloat(Math.min(max, value + step).toFixed(decimals)))
-  return (
-    <View style={{ flex: 1 }}>
-      <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 6, fontWeight: '600', letterSpacing: 0.5 }}>
-        {label.toUpperCase()}
-      </Text>
-      <View style={{
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#0f172a', borderRadius: 12,
-        borderWidth: 1, borderColor: '#334155', overflow: 'hidden',
-      }}>
-        <TouchableOpacity
-          onPress={dec}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 0 }}
-          style={{ width: 36, height: 44, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#1e293b' }}
-        >
-          <Text style={{ color: '#94a3b8', fontSize: 20, lineHeight: 22 }}>−</Text>
-        </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={{ color: '#2dd4bf', fontSize: 13, fontWeight: '700' }}>
-            {value.toFixed(decimals)}{suffix}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={inc}
-          hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
-          style={{ width: 36, height: 44, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: '#1e293b' }}
-        >
-          <Text style={{ color: '#2dd4bf', fontSize: 20, lineHeight: 22 }}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  )
-}
-
 // ── VerdictCard ────────────────────────────────────────────────────────────
 
-function VerdictCard({ result, targetAge, despesa }: {
+const VerdictCard = React.memo(function VerdictCard({ result, targetAge, despesa }: {
   result:    ProjectionResult
   targetAge: number
   despesa:   number
 }) {
-  const ok         = result.reachedByTargetAge
-  const mainColor  = ok ? '#14b8a6' : '#f59e0b'
-  const bgColor    = ok ? '#042f2e' : '#1c1400'
+  const ok          = result.reachedByTargetAge
+  const mainColor   = ok ? '#14b8a6' : '#f59e0b'
+  const bgColor     = ok ? '#042f2e' : '#1c1400'
   const borderColor = ok ? '#14b8a630' : '#f59e0b30'
-  const icon: any  = ok ? 'checkmark-circle' : 'alert-circle-outline'
+  const icon: IoniconName = ok ? 'checkmark-circle' : 'alert-circle-outline'
 
   return (
     <View style={{ backgroundColor: bgColor, borderRadius: 20, borderWidth: 1, borderColor, padding: 20, gap: 14 }}>
-      {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: mainColor + '20', alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name={icon} size={20} color={mainColor} />
@@ -84,7 +39,6 @@ function VerdictCard({ result, targetAge, despesa }: {
         </Text>
       </View>
 
-      {/* Mensagem principal */}
       {ok ? (
         <Text style={{ color: '#94a3b8', fontSize: 13, lineHeight: 21 }}>
           Ao ritmo atual, atinges a Independência Financeira aos{' '}
@@ -106,14 +60,13 @@ function VerdictCard({ result, targetAge, despesa }: {
         </Text>
       )}
 
-      {/* Métricas chave */}
       <View style={{ backgroundColor: '#0f172a', borderRadius: 14, padding: 14, gap: 8 }}>
         {[
-          { label: 'Número FIRE',        value: fmt(result.fireNumber),        color: '#e2e8f0' },
+          { label: 'Número FIRE',         value: fmt(result.fireNumber),         color: '#e2e8f0' },
           { label: 'Retirada segura/mês', value: fmt2(result.monthlyWithdrawal), color: '#2dd4bf' },
-          { label: 'Valor aos ' + targetAge + ' anos', value: fmt(result.valueAtTargetAge), color: ok ? '#2dd4bf' : '#fbbf24' },
-          ...(result.fireAge ? [{ label: 'Ano de IF projetado', value: `${result.fireAge} anos`, color: '#2dd4bf' }] : []),
-          ...(result.neededMonthlyContrib ? [{ label: 'Aporte sugerido', value: fmt(result.neededMonthlyContrib) + '/mês', color: '#f59e0b' }] : []),
+          { label: `Valor aos ${targetAge} anos`, value: fmt(result.valueAtTargetAge), color: ok ? '#2dd4bf' : '#fbbf24' },
+          ...(result.fireAge            ? [{ label: 'Ano de IF projetado', value: `${result.fireAge} anos`,             color: '#2dd4bf' }] : []),
+          ...(result.neededMonthlyContrib ? [{ label: 'Aporte sugerido',   value: `${fmt(result.neededMonthlyContrib)}/mês`, color: '#f59e0b' }] : []),
         ].map((row, i, arr) => (
           <View key={row.label}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 }}>
@@ -126,25 +79,27 @@ function VerdictCard({ result, targetAge, despesa }: {
       </View>
     </View>
   )
-}
+})
 
 // ── MilestonesTable ────────────────────────────────────────────────────────
 
-function MilestonesTable({ points, currentAge, fireAge }: {
+const MilestonesTable = React.memo(function MilestonesTable({ points, currentAge, fireAge }: {
   points:     ProjectionPoint[]
   currentAge: number
   fireAge:    number | null
 }) {
-  const milestones = MILESTONE_AGES
-    .filter((age) => age > currentAge && age <= currentAge + 50)
-    .map((age) => points.find((p) => p.age === age))
-    .filter((p): p is ProjectionPoint => !!p)
+  const milestones = useMemo(
+    () => MILESTONE_AGES
+      .filter((age) => age > currentAge && age <= currentAge + 50)
+      .map((age)    => points.find((p) => p.age === age))
+      .filter((p): p is ProjectionPoint => !!p),
+    [points, currentAge],
+  )
 
   if (milestones.length === 0) return null
 
   return (
     <View style={{ backgroundColor: '#1e293b', borderRadius: 20, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' }}>
-      {/* Header */}
       <View style={{ flexDirection: 'row', backgroundColor: '#0f172a', paddingHorizontal: 16, paddingVertical: 10, gap: 4 }}>
         <Text style={{ color: '#475569', fontSize: 10, fontWeight: '700', width: 40 }}>IDADE</Text>
         <Text style={{ color: '#475569', fontSize: 10, fontWeight: '700', flex: 1, textAlign: 'right' }}>INVESTIDO</Text>
@@ -153,10 +108,10 @@ function MilestonesTable({ points, currentAge, fireAge }: {
       </View>
 
       {milestones.map((p, i) => {
-        const mult     = p.capitalInvested > 0 ? p.totalValue / p.capitalInvested : 1
-        const isFire   = fireAge !== null && p.age === fireAge
-        const juros    = p.totalValue - p.capitalInvested
-        const rowBg    = isFire ? '#042f2e' : i % 2 === 0 ? '#1e293b' : '#1a2540'
+        const mult   = p.capitalInvested > 0 ? p.totalValue / p.capitalInvested : 1
+        const isFire = fireAge !== null && p.age === fireAge
+        const juros  = p.totalValue - p.capitalInvested
+        const rowBg  = isFire ? '#042f2e' : i % 2 === 0 ? '#1e293b' : '#1a2540'
 
         return (
           <View key={p.age} style={{ backgroundColor: rowBg, borderTopWidth: 1, borderTopColor: '#334155' }}>
@@ -177,7 +132,6 @@ function MilestonesTable({ points, currentAge, fireAge }: {
                 ×{mult.toFixed(1)}
               </Text>
             </View>
-            {/* Barra de juros */}
             {juros > 0 && (
               <View style={{ height: 2, marginHorizontal: 16, marginBottom: 8, backgroundColor: '#0f172a', borderRadius: 2, flexDirection: 'row', overflow: 'hidden' }}>
                 <View style={{ flex: p.capitalInvested / p.totalValue, backgroundColor: '#334155' }} />
@@ -200,21 +154,23 @@ function MilestonesTable({ points, currentAge, fireAge }: {
       </View>
     </View>
   )
-}
+})
 
 // ── Componente principal ───────────────────────────────────────────────────
 
 export default function MotorFIRE() {
   const { data, isLoading } = usePortfolio()
 
-  const [aporte,      setAporte]      = useState(400)
-  const [idadeAtual,  setIdadeAtual]  = useState(25)
-  const [idadeAlvo,   setIdadeAlvo]   = useState(55)
-  const [despesa,     setDespesa]     = useState(1200)
+  const [aporte,     setAporte]     = useState(400)
+  const [idadeAtual, setIdadeAtual] = useState(25)
+  const [idadeAlvo,  setIdadeAlvo]  = useState(55)
+  const [despesa,    setDespesa]    = useState(1200)
 
-  const assets         = data?.assets ?? []
+  // Referência estável para evitar falsos disparos do useMemo durante o loading
+  const assets         = useMemo(() => data?.assets ?? [], [data])
   const portfolioValue = data?.totalValue ?? 0
-  const weightedRate   = useMemo(() => calcWeightedRate(assets), [assets])
+
+  const weightedRate = useMemo(() => calcWeightedRate(assets), [assets])
 
   const result = useMemo(
     () => projectFIRE(portfolioValue, aporte, weightedRate, despesa, idadeAtual, idadeAlvo),
@@ -258,17 +214,19 @@ export default function MotorFIRE() {
           Parâmetros
         </Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          <StepperInput label="Aporte mensal" value={aporte} step={50} min={0} max={10000} suffix="€" onChange={setAporte} />
-          <StepperInput label="Despesa reforma" value={despesa} step={100} min={200} max={10000} suffix="€" onChange={setDespesa} />
+          <StepperInput label="Aporte mensal"   value={aporte}  step={50}  min={0}   max={10000} suffix="€"     onChange={setAporte}  labelUppercase buttonWidth={36} />
+          <StepperInput label="Despesa reforma" value={despesa} step={100} min={200} max={10000} suffix="€"     onChange={setDespesa} labelUppercase buttonWidth={36} />
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <StepperInput
             label="Idade atual" value={idadeAtual} step={1} min={18} max={70} suffix=" anos"
             onChange={(v) => { setIdadeAtual(v); if (v >= idadeAlvo) setIdadeAlvo(v + 5) }}
+            labelUppercase buttonWidth={36}
           />
           <StepperInput
             label="Idade alvo" value={idadeAlvo} step={1} min={idadeAtual + 1} max={90} suffix=" anos"
             onChange={setIdadeAlvo}
+            labelUppercase buttonWidth={36}
           />
         </View>
         <View style={{ backgroundColor: '#0f172a', borderRadius: 10, padding: 10, flexDirection: 'row', justifyContent: 'space-between' }}>

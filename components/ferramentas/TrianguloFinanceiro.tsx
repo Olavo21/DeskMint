@@ -1,53 +1,10 @@
 import { useState, useMemo } from 'react'
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { View, Text, ActivityIndicator } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { calcularEstruturaTriangulo, type TrianguloResult } from '../../utils/trianguloMath'
-
-// ── Formatação ─────────────────────────────────────────────────────────────
-
-const fmt = (v: number) =>
-  v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-
-// ── StepperInput ───────────────────────────────────────────────────────────
-
-function StepperInput({ label, value, step, min, max, suffix, onChange }: {
-  label: string; value: number; step: number; min: number; max: number
-  suffix: string; onChange: (v: number) => void
-}) {
-  return (
-    <View style={{ flex: 1 }}>
-      <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase' }}>
-        {label}
-      </Text>
-      <View style={{
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#0f172a', borderRadius: 12,
-        borderWidth: 1, borderColor: '#334155', overflow: 'hidden',
-      }}>
-        <TouchableOpacity
-          onPress={() => onChange(Math.max(min, value - step))}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 0 }}
-          style={{ width: 38, height: 44, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#1e293b' }}
-        >
-          <Text style={{ color: '#94a3b8', fontSize: 20, lineHeight: 22 }}>−</Text>
-        </TouchableOpacity>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={{ color: '#2dd4bf', fontSize: 13, fontWeight: '700' }}>
-            {value.toLocaleString('pt-PT')}{suffix}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => onChange(Math.min(max, value + step))}
-          hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
-          style={{ width: 38, height: 44, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: '#1e293b' }}
-        >
-          <Text style={{ color: '#2dd4bf', fontSize: 20, lineHeight: 22 }}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  )
-}
+import { fmt } from '../../utils/format'
+import StepperInput from '../ui/StepperInput'
 
 // ── VertexCard ─────────────────────────────────────────────────────────────
 
@@ -148,8 +105,8 @@ function ParamsCard({ despesa, setDespesa, teto, setTeto, alvoEmergencia }: {
         Parâmetros
       </Text>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <StepperInput label="Despesa mensal" value={despesa} step={100} min={200} max={10000} suffix="€" onChange={setDespesa} />
-        <StepperInput label="Teto dia-a-dia"  value={teto}   step={100} min={200} max={20000} suffix="€" onChange={setTeto} />
+        <StepperInput label="Despesa mensal" value={despesa} step={100} min={200} max={10000} suffix="€" onChange={setDespesa} labelUppercase />
+        <StepperInput label="Teto dia-a-dia"  value={teto}   step={100} min={200} max={20000} suffix="€" onChange={setTeto}    labelUppercase />
       </View>
       <View style={{ backgroundColor: '#0f172a', borderRadius: 10, padding: 10, flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text style={{ color: '#475569', fontSize: 12 }}>Alvo fundo de emergência</Text>

@@ -22,53 +22,77 @@ export interface ProjectionResult {
 // ── Taxas por classe de ativo ──────────────────────────────────────────────
 
 const ASSET_RATES: Record<string, number> = {
-  ETF:   0.075,
-  STOCK: 0.075,
+  ETF:    0.075,
+  STOCK:  0.075,
   CRYPTO: 0.12,
-  BOND:  0.04,
-  OTHER: 0.06,
+  BOND:   0.04,
+  OTHER:  0.06,
 }
 const DEFAULT_RATE = 0.075
 
 // ── calcWeightedRate ───────────────────────────────────────────────────────
 
 /** Taxa anual ponderada pelo valor actual de cada ativo.
- *  ETF/STOCK → 7.5% · CRYPTO → 12.0% · portfólio vazio → 7.5% */
+ *  ETF/STOCK → 7.5% · CRYPTO → 12.0% · portfólio vazio → 7.5%
+ *  Valores negativos ou NaN são ignorados. */
 export function calcWeightedRate(
   assets: { asset_type: string; current_value: number }[],
 ): number {
-  const totalValue = assets.reduce((s, a) => s + a.current_value, 0)
-  if (totalValue === 0) return DEFAULT_RATE
-  return assets.reduce((s, a) => {
+  const totalValue = assets.reduce((s, a) => {
+    const v = Number.isFinite(a.current_value) ? Math.max(0, a.current_value) : 0
+    return s + v
+  }, 0)
+  if (totalValue <= 0) return DEFAULT_RATE
+
+  const weighted = assets.reduce((s, a) => {
+    const v = Number.isFinite(a.current_value) && a.current_value > 0 ? a.current_value : 0
+    if (v === 0) return s
     const rate   = ASSET_RATES[a.asset_type] ?? DEFAULT_RATE
-    const weight = a.current_value / totalValue
+    const weight = v / totalValue
     return s + rate * weight
   }, 0)
+
+  return Number.isFinite(weighted) && weighted > 0 ? weighted : DEFAULT_RATE
 }
 
 // ── calcNeededMonthlyContrib ───────────────────────────────────────────────
 
 /** PMT mínimo para atingir fireNumber em `months` meses partindo de patrimonyNow.
- *  Fórmula inversa de FV = PV×(1+r)^n + PMT×((1+r)^n − 1)/r → isola PMT. */
+ *  Fórmula inversa de FV = PV×(1+r)^n + PMT×((1+r)^n − 1)/r → isola PMT.
+ *  Devolve Infinity se os inputs forem inválidos ou o prazo insuficiente. */
 export function calcNeededMonthlyContrib(
   patrimonyNow: number,
   fireNumber:   number,
   annualRate:   number,
   months:       number,
 ): number {
+  if (
+    !Number.isFinite(patrimonyNow) ||
+    !Number.isFinite(fireNumber)   ||
+    !Number.isFinite(annualRate)
+  ) return Infinity
   if (months <= 0) return Infinity
+
   const r = annualRate / 12
   if (r === 0) return Math.max(0, (fireNumber - patrimonyNow) / months)
-  const factor  = Math.pow(1 + r, months)
-  const fvOfPV  = patrimonyNow * factor
+
+  const factor = Math.pow(1 + r, months)
+  if (!Number.isFinite(factor)) return Infinity
+
+  const fvOfPV = patrimonyNow * factor
   if (fvOfPV >= fireNumber) return 0
-  return (fireNumber - fvOfPV) * r / (factor - 1)
+
+  const denom = factor - 1
+  if (denom === 0) return Infinity
+
+  return (fireNumber - fvOfPV) * r / denom
 }
 
 // ── projectFIRE ───────────────────────────────────────────────────────────
 
 /** Loop mensal de 50 anos: V(t+1) = V(t)×(1+r/12) + PMT.
- *  Captura snapshots anuais (ano 0..50), detecta fireYear e calcula PMT corretivo. */
+ *  Captura snapshots anuais (ano 0..50), detecta fireYear e calcula PMT corretivo.
+ *  Sanitiza inputs inválidos (NaN/Infinity/negativos) antes de qualquer cálculo. */
 export function projectFIRE(
   patrimonyNow:       number,
   monthlyContrib:     number,
@@ -77,53 +101,63 @@ export function projectFIRE(
   currentAge:         number,
   targetAge:          number,
 ): ProjectionResult {
-  const fireNumber = monthlyExpense * 12 * 25
-  const r          = weightedAnnualRate / 12
+  // Sanitização defensiva — evita propagação de NaN/Infinity na cadeia de 600 iterações
+  const safePatrimony = Number.isFinite(patrimonyNow)       && patrimonyNow >= 0       ? patrimonyNow       : 0
+  const safeContrib   = Number.isFinite(monthlyContrib)     && monthlyContrib >= 0     ? monthlyContrib     : 0
+  const safeRate      = Number.isFinite(weightedAnnualRate) && weightedAnnualRate >= 0 ? weightedAnnualRate : DEFAULT_RATE
+  const safeExpense   = Number.isFinite(monthlyExpense)     && monthlyExpense > 0      ? monthlyExpense     : 1
+
+  const fireNumber = safeExpense * 12 * 25
+  const r          = safeRate / 12
   const MAX_YEARS  = 50
 
   const points: ProjectionPoint[] = []
-  let V             = patrimonyNow
-  let totalInvested = patrimonyNow
+  let V             = safePatrimony
+  let totalInvested = safePatrimony
   let fireYear: number | null = null
 
   points.push({
     year: 0, age: currentAge,
-    capitalInvested: Math.round(patrimonyNow),
-    totalValue:      Math.round(patrimonyNow),
+    capitalInvested: Math.round(safePatrimony),
+    totalValue:      Math.round(safePatrimony),
   })
 
   for (let yr = 1; yr <= MAX_YEARS; yr++) {
     for (let m = 0; m < 12; m++) {
-      V = V * (1 + r) + monthlyContrib
-      totalInvested += monthlyContrib
+      V = V * (1 + r) + safeContrib
+      totalInvested += safeContrib
     }
+    // Clampa overflow de floating point em cenários extremos
+    const safeV = Number.isFinite(V) ? V : safePatrimony
     points.push({
       year: yr,
       age:  currentAge + yr,
       capitalInvested: Math.round(totalInvested),
-      totalValue:      Math.round(V),
+      totalValue:      Math.round(safeV),
     })
-    if (fireYear === null && V >= fireNumber) fireYear = yr
+    if (fireYear === null && safeV >= fireNumber) fireYear = yr
   }
 
-  const targetYear       = Math.max(0, targetAge - currentAge)
-  const clampedTarget    = Math.min(targetYear, MAX_YEARS)
-  const pointAtTarget    = points[clampedTarget] ?? points[points.length - 1]
-  const reachedByTarget  = fireYear !== null && fireYear <= targetYear
+  const targetYear      = Math.max(0, targetAge - currentAge)
+  const clampedTarget   = Math.min(targetYear, MAX_YEARS)
+  const pointAtTarget   = points[clampedTarget] ?? points[points.length - 1]
+  const reachedByTarget = fireYear !== null && fireYear <= targetYear
 
   const needed = reachedByTarget
     ? null
-    : calcNeededMonthlyContrib(patrimonyNow, fireNumber, weightedAnnualRate, targetYear * 12)
+    : calcNeededMonthlyContrib(safePatrimony, fireNumber, safeRate, targetYear * 12)
 
   return {
     points,
     fireYear,
     fireAge:              fireYear !== null ? currentAge + fireYear : null,
     fireNumber,
-    weightedRate:         weightedAnnualRate,
+    weightedRate:         safeRate,
     monthlyWithdrawal:    (fireNumber * 0.04) / 12,
     valueAtTargetAge:     pointAtTarget.totalValue,
     reachedByTargetAge:   reachedByTarget,
-    neededMonthlyContrib: needed !== null && needed > monthlyContrib ? Math.ceil(needed / 10) * 10 : null,
+    neededMonthlyContrib: needed !== null && Number.isFinite(needed) && needed > safeContrib
+      ? Math.ceil(needed / 10) * 10
+      : null,
   }
 }
