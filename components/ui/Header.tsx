@@ -65,6 +65,15 @@ export default function Header({ title, subtitle, showSignOut = false, rightElem
       {/* Direita — notificações + plano + sair */}
       <View className="flex-row items-center gap-2">
         {rightElement}
+        {/* Definições */}
+        <TouchableOpacity
+          onPress={() => router.push('/definicoes' as any)}
+          className="w-8 h-8 rounded-full items-center justify-center"
+          style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
+        >
+          <Ionicons name="settings-outline" size={16} color="#ccfbef" />
+        </TouchableOpacity>
+
         {/* Sino de notificações inteligentes */}
         <TouchableOpacity
           onPress={() => router.push('/notificacoes' as any)}
