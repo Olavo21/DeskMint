@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator,
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 
@@ -35,11 +36,19 @@ const HORIZONS: { key: Horizon; label: string; sub: string }[] = [
   { key: 'LONG',   label: '> 10 anos',   sub: 'Longo prazo' },
 ]
 
+const BUDGET_COORTE: Record<InvestorType, { needs: number; wants: number; savings: number }> = {
+  CONSERVATIVE: { needs: 0.60, wants: 0.20, savings: 0.20 },
+  MODERATE:     { needs: 0.50, wants: 0.30, savings: 0.20 },
+  AGGRESSIVE:   { needs: 0.45, wants: 0.25, savings: 0.30 },
+  SPECULATIVE:  { needs: 0.40, wants: 0.20, savings: 0.40 },
+}
+
 const STEP_TITLES = ['', 'Como te chamamos?', 'Perfil de Investidor', 'Objetivo Principal', 'Horizonte Temporal']
 const STEP_SUBS   = ['', 'O teu nome na app', 'Como defines o teu perfil de risco?', 'Qual o principal objetivo dos teus investimentos?', 'Quanto tempo planeias manter os investimentos?']
 
 export default function OnboardingScreen() {
   const { session, setProfile } = useAuthStore()
+  const qc = useQueryClient()
   const [step, setStep]                 = useState(1)
   const [investorType, setInvestorType] = useState<InvestorType>('MODERATE')
   const [goal, setGoal]                 = useState<Goal>('WEALTH')
@@ -50,24 +59,80 @@ export default function OnboardingScreen() {
 
   async function handleFinish() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('dm_profiles')
-      .upsert({
-        id:              session!.user.id,
-        name:            name.trim() || session!.user.email!.split('@')[0],
-        currency:        'EUR',
-        investor_type:   investorType,
-        invest_goal:     goal,
-        time_horizon:    horizon,
-        monthly_invest:  parseFloat(monthly.replace(',', '.') || '0'),
-        onboarding_done: true,
-      })
-      .select()
-      .single()
+    const userId     = session!.user.id
+    const now        = new Date()
+    const month      = now.getMonth() + 1
+    const year       = now.getFullYear()
+    const coorte     = BUDGET_COORTE[investorType]
+    const monthlyVal = parseFloat(monthly.replace(',', '.') || '0')
 
-    if (!error && data) setProfile(data as any)
-    setLoading(false)
-    router.replace('/(tabs)')
+    try {
+      // ── a) Perfil: dados + targets da coorte + onboarding_done ──────────
+      const { data: profileData, error: profileError } = await supabase
+        .from('dm_profiles')
+        .upsert({
+          id:              userId,
+          name:            name.trim() || session!.user.email!.split('@')[0],
+          currency:        'EUR',
+          investor_type:   investorType,
+          invest_goal:     goal,
+          time_horizon:    horizon,
+          monthly_invest:  monthlyVal,
+          onboarding_done: true,
+          target_needs:    Math.round(coorte.needs   * 100),
+          target_wants:    Math.round(coorte.wants   * 100),
+          target_savings:  Math.round(coorte.savings * 100),
+        })
+        .select()
+        .single()
+
+      if (profileError) throw profileError
+      if (profileData) setProfile(profileData as any)
+
+      // ── b) Regra orçamental semente para o mês corrente ─────────────────
+      await supabase
+        .from('dm_budget_rules')
+        .upsert(
+          {
+            user_id:      userId,
+            month,
+            year,
+            total_income: 0,
+            needs_pct:    coorte.needs,
+            wants_pct:    coorte.wants,
+            savings_pct:  coorte.savings,
+            needs_amt:    0,
+            wants_amt:    0,
+            savings_amt:  0,
+          },
+          { onConflict: 'user_id,month,year' },
+        )
+
+      // ── c) Primeiro snapshot de Património Líquido ───────────────────────
+      if (monthlyVal > 0) {
+        await supabase
+          .from('dm_net_worth_snapshots')
+          .upsert(
+            { user_id: userId, year, month, net_worth: monthlyVal },
+            { onConflict: 'user_id,year,month' },
+          )
+      }
+
+      // ── Invalidar cache → Dashboard faz fetch imediato ──────────────────
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['notifications'] })
+      qc.invalidateQueries({ queryKey: ['net_worth_history'] })
+
+      router.replace('/(tabs)')
+
+    } catch (err) {
+      console.error('[onboarding] handleFinish:', err)
+      // Falha parcial: não quebra a app.
+      // Se onboarding_done ficou false, o _layout.tsx redireciona de volta.
+      router.replace('/(tabs)')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
