@@ -17,20 +17,22 @@ export default function RootLayout() {
   const { setSession, setProfile, setLoading } = useAuthStore()
 
   useEffect(() => {
-    // sessão inicial
+    // ── Sessão inicial ────────────────────────────────────────────────────
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session) fetchProfile(session.user.id)
       setLoading(false)
-      router.replace(session ? '/(tabs)' : '/(auth)/login')
+      if (session) {
+        fetchProfile(session.user.id)
+      } else {
+        router.replace('/(auth)/login')
+      }
     })
 
-    // ouvir mudanças de auth
+    // ── Mudanças de auth (login / logout / refresh de token) ──────────────
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (session) {
         fetchProfile(session.user.id)
-        router.replace('/(tabs)')
       } else {
         setProfile(null)
         queryClient.clear()
@@ -41,6 +43,7 @@ export default function RootLayout() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Único ponto de decisão de routing para utilizadores autenticados
   async function fetchProfile(userId: string) {
     const { data } = await supabase
       .from('dm_profiles')
@@ -49,12 +52,8 @@ export default function RootLayout() {
       .single()
     if (data) {
       setProfile(data)
-      // novo utilizador sem onboarding → redirecionar
-      if (!data.onboarding_done) {
-        router.replace('/(auth)/onboarding' as any)
-      }
+      router.replace(data.onboarding_done ? '/(tabs)' : '/(auth)/onboarding' as any)
     } else {
-      // perfil não existe → novo utilizador
       router.replace('/(auth)/onboarding' as any)
     }
   }
