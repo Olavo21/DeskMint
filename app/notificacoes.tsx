@@ -1,123 +1,103 @@
-import { useState } from 'react'
-import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { useEffect } from 'react'
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import Header from '../components/ui/Header'
-import { useDashboard } from '../hooks/useDashboard'
-import { useBudgetTargets } from '../hooks/useBudgetTargets'
-import { useDashboardStore } from '../stores/dashboardStore'
-import { useAuthStore } from '../stores/authStore'
-import { computeBudgetAlerts, BUDGET_TIPS, type BudgetAlert, type BudgetCategory } from '../lib/budgetAlerts'
+import { Ionicons } from '@expo/vector-icons'
+import { useNotifications, type DmNotification } from '../hooks/useNotifications'
 
-const SEVERITY_STYLE = {
-  warning:  { bg: '#fffbeb', border: '#fde68a', color: '#b45309', icon: 'alert-circle' as const },
-  critical: { bg: '#fef2f2', border: '#fecaca', color: '#b91c1c', icon: 'warning' as const },
+const TYPE_COLOR: Record<string, string> = {
+  warning: '#f59e0b',
+  info:    '#14b8a6',
+  success: '#22c55e',
 }
 
-const PHRASING: Record<BudgetCategory, { subject: string; verb: string }> = {
-  needs:   { subject: 'as tuas Necessidades',     verb: 'estão' },
-  wants:   { subject: 'o teu Disponível/Lazer',   verb: 'está' },
-  savings: { subject: 'a tua Poupança',           verb: 'está' },
+const TYPE_BG: Record<string, string> = {
+  warning: '#fffbeb',
+  info:    '#f0fdfa',
+  success: '#f0fdf4',
 }
 
-function pct(n: number) {
-  return `${(n * 100).toFixed(1)}%`
+const TYPE_ICON: Record<string, string> = {
+  warning: 'warning-outline',
+  info:    'information-circle-outline',
+  success: 'checkmark-circle-outline',
 }
 
-function buildMessage(alert: BudgetAlert, firstName: string) {
-  const { subject, verb } = PHRASING[alert.category]
-  const actual = pct(alert.actualPct)
-  const target = pct(alert.targetPct)
-  if (alert.direction === 'over') {
-    const suggestion = alert.category === 'needs' ? 'rever custos fixos' : 'rever os gastos nesta categoria'
-    return `Atenção ${firstName}, ${subject} ${verb} em ${actual}, excedendo o teu objetivo de ${target}. Sugerimos ${suggestion}.`
-  }
-  return `Atenção ${firstName}, ${subject} ${verb} em ${actual}, abaixo do teu objetivo de ${target}. Sugerimos reforçar a tua estratégia de poupança.`
-}
-
-function AlertCard({ alert, firstName }: { alert: BudgetAlert; firstName: string }) {
-  const [expanded, setExpanded] = useState(false)
-  const style = SEVERITY_STYLE[alert.severity as 'warning' | 'critical']
+function NotificationCard({ item }: { item: DmNotification }) {
+  const color = TYPE_COLOR[item.type] ?? '#64748b'
+  const bg    = TYPE_BG[item.type]   ?? '#f8fafc'
+  const icon  = TYPE_ICON[item.type] ?? 'notifications-outline'
+  const date  = new Date(item.created_at)
+  const label = date.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })
 
   return (
-    <View className="rounded-2xl p-4 mb-3" style={{ backgroundColor: style.bg, borderWidth: 1, borderColor: style.border }}>
-      <View className="flex-row items-start gap-3">
-        <Ionicons name={style.icon} size={20} color={style.color} />
-        <View className="flex-1">
-          <Text className="font-semibold text-sm mb-1" style={{ color: style.color }}>{alert.label}</Text>
-          <Text className="text-sm leading-5" style={{ color: '#1e293b' }}>
-            {buildMessage(alert, firstName)}
-          </Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        onPress={() => setExpanded((p) => !p)}
-        className="flex-row items-center gap-1.5 mt-3"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Text className="text-xs font-semibold" style={{ color: style.color }}>
-          {expanded ? 'Ocultar dicas' : 'Ver dicas de otimização'}
+    <View
+      style={{
+        backgroundColor: bg,
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 10,
+        borderLeftWidth: 3,
+        borderLeftColor: color,
+        opacity: item.is_read ? 0.65 : 1,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <Ionicons name={icon as any} size={16} color={color} />
+        <Text style={{ color: '#0f172a', fontSize: 13, fontWeight: '700', flex: 1 }}>
+          {item.title}
         </Text>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={12} color={style.color} />
-      </TouchableOpacity>
-
-      {expanded && (
-        <View className="mt-2 gap-2">
-          {BUDGET_TIPS[alert.category].map((tip, i) => (
-            <View key={i} className="flex-row items-start gap-2">
-              <Text className="text-xs" style={{ color: style.color }}>•</Text>
-              <Text className="text-xs flex-1 leading-4" style={{ color: '#334155' }}>{tip}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+        <Text style={{ color: '#94a3b8', fontSize: 11 }}>{label}</Text>
+      </View>
+      <Text style={{ color: '#475569', fontSize: 12, lineHeight: 18 }}>{item.message}</Text>
     </View>
   )
 }
 
 export default function NotificacoesScreen() {
-  const profile = useAuthStore((s) => s.profile)
-  const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
-  const { data, isLoading } = useDashboard(MONTH, YEAR)
-  const targets = useBudgetTargets()
-  const firstName = profile?.name?.split(' ')[0] ?? 'utilizador'
+  const { data: notifications = [], isLoading, markAllRead } = useNotifications()
 
-  const alerts = data?.budgetRule
-    ? computeBudgetAlerts(
-        { needs: data.budgetRule.needs_pct, wants: data.lazerPct ?? 0, savings: data.budgetRule.savings_pct },
-        targets
-      ).filter((a) => a.severity !== 'ok')
-    : []
+  useEffect(() => {
+    markAllRead.mutate()
+  }, [])
 
   return (
-    <SafeAreaView className="flex-1 bg-dark-900">
-      <Header subtitle="Notificações Inteligentes" />
-      <ScrollView className="flex-1 px-4 pt-4" showsVerticalScrollIndicator={false}>
-        <View className="flex-row items-center gap-2 mb-5">
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="chevron-back" size={22} color="#0f172a" />
-          </TouchableOpacity>
-          <Text className="text-dark-50 text-2xl font-bold">Alertas do Orçamento</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      {/* Cabeçalho */}
+      <View
+        style={{
+          flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
+          paddingTop: 8, paddingBottom: 12,
+          borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
+          backgroundColor: '#115e59',
+        }}
+      >
+        <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={{ marginRight: 12 }}>
+          <Ionicons name="arrow-back" size={20} color="#ccfbef" />
+        </TouchableOpacity>
+        <Text style={{ color: '#ffffff', fontSize: 17, fontWeight: '700', flex: 1 }}>
+          Notificações
+        </Text>
+        <Ionicons name="notifications-outline" size={18} color="#ccfbef" />
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator color="#14b8a6" style={{ marginTop: 60 }} />
+      ) : notifications.length === 0 ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, opacity: 0.5 }}>
+          <Ionicons name="notifications-off-outline" size={44} color="#94a3b8" />
+          <Text style={{ color: '#64748b', fontSize: 14 }}>Sem notificações</Text>
         </View>
-
-        {isLoading ? (
-          <ActivityIndicator color="#14b8a6" className="mt-10" />
-        ) : alerts.length === 0 ? (
-          <View className="bg-dark-800 rounded-2xl p-6 items-center mt-6">
-            <Text className="text-3xl mb-2">🎉</Text>
-            <Text className="text-dark-50 font-semibold mb-1">Tudo dentro da meta este mês</Text>
-            <Text className="text-dark-400 text-sm text-center">
-              As tuas Necessidades, Lazer e Poupança estão alinhadas com os teus objetivos.
-            </Text>
-          </View>
-        ) : (
-          alerts.map((a) => <AlertCard key={a.category} alert={a} firstName={firstName} />)
-        )}
-
-        <View className="h-12" />
-      </ScrollView>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {notifications.map((n) => (
+            <NotificationCard key={n.id} item={n} />
+          ))}
+        </ScrollView>
+      )}
     </SafeAreaView>
   )
 }

@@ -9,6 +9,7 @@ import { fmt } from '../../utils/format'
 import { supabase } from '../../lib/supabase'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useNetWorthHistory, type NetWorthPoint } from '../../hooks/useNetWorthHistory'
+import { useNotificationEngine } from '../../hooks/useNotificationEngine'
 import { useAssets } from '../../hooks/useAssets'
 import { useCredits } from '../../hooks/useCredits'
 import { useEmergencyFund } from '../../hooks/useEmergencyFund'
@@ -423,6 +424,14 @@ export default function DashboardScreen() {
   const { canLinkCreditToAsset } = useSubscription()
   const targets = useBudgetTargets()
   const { data: nwHistory = [] } = useNetWorthHistory()
+
+  useNotificationEngine({
+    availableBalance: data?.availableBalance,
+    budgetRule:       data?.budgetRule ?? null,
+    lazerPct:         data?.lazerPct ?? 0,
+    targets,
+    session,
+  })
 
   // Upsert passivo — guarda o net worth do mês corrente sempre que os dados carregam
   useEffect(() => {
