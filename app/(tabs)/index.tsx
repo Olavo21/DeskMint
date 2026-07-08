@@ -4,8 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
+import Svg, { Path, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg'
 import { fmt } from '../../utils/format'
+import { supabase } from '../../lib/supabase'
 import { useDashboard } from '../../hooks/useDashboard'
+import { useNetWorthHistory, type NetWorthPoint } from '../../hooks/useNetWorthHistory'
 import { useAssets } from '../../hooks/useAssets'
 import { useCredits } from '../../hooks/useCredits'
 import { useEmergencyFund } from '../../hooks/useEmergencyFund'
@@ -132,6 +135,95 @@ function EmergencyCard({ atual, despesaMensal }: { atual: number; despesaMensal:
         {progress > 0 && <View style={{ flex: progress,     backgroundColor: barColor, borderRadius: 2 }} />}
         {progress < 1 && <View style={{ flex: 1 - progress                                             }} />}
       </View>
+    </View>
+  )
+}
+
+// ── NetWorthChart ──────────────────────────────────────────────────────────
+
+function smoothLinePath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return ''
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`
+  for (let i = 1; i < pts.length; i++) {
+    const cpx = ((pts[i - 1].x + pts[i].x) / 2).toFixed(2)
+    d += ` C ${cpx} ${pts[i - 1].y.toFixed(2)}, ${cpx} ${pts[i].y.toFixed(2)}, ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`
+  }
+  return d
+}
+
+function areaPath(pts: { x: number; y: number }[], lineH: number): string {
+  if (pts.length < 2) return ''
+  return `${smoothLinePath(pts)} L ${pts.at(-1)!.x.toFixed(2)} ${lineH} L ${pts[0].x.toFixed(2)} ${lineH} Z`
+}
+
+function NetWorthChart({ points }: { points: NetWorthPoint[] }) {
+  const [svgWidth, setSvgWidth] = useState(0)
+  const H       = 90
+  const LABEL_H = 18
+  const LINE_H  = H - LABEL_H
+  const PAD_T   = 8
+
+  if (points.length < 2) {
+    return (
+      <View style={{ alignItems: 'center', paddingVertical: 18, gap: 6, opacity: 0.45 }}>
+        <Ionicons name="trending-up-outline" size={20} color="#64748b" />
+        <Text style={{ color: '#64748b', fontSize: 11 }}>Histórico em construção</Text>
+      </View>
+    )
+  }
+
+  const values = points.map((p) => p.net_worth)
+  const min    = Math.min(...values)
+  const max    = Math.max(...values)
+  const range  = max - min || 1
+
+  const pts = svgWidth > 0 ? points.map((p, i) => ({
+    x: (i / (points.length - 1)) * svgWidth,
+    y: PAD_T + (1 - (p.net_worth - min) / range) * (LINE_H - PAD_T),
+  })) : []
+
+  return (
+    <View
+      style={{ marginTop: 12, marginBottom: 4 }}
+      onLayout={(e) => setSvgWidth(e.nativeEvent.layout.width)}
+    >
+      {svgWidth > 0 && pts.length > 0 && (
+        <Svg width={svgWidth} height={H}>
+          <Defs>
+            <LinearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#14b8a6" stopOpacity={0.18} />
+              <Stop offset="1" stopColor="#14b8a6" stopOpacity={0}    />
+            </LinearGradient>
+          </Defs>
+
+          {/* Área sombreada */}
+          <Path d={areaPath(pts, LINE_H)} fill="url(#nwGrad)" />
+
+          {/* Linha principal */}
+          <Path
+            d={smoothLinePath(pts)}
+            fill="none"
+            stroke="#14b8a6"
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+
+          {/* Labels dos meses */}
+          {points.map((p, i) => (
+            <SvgText
+              key={i}
+              x={(i / (points.length - 1)) * svgWidth}
+              y={H - 2}
+              fontSize={10}
+              fill="#94a3b8"
+              textAnchor={i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}
+            >
+              {p.label}
+            </SvgText>
+          ))}
+        </Svg>
+      )}
     </View>
   )
 }
@@ -321,6 +413,7 @@ function AssetRow({
 
 export default function DashboardScreen() {
   const profile = useAuthStore((s) => s.profile)
+  const session = useAuthStore((s) => s.session)
   const qc = useQueryClient()
   const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
   const { data, isLoading, isError, refetch } = useDashboard(MONTH, YEAR)
@@ -329,6 +422,26 @@ export default function DashboardScreen() {
   const { upsert: upsertEmergencyFund } = useEmergencyFund()
   const { canLinkCreditToAsset } = useSubscription()
   const targets = useBudgetTargets()
+  const { data: nwHistory = [] } = useNetWorthHistory()
+
+  // Upsert passivo — guarda o net worth do mês corrente sempre que os dados carregam
+  useEffect(() => {
+    if (!data?.netWorth || !session) return
+    const now = new Date()
+    supabase
+      .from('dm_net_worth_snapshots')
+      .upsert(
+        {
+          user_id:   session.user.id,
+          year:      now.getFullYear(),
+          month:     now.getMonth() + 1,
+          net_worth: data.netWorth,
+        },
+        { onConflict: 'user_id,year,month' },
+      )
+      .then(() => qc.invalidateQueries({ queryKey: ['net_worth_history'] }))
+  }, [data?.netWorth])
+
   const [assetsEditMode, setAssetsEditMode] = useState(false)
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
@@ -387,8 +500,9 @@ export default function DashboardScreen() {
           <DashboardError onRetry={() => refetch()} />
         ) : (
           <>
-            {/* Património Líquido — indicador estático, sem navegação */}
+            {/* Património Líquido + gráfico de evolução */}
             <NetWorthBanner label="Património Líquido" value={fmt(data?.netWorth ?? 0)} />
+            <NetWorthChart points={nwHistory} />
 
             {/* ── Grelha 2×2 ─────────────────────────────────────────── */}
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
