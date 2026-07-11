@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '../../lib/supabase'
 
@@ -157,6 +157,32 @@ export default function LoginScreen() {
             <Text className="text-dark-300 font-medium text-base">Criar conta</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Nota legal */}
+        <Text style={{
+          color: '#94a3b8',
+          fontSize: 12,
+          textAlign: 'center',
+          paddingHorizontal: 8,
+          marginTop: 20,
+          lineHeight: 18,
+        }}>
+          Ao continuar, confirmas que leste e aceitas os nossos{' '}
+          <Text
+            onPress={() => Linking.openURL('https://deskmint.com/terms')}
+            style={{ color: '#0d9488', fontWeight: '600' }}
+          >
+            Termos de Serviço
+          </Text>
+          {' '}e{' '}
+          <Text
+            onPress={() => Linking.openURL('https://deskmint.com/privacy')}
+            style={{ color: '#0d9488', fontWeight: '600' }}
+          >
+            Política de Privacidade
+          </Text>
+          .
+        </Text>
 
         <Text className="text-dark-500 text-xs text-center mt-8">
           DeskMint · Versão Founders
