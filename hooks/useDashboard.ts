@@ -68,15 +68,20 @@ export function useDashboard(month: number, year: number) {
       })
       const assetsValue = assetsWithLiveDebt.reduce((s, a) => s + (a.value - a.effectiveDebt), 0)
 
-      // Preferir dm_budget_rules se existir (override manual); caso contrário derivar de despesas reais
-      const budgetRule: DmBudgetRule | null = budget ?? (rawExp.length > 0 ? ({
-        needs_amt:   needsAmt,
-        wants_amt:   wantsAmt,
-        savings_amt: savingsAmt,
-        needs_pct:   income > 0 ? needsAmt   / income : 0,
-        wants_pct:   income > 0 ? wantsAmt   / income : 0,
-        savings_pct: income > 0 ? savingsAmt / income : 0,
-      } as DmBudgetRule) : null)
+      // Sempre calcular de dm_expenses quando há dados (fonte da verdade).
+      // dm_budget_rules só é usado como fallback antes de qualquer registo real
+      // (e.g. seed do onboarding) — evita que montantes a zero do seed bloqueiem
+      // o cálculo dinâmico após a primeira despesa ou rendimento.
+      const budgetRule: DmBudgetRule | null = (rawExp.length > 0 || income > 0)
+        ? ({
+            needs_amt:   needsAmt,
+            wants_amt:   wantsAmt,
+            savings_amt: savingsAmt,
+            needs_pct:   income > 0 ? needsAmt   / income : 0,
+            wants_pct:   income > 0 ? wantsAmt   / income : 0,
+            savings_pct: income > 0 ? savingsAmt / income : 0,
+          } as DmBudgetRule)
+        : budget
 
       const freeCash = income - totalExpenses - savingsAmt
       // "Disponível/Lazer" soma o gasto real em Desejos ao dinheiro ainda não
