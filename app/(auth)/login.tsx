@@ -169,14 +169,14 @@ export default function LoginScreen() {
         }}>
           Ao continuar, confirmas que leste e aceitas os nossos{' '}
           <Text
-            onPress={() => Linking.openURL('https://deskmint.com/terms')}
+            onPress={() => Linking.openURL('https://olavo21.github.io/DeskMint/terms.html')}
             style={{ color: '#0d9488', fontWeight: '600' }}
           >
             Termos de Serviço
           </Text>
           {' '}e{' '}
           <Text
-            onPress={() => Linking.openURL('https://deskmint.com/privacy')}
+            onPress={() => Linking.openURL('https://olavo21.github.io/DeskMint/privacy.html')}
             style={{ color: '#0d9488', fontWeight: '600' }}
           >
             Política de Privacidade

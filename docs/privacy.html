@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — DeskMint</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.7;
+      padding: 0 16px 64px;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    header {
+      padding: 40px 0 32px;
+      border-bottom: 1px solid #e2e8f0;
+      margin-bottom: 36px;
+    }
+    .logo { font-size: 22px; font-weight: 800; color: #0d9488; letter-spacing: -0.5px; }
+    .logo span { color: #1e293b; }
+    h1 { font-size: 26px; font-weight: 800; margin-top: 12px; color: #0f172a; }
+    .meta { font-size: 13px; color: #64748b; margin-top: 6px; }
+    h2 {
+      font-size: 16px; font-weight: 700; color: #0f172a;
+      margin: 32px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    p { font-size: 14px; color: #334155; margin-bottom: 12px; }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { font-size: 14px; color: #334155; margin-bottom: 6px; }
+    table {
+      width: 100%; border-collapse: collapse;
+      font-size: 13px; margin-bottom: 16px;
+    }
+    th {
+      background: #f1f5f9; text-align: left;
+      padding: 8px 12px; color: #475569;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    td { padding: 8px 12px; border-top: 1px solid #e2e8f0; color: #334155; }
+    .badge {
+      display: inline-block;
+      background: #0d948810;
+      color: #0d9488;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      padding: 3px 8px;
+      border: 1px solid #0d948830;
+      margin-bottom: 8px;
+    }
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+    }
+    a { color: #0d9488; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">Desk<span>Mint</span></div>
+      <h1>Política de Privacidade</h1>
+      <p class="meta">Última atualização: 12 de julho de 2026</p>
+    </header>
+
+    <span class="badge">RGPD / GDPR Compliant</span>
+
+    <h2>1. Responsável pelo Tratamento</h2>
+    <p>O responsável pelo tratamento dos teus dados é Olavo Ferreira, contactável através de <a href="mailto:ferreiraolavo21@gmail.com">ferreiraolavo21@gmail.com</a>.</p>
+
+    <h2>2. Dados que Recolhemos</h2>
+    <table>
+      <tr>
+        <th>Categoria</th>
+        <th>Dados</th>
+        <th>Finalidade</th>
+      </tr>
+      <tr>
+        <td>Conta</td>
+        <td>Email, password (hash)</td>
+        <td>Autenticação</td>
+      </tr>
+      <tr>
+        <td>Perfil</td>
+        <td>Nome, tipo de investidor, horizonte temporal, metas orçamentais</td>
+        <td>Personalização da experiência</td>
+      </tr>
+      <tr>
+        <td>Financeiros</td>
+        <td>Rendimentos, despesas, investimentos, créditos, fundo de emergência</td>
+        <td>Funcionalidades da app (inseridos pelo utilizador)</td>
+      </tr>
+      <tr>
+        <td>Técnicos</td>
+        <td>Logs de erros, métricas de desempenho anónimas</td>
+        <td>Estabilidade e melhorias do serviço</td>
+      </tr>
+    </table>
+    <p>Não recolhemos dados de localização, contactos do dispositivo, nem qualquer dado biométrico.</p>
+
+    <h2>3. Base Legal</h2>
+    <p>O tratamento dos teus dados assenta nas seguintes bases legais (Artigo 6.º do RGPD):</p>
+    <ul>
+      <li><strong>Execução do contrato</strong> — para prestar o serviço que solicitaste.</li>
+      <li><strong>Consentimento</strong> — para funcionalidades opcionais (notificações, integrações).</li>
+      <li><strong>Interesses legítimos</strong> — para melhorar o serviço e detetar fraudes.</li>
+    </ul>
+
+    <h2>4. Onde são Armazenados os Dados</h2>
+    <p>Os teus dados são armazenados na plataforma <strong>Supabase</strong> (PostgreSQL), com servidores na <strong>União Europeia</strong> (região eu-west). A Supabase está em conformidade com o RGPD e assina Cláusulas Contratuais-Tipo (SCCs).</p>
+    <p>As passwords nunca são armazenadas em texto claro — são processadas via bcrypt pelo serviço de autenticação da Supabase.</p>
+
+    <h2>5. Partilha com Terceiros</h2>
+    <p>Os teus dados <strong>não são vendidos nem partilhados com terceiros para fins comerciais</strong>. São partilhados apenas com subcontratantes estritamente necessários à prestação do serviço:</p>
+    <ul>
+      <li>Supabase Inc. — armazenamento e autenticação</li>
+      <li>Expo (React Native) — distribuição da aplicação móvel</li>
+    </ul>
+
+    <h2>6. Os Teus Direitos (RGPD)</h2>
+    <p>Tens os seguintes direitos relativamente aos teus dados pessoais:</p>
+    <ul>
+      <li><strong>Acesso</strong> — consultar os dados que guardamos sobre ti.</li>
+      <li><strong>Retificação</strong> — corrigir dados inexatos.</li>
+      <li><strong>Eliminação</strong> — solicitar a remoção da conta e de todos os dados associados.</li>
+      <li><strong>Portabilidade</strong> — exportar os teus dados em formato legível por máquina.</li>
+      <li><strong>Oposição</strong> — opor-te ao tratamento baseado em interesses legítimos.</li>
+    </ul>
+    <p>Para exerceres qualquer destes direitos, contacta-nos em <a href="mailto:ferreiraolavo21@gmail.com">ferreiraolavo21@gmail.com</a>. Responderemos no prazo máximo de 30 dias.</p>
+    <p>Tens ainda o direito de apresentar reclamação à <a href="https://www.cnpd.pt" target="_blank" rel="noopener">CNPD</a> (Comissão Nacional de Proteção de Dados).</p>
+
+    <h2>7. Retenção de Dados</h2>
+    <p>Os dados são conservados enquanto a conta estiver ativa. Após pedido de eliminação, os dados são removidos no prazo de 30 dias, exceto os que sejam exigidos por obrigação legal.</p>
+
+    <h2>8. Segurança</h2>
+    <p>Adotamos medidas técnicas e organizativas adequadas para proteger os teus dados, incluindo: transmissão via HTTPS/TLS, bases de dados com Row Level Security (RLS), e chaves de API cifradas com AES-256-GCM.</p>
+
+    <h2>9. Alterações à Política</h2>
+    <p>Esta Política pode ser atualizada periodicamente. Alterações significativas serão comunicadas através da aplicação. A data de "última atualização" no topo deste documento reflete sempre a versão mais recente.</p>
+
+    <h2>10. Contacto</h2>
+    <p>Para questões de privacidade: <a href="mailto:ferreiraolavo21@gmail.com">ferreiraolavo21@gmail.com</a></p>
+
+    <footer>
+      DeskMint &mdash; Finanças pessoais &nbsp;·&nbsp;
+      <a href="terms.html">Termos de Serviço</a>
+    </footer>
+  </div>
+</body>
+</html>
