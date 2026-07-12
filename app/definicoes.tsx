@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ScrollView, View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
+import { ScrollView, View, Text, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
@@ -47,6 +47,9 @@ export default function DefinicoesScreen() {
   const [investorType,  setInvestorType]  = useState<InvestorType | null>((profile?.investor_type as InvestorType) ?? null)
   const [investGoal,    setInvestGoal]    = useState<InvestGoal   | null>((profile?.invest_goal   as InvestGoal)   ?? null)
   const [timeHorizon,   setTimeHorizon]   = useState<TimeHorizon  | null>((profile?.time_horizon  as TimeHorizon)  ?? null)
+  const [monthlyInvest, setMonthlyInvest] = useState<string>(
+    profile?.monthly_invest != null ? String(profile.monthly_invest) : ''
+  )
   const [saving,        setSaving]        = useState(false)
   const [success,       setSuccess]       = useState(false)
 
@@ -61,12 +64,15 @@ export default function DefinicoesScreen() {
     const { data, error } = await supabase
       .from('dm_profiles')
       .update({
-        target_needs:  needs,
-        target_wants:  wants,
+        target_needs:   needs,
+        target_wants:   wants,
         target_savings: savings,
-        investor_type: investorType,
-        invest_goal:   investGoal,
-        time_horizon:  timeHorizon,
+        investor_type:  investorType,
+        invest_goal:    investGoal,
+        time_horizon:   timeHorizon,
+        monthly_invest: monthlyInvest.length > 0
+          ? Number(monthlyInvest.replace(',', '.'))
+          : null,
       })
       .eq('id', profile.id)
       .select()
@@ -191,6 +197,30 @@ export default function DefinicoesScreen() {
               )
             })}
           </View>
+
+          {/* Aporte Mensal */}
+          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginBottom: 8, marginTop: 18 }}>
+            Aporte Mensal
+          </Text>
+          <View style={{
+            flexDirection: 'row', alignItems: 'center',
+            backgroundColor: '#0f172a', borderRadius: 10,
+            borderWidth: 1.5, borderColor: '#334155',
+            paddingHorizontal: 14, paddingVertical: 10,
+          }}>
+            <Text style={{ color: '#475569', fontSize: 16, fontWeight: '600', marginRight: 6 }}>€</Text>
+            <TextInput
+              value={monthlyInvest}
+              onChangeText={(t) => setMonthlyInvest(t.replace(/[^0-9,.]/g, ''))}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor="#475569"
+              style={{ color: '#f8fafc', fontSize: 16, fontWeight: '600', flex: 1 }}
+            />
+          </View>
+          <Text style={{ color: '#475569', fontSize: 11, marginTop: 5 }}>
+            Valor que planeias investir mensalmente
+          </Text>
         </View>
 
         {/* ── Regra Orçamental ─────────────────────────────────────── */}

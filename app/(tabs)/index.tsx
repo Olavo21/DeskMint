@@ -19,7 +19,8 @@ import { useAuthStore } from '../../stores/authStore'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
 import QuickAddFab from '../../components/budget/QuickAddFab'
-import type { DmAsset, DmCredit } from '../../types/database'
+import type { DmAsset, DmCredit, DmProfile } from '../../types/database'
+import { computeProjection, RATE_BY_INVESTOR_TYPE, YEARS_BY_HORIZON, GOAL_PHRASE } from '../../lib/projection'
 
 type AssetWithLiveDebt = DmAsset & { effectiveDebt: number; linkedCredit?: DmCredit }
 
@@ -412,6 +413,127 @@ function AssetRow({
   )
 }
 
+const INVESTOR_LABELS: Record<string, string> = {
+  CONSERVATIVE: 'Conservador', MODERATE: 'Moderado',
+  AGGRESSIVE:   'Agressivo',   SPECULATIVE: 'Especulativo',
+}
+const GOAL_EMOJI: Record<string, string> = {
+  RETIREMENT: '🏖️', WEALTH: '💎', INCOME: '💰',
+  EDUCATION:  '🎓', EMERGENCY: '🛡️', OTHER: '✨',
+}
+
+function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmProfile | null }) {
+  const rate  = profile?.investor_type ? RATE_BY_INVESTOR_TYPE[profile.investor_type] ?? null : null
+  const years = profile?.time_horizon  ? YEARS_BY_HORIZON[profile.time_horizon]       ?? null : null
+  const pmt   = profile?.monthly_invest ?? null
+
+  // ── Estado vazio ──────────────────────────────────────────────────────────
+  if (rate === null || years === null || pmt === null) {
+    return (
+      <View style={{ ...CARD, marginBottom: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+          <View style={{ width: 28, height: 28, borderRadius: 8, alignItems: 'center',
+                         justifyContent: 'center', backgroundColor: '#14b8a61a' }}>
+            <Ionicons name="trending-up-outline" size={14} color="#14b8a6" />
+          </View>
+          <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600',
+                         letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            Projeção de Longo Prazo
+          </Text>
+        </View>
+        <Text style={{ color: '#94a3b8', fontSize: 13, lineHeight: 19, marginBottom: 12 }}>
+          Completa o teu perfil de investidor para veres a projeção personalizada.
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.push('/definicoes')}
+          activeOpacity={0.8}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start',
+                   backgroundColor: '#14b8a610', borderRadius: 8,
+                   paddingHorizontal: 12, paddingVertical: 7,
+                   borderWidth: 1, borderColor: '#14b8a630' }}
+        >
+          <Text style={{ color: '#0d9488', fontSize: 12, fontWeight: '600' }}>Completar perfil</Text>
+          <Ionicons name="arrow-forward" size={13} color="#0d9488" />
+        </TouchableOpacity>
+      </View>
+    )
+  }
+
+  // ── Cálculo ───────────────────────────────────────────────────────────────
+  const result = computeProjection({ currentNetWorth: netWorth, monthlyInvest: pmt, annualRate: rate, years })
+  const investorLabel = INVESTOR_LABELS[profile!.investor_type!] ?? ''
+  const rateLabel     = `${(rate * 100).toFixed(0)}% ao ano`
+  const yearsLabel    = `${years} anos`
+  const goalKey       = profile!.invest_goal ?? 'OTHER'
+  const phrase        = (GOAL_PHRASE[goalKey] ?? GOAL_PHRASE.OTHER)(years)
+  const emoji         = GOAL_EMOJI[goalKey] ?? '✨'
+
+  return (
+    <View style={{ ...CARD, marginBottom: 10 }}>
+
+      {/* Cabeçalho */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <View style={{ width: 28, height: 28, borderRadius: 8, alignItems: 'center',
+                       justifyContent: 'center', backgroundColor: '#14b8a61a' }}>
+          <Ionicons name="trending-up-outline" size={14} color="#14b8a6" />
+        </View>
+        <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600',
+                       letterSpacing: 0.5, textTransform: 'uppercase' }}>
+          Projeção de Longo Prazo
+        </Text>
+      </View>
+      <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 14 }}>
+        {investorLabel} · {rateLabel} · {yearsLabel}
+      </Text>
+
+      {/* Valor final */}
+      <Text style={{ color: '#64748b', fontSize: 12, marginBottom: 2 }}>
+        Em {yearsLabel} terás:
+      </Text>
+      <Text style={{ color: '#0f172a', fontSize: 32, fontWeight: '800',
+                     letterSpacing: -0.5, marginBottom: 16 }}>
+        {fmt(result.finalValue)}
+      </Text>
+
+      {/* Separador */}
+      <View style={{ height: 1, backgroundColor: '#f1f5f9', marginBottom: 12 }} />
+
+      {/* Mini-KPIs */}
+      <View style={{ flexDirection: 'row', gap: 12, marginBottom: 14 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '600',
+                         textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 }}>
+            Total Investido
+          </Text>
+          <Text style={{ color: '#334155', fontSize: 15, fontWeight: '700' }}>
+            {fmt(result.totalInvested)}
+          </Text>
+        </View>
+        <View style={{ width: 1, backgroundColor: '#f1f5f9' }} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '600',
+                         textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 }}>
+            Juros Ganhos
+          </Text>
+          <Text style={{ color: '#0d9488', fontSize: 15, fontWeight: '700' }}>
+            {fmt(result.interestGained)}
+          </Text>
+        </View>
+      </View>
+
+      {/* Frase motivacional */}
+      <View style={{ backgroundColor: '#f8fafc', borderRadius: 10, padding: 10,
+                     flexDirection: 'row', alignItems: 'flex-start', gap: 7 }}>
+        <Text style={{ fontSize: 14 }}>{emoji}</Text>
+        <Text style={{ color: '#64748b', fontSize: 12, lineHeight: 17, flex: 1 }}>
+          {phrase}
+        </Text>
+      </View>
+
+    </View>
+  )
+}
+
 export default function DashboardScreen() {
   const profile = useAuthStore((s) => s.profile)
   const session = useAuthStore((s) => s.session)
@@ -512,6 +634,9 @@ export default function DashboardScreen() {
             {/* Património Líquido + gráfico de evolução */}
             <NetWorthBanner label="Património Líquido" value={fmt(data?.netWorth ?? 0)} />
             <NetWorthChart points={nwHistory} />
+
+            {/* Projeção de Longo Prazo */}
+            <ProjectionCard netWorth={data?.netWorth ?? 0} profile={profile} />
 
             {/* ── Grelha 2×2 ─────────────────────────────────────────── */}
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
