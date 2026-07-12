@@ -8,6 +8,32 @@ import { usePlan, PLAN_NAMES, PLAN_COLORS } from '../hooks/usePlan'
 import { supabase } from '../lib/supabase'
 import StepperInput from '../components/ui/StepperInput'
 
+type InvestorType = 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE' | 'SPECULATIVE'
+type InvestGoal   = 'RETIREMENT' | 'WEALTH' | 'INCOME' | 'EDUCATION' | 'EMERGENCY' | 'OTHER'
+type TimeHorizon  = 'SHORT' | 'MEDIUM' | 'LONG'
+
+const INVESTOR_TYPES: { key: InvestorType; label: string; color: string }[] = [
+  { key: 'CONSERVATIVE', label: 'Conservador',  color: '#22c55e' },
+  { key: 'MODERATE',     label: 'Moderado',     color: '#3b82f6' },
+  { key: 'AGGRESSIVE',   label: 'Agressivo',    color: '#f59e0b' },
+  { key: 'SPECULATIVE',  label: 'Especulativo', color: '#ef4444' },
+]
+
+const GOALS: { key: InvestGoal; label: string; icon: string }[] = [
+  { key: 'RETIREMENT', label: 'Reforma',     icon: '🏖️' },
+  { key: 'WEALTH',     label: 'Riqueza',     icon: '💎' },
+  { key: 'INCOME',     label: 'Rendimento',  icon: '💰' },
+  { key: 'EDUCATION',  label: 'Educação',    icon: '🎓' },
+  { key: 'EMERGENCY',  label: 'Emergência',  icon: '🛡️' },
+  { key: 'OTHER',      label: 'Outro',       icon: '✨' },
+]
+
+const HORIZONS: { key: TimeHorizon; label: string; sub: string }[] = [
+  { key: 'SHORT',  label: 'Curto',  sub: '< 3 anos' },
+  { key: 'MEDIUM', label: 'Médio',  sub: '3–7 anos' },
+  { key: 'LONG',   label: 'Longo',  sub: '> 7 anos' },
+]
+
 // ── Ecrã ────────────────────────────────────────────────────────────────────
 
 export default function DefinicoesScreen() {
@@ -15,11 +41,14 @@ export default function DefinicoesScreen() {
   const setProfile = useAuthStore((s) => s.setProfile)
   const plan       = usePlan()
 
-  const [needs,   setNeeds]   = useState(profile?.target_needs   ?? 50)
-  const [wants,   setWants]   = useState(profile?.target_wants   ?? 30)
-  const [savings, setSavings] = useState(profile?.target_savings ?? 20)
-  const [saving,  setSaving]  = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [needs,         setNeeds]         = useState(profile?.target_needs   ?? 50)
+  const [wants,         setWants]         = useState(profile?.target_wants   ?? 30)
+  const [savings,       setSavings]       = useState(profile?.target_savings ?? 20)
+  const [investorType,  setInvestorType]  = useState<InvestorType | null>((profile?.investor_type as InvestorType) ?? null)
+  const [investGoal,    setInvestGoal]    = useState<InvestGoal   | null>((profile?.invest_goal   as InvestGoal)   ?? null)
+  const [timeHorizon,   setTimeHorizon]   = useState<TimeHorizon  | null>((profile?.time_horizon  as TimeHorizon)  ?? null)
+  const [saving,        setSaving]        = useState(false)
+  const [success,       setSuccess]       = useState(false)
 
   const soma    = needs + wants + savings
   const somaOk  = soma === 100
@@ -31,7 +60,14 @@ export default function DefinicoesScreen() {
     setSaving(true)
     const { data, error } = await supabase
       .from('dm_profiles')
-      .update({ target_needs: needs, target_wants: wants, target_savings: savings })
+      .update({
+        target_needs:  needs,
+        target_wants:  wants,
+        target_savings: savings,
+        investor_type: investorType,
+        invest_goal:   investGoal,
+        time_horizon:  timeHorizon,
+      })
       .eq('id', profile.id)
       .select()
       .single()
@@ -64,6 +100,98 @@ export default function DefinicoesScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 48, gap: 14 }}
         showsVerticalScrollIndicator={false}
       >
+
+        {/* ── Perfil de Investidor ─────────────────────────────────── */}
+        <View style={{ backgroundColor: '#1e293b', borderRadius: 20, borderWidth: 1, borderColor: '#334155', padding: 20 }}>
+          <Text style={{ color: '#475569', fontSize: 10, fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>
+            Perfil de Investidor
+          </Text>
+          <Text style={{ color: '#64748b', fontSize: 12, marginBottom: 16 }}>
+            Usado para personalizar recomendações e metas
+          </Text>
+
+          {/* Tipo de investidor */}
+          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginBottom: 8 }}>Tipo</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+            {INVESTOR_TYPES.map((t) => {
+              const active = investorType === t.key
+              return (
+                <TouchableOpacity
+                  key={t.key}
+                  onPress={() => setInvestorType(t.key)}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
+                    paddingHorizontal: 14, paddingVertical: 8,
+                    borderRadius: 10, borderWidth: 1.5,
+                    borderColor: active ? t.color : '#334155',
+                    backgroundColor: active ? t.color + '18' : 'transparent',
+                  }}
+                >
+                  {active && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: t.color }} />}
+                  <Text style={{ color: active ? t.color : '#64748b', fontSize: 12, fontWeight: active ? '700' : '500' }}>
+                    {t.label}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+
+          {/* Objetivo */}
+          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginBottom: 8 }}>Objetivo</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+            {GOALS.map((g) => {
+              const active = investGoal === g.key
+              return (
+                <TouchableOpacity
+                  key={g.key}
+                  onPress={() => setInvestGoal(g.key)}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 5,
+                    paddingHorizontal: 12, paddingVertical: 7,
+                    borderRadius: 10, borderWidth: 1.5,
+                    borderColor: active ? '#14b8a6' : '#334155',
+                    backgroundColor: active ? '#14b8a618' : 'transparent',
+                  }}
+                >
+                  <Text style={{ fontSize: 13 }}>{g.icon}</Text>
+                  <Text style={{ color: active ? '#14b8a6' : '#64748b', fontSize: 12, fontWeight: active ? '700' : '500' }}>
+                    {g.label}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+
+          {/* Horizonte temporal */}
+          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginBottom: 8 }}>Horizonte Temporal</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {HORIZONS.map((h) => {
+              const active = timeHorizon === h.key
+              return (
+                <TouchableOpacity
+                  key={h.key}
+                  onPress={() => setTimeHorizon(h.key)}
+                  activeOpacity={0.75}
+                  style={{
+                    flex: 1, alignItems: 'center', paddingVertical: 10,
+                    borderRadius: 10, borderWidth: 1.5,
+                    borderColor: active ? '#8b5cf6' : '#334155',
+                    backgroundColor: active ? '#8b5cf618' : 'transparent',
+                  }}
+                >
+                  <Text style={{ color: active ? '#8b5cf6' : '#64748b', fontSize: 12, fontWeight: active ? '700' : '500' }}>
+                    {h.label}
+                  </Text>
+                  <Text style={{ color: active ? '#8b5cf680' : '#475569', fontSize: 10, marginTop: 2 }}>
+                    {h.sub}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </View>
 
         {/* ── Regra Orçamental ─────────────────────────────────────── */}
         <View style={{ backgroundColor: '#1e293b', borderRadius: 20, borderWidth: 1, borderColor: '#334155', padding: 20 }}>
