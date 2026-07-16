@@ -81,7 +81,7 @@ export default function FerramentasScreen() {
           className="flex-row items-center gap-2 px-4 py-2 border-b border-dark-600"
         >
           <Ionicons name="arrow-back-outline" size={16} color="#64748b" />
-          <Text className="text-dark-400 text-sm">Todas as ferramentas</Text>
+          <Text className="text-dark-400 text-sm">{ferramenta?.label}</Text>
         </TouchableOpacity>
       )}
 

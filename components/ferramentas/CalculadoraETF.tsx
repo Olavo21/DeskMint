@@ -152,9 +152,9 @@ export default function CalculadoraETF() {
 
       {/* Resultados */}
       <View className="flex-row gap-3">
-        <View className="flex-1 bg-teal-500/10 border border-teal-500/30 rounded-2xl p-4">
-          <Text className="text-teal-400 text-xs mb-1">Valor Final</Text>
-          <Text className="text-teal-300 text-xl font-bold" numberOfLines={1} adjustsFontSizeToFit>
+        <View className="flex-1 rounded-2xl p-4" style={{ backgroundColor: '#0f3d38', borderWidth: 1, borderColor: '#14b8a6' }}>
+          <Text className="text-xs mb-1" style={{ color: '#5eead4' }}>Valor Final</Text>
+          <Text className="text-xl font-bold" style={{ color: '#ffffff' }} numberOfLines={1} adjustsFontSizeToFit>
             {fmt(dados.valorFinal)}
           </Text>
         </View>

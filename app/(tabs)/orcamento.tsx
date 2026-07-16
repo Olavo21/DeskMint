@@ -347,7 +347,7 @@ export default function OrcamentoScreen() {
             {(data?.fixed?.length ?? 0) > 0 && (
               <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-dark-50 font-semibold">Despesas Fixas</Text>
+                  <Text className="text-dark-50 font-semibold">Despesas Fixas Mensais</Text>
                   <Text className="text-red-700 font-semibold">{fmt(data!.totalFixed)}</Text>
                 </View>
                 {data!.fixed.map((e: any) => (
