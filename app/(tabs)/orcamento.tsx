@@ -10,8 +10,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useExpenses } from '../../hooks/useExpenses'
 import { useIncome } from '../../hooks/useIncome'
 import { useRecurringExpenses } from '../../hooks/useRecurringExpenses'
+import { useSavingBuckets, type SavingBucket } from '../../hooks/useSavingBuckets'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import NovaDespesaModal from '../../components/budget/NovaDespesaModal'
+import NovoBucketModal from '../../components/savings/NovoBucketModal'
+import AddAmountModal from '../../components/savings/AddAmountModal'
+import BucketCard from '../../components/savings/BucketCard'
 import { getExpenseEmoji } from '../../lib/expenseEmoji'
 import { confirmDestructive } from '../../lib/confirmDialog'
 
@@ -173,7 +177,11 @@ export default function OrcamentoScreen() {
     seedRef.current({ month: REAL_MONTH, year: REAL_YEAR })
   }, [])
 
+  const buckets = useSavingBuckets()
+
   const [showModal, setShowModal]         = useState(false)
+  const [showBucketModal, setShowBucketModal] = useState(false)
+  const [selectedBucket, setSelectedBucket]   = useState<SavingBucket | null>(null)
   const [editMode, setEditMode]           = useState(false)
   const [editingSalary, setEditingSalary] = useState(false)
   const [salaryInput, setSalaryInput]     = useState('')
@@ -208,6 +216,18 @@ export default function OrcamentoScreen() {
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header />
       <NovaDespesaModal visible={showModal} onClose={() => setShowModal(false)} month={MONTH} year={YEAR} />
+      <NovoBucketModal
+        visible={showBucketModal}
+        onClose={() => setShowBucketModal(false)}
+        onCreate={(payload) => buckets.create.mutate(payload)}
+        isPending={buckets.create.isPending}
+      />
+      <AddAmountModal
+        bucket={selectedBucket}
+        onClose={() => setSelectedBucket(null)}
+        onConfirm={(id, amount) => buckets.addAmount.mutate({ id, amount })}
+        isPending={buckets.addAmount.isPending}
+      />
       <ScrollView
         className="flex-1 px-4"
         showsVerticalScrollIndicator={false}
@@ -391,7 +411,7 @@ export default function OrcamentoScreen() {
 
             {/* Poupança */}
             {(data?.savings?.length ?? 0) > 0 && (
-              <View className="bg-dark-800 rounded-2xl p-4 mb-8">
+              <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                 <View className="flex-row justify-between mb-1">
                   <Text className="text-dark-50 font-semibold">Poupança & Investimento</Text>
                   <Text className="text-mint-800 font-semibold">{fmt(data!.totalSavings)}</Text>
@@ -414,6 +434,53 @@ export default function OrcamentoScreen() {
                 </Text>
               </View>
             )}
+
+            {/* Objetivos de Poupança */}
+            <View className="mb-8">
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-dark-50 font-semibold">Objetivos de Poupança</Text>
+                <TouchableOpacity
+                  onPress={() => setShowBucketModal(true)}
+                  className="flex-row items-center gap-1 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2"
+                >
+                  <Ionicons name="add" size={15} color="#14b8a6" />
+                  <Text style={{ color: '#14b8a6', fontSize: 12, fontWeight: '600' }}>Novo</Text>
+                </TouchableOpacity>
+              </View>
+
+              {buckets.isLoading ? (
+                <ActivityIndicator color="#14b8a6" />
+              ) : (buckets.data?.length ?? 0) === 0 ? (
+                <View className="bg-dark-800 border border-dark-600 border-dashed rounded-2xl p-6 items-center">
+                  <Text style={{ fontSize: 32 }}>🎯</Text>
+                  <Text className="text-dark-300 text-sm font-medium mt-2">Sem objetivos ainda</Text>
+                  <Text className="text-dark-500 text-xs text-center mt-1">
+                    Cria o teu primeiro objetivo e começa a poupar para o que mais importa.
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowBucketModal(true)}
+                    className="mt-4 px-5 py-2 rounded-xl"
+                    style={{ backgroundColor: '#14b8a6' }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Criar Objetivo</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                buckets.data!.map((bucket) => (
+                  <BucketCard
+                    key={bucket.id}
+                    bucket={bucket}
+                    onAddAmount={(b) => setSelectedBucket(b)}
+                    onDelete={(id) => confirmDestructive(
+                      'Eliminar objetivo',
+                      'Tens a certeza? O progresso guardado será perdido.',
+                      'Eliminar',
+                      () => buckets.remove.mutate(id)
+                    )}
+                  />
+                ))
+              )}
+            </View>
           </>
         )}
       </ScrollView>
