@@ -19,6 +19,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
 import QuickAddFab from '../../components/budget/QuickAddFab'
+import QuickstartChecklist from '../../components/quickstart/QuickstartChecklist'
 import type { DmAsset, DmCredit, DmProfile } from '../../types/database'
 import { computeProjection, RATE_BY_INVESTOR_TYPE, YEARS_BY_HORIZON, GOAL_PHRASE } from '../../lib/projection'
 
@@ -624,6 +625,8 @@ export default function DashboardScreen() {
           </Text>
           <Text className="text-dark-50 text-2xl font-bold">Dashboard</Text>
         </View>
+
+        <QuickstartChecklist />
 
         {isLoading ? (
           <ActivityIndicator color="#14b8a6" className="mt-20" />
