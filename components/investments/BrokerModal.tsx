@@ -12,6 +12,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { parseCSV, BROKERS, type BrokerId, type ParsedPosition } from '../../lib/csvParsers'
 import { useBrokerConnections } from '../../hooks/useBrokerConnections'
 import { useQueryClient } from '@tanstack/react-query'
+import BrokerLogo from './BrokerLogo'
 
 type Step = 'select_broker' | 'setup_api' | 'select_csv' | 'preview' | 'syncing'
 
@@ -192,13 +193,20 @@ export default function BrokerModal({ visible, onClose }: Props) {
           <View className="mb-4 bg-mint-50 border border-mint-200 rounded-xl p-3">
             <Text className="text-dark-400 text-xs mb-2 font-semibold uppercase tracking-widest">Já ligadas</Text>
             {connections!.map((c) => (
-              <View key={c.id} className="flex-row items-center gap-2 py-1">
-                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: c.status === 'active' ? '#059669' : '#dc2626' }} />
-                <Text className="text-dark-200 text-sm flex-1">
-                  {BROKERS.find((b) => b.id === c.broker)?.label ?? c.broker}
-                  {c.last_sync_at ? ` · sync ${new Date(c.last_sync_at).toLocaleDateString('pt-PT')}` : ''}
-                  {c.last_import_at ? ` · import ${new Date(c.last_import_at).toLocaleDateString('pt-PT')}` : ''}
-                </Text>
+              <View key={c.id} className="flex-row items-center gap-2.5 py-1.5">
+                <BrokerLogo id={c.broker as any} size={28} />
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-1.5">
+                    <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c.status === 'active' ? '#059669' : '#dc2626' }} />
+                    <Text className="text-dark-200 text-sm font-medium">
+                      {BROKERS.find((b) => b.id === c.broker)?.label ?? c.broker}
+                    </Text>
+                  </View>
+                  <Text className="text-dark-500 text-xs">
+                    {c.last_sync_at ? `sync ${new Date(c.last_sync_at).toLocaleDateString('pt-PT')}` : ''}
+                    {c.last_import_at ? `import ${new Date(c.last_import_at).toLocaleDateString('pt-PT')}` : ''}
+                  </Text>
+                </View>
                 {c.broker === 'trading212' && (
                   <TouchableOpacity
                     onPress={async () => {
@@ -229,7 +237,7 @@ export default function BrokerModal({ visible, onClose }: Props) {
                 }}
                 className="flex-row items-center gap-3 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3.5"
               >
-                <Text style={{ fontSize: 22 }}>{b.icon}</Text>
+                <BrokerLogo id={b.id} size={40} />
                 <View className="flex-1">
                   <Text className="text-dark-50 font-semibold text-sm">{b.label}</Text>
                   <Text className="text-dark-400 text-xs mt-0.5">
