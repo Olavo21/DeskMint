@@ -79,7 +79,7 @@ export default function AddAmountModal({ bucket, onClose, onConfirm, isPending }
             keyboardType="decimal-pad"
             autoFocus
             className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 mb-6"
-            style={{ color: '#f1f5f9', fontSize: 15 }}
+            style={{ color: '#0f172a', fontSize: 15 }}
           />
 
           <TouchableOpacity

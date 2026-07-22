@@ -99,7 +99,7 @@ export default function NovoBucketModal({ visible, onClose, onCreate, isPending 
               placeholder="ex: Férias 2027"
               placeholderTextColor="#475569"
               className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 mb-4"
-              style={{ color: '#f1f5f9', fontSize: 15 }}
+              style={{ color: '#0f172a', fontSize: 15 }}
             />
 
             {/* Target */}
@@ -111,7 +111,7 @@ export default function NovoBucketModal({ visible, onClose, onCreate, isPending 
               placeholderTextColor="#475569"
               keyboardType="decimal-pad"
               className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 mb-4"
-              style={{ color: '#f1f5f9', fontSize: 15 }}
+              style={{ color: '#0f172a', fontSize: 15 }}
             />
 
             {/* Deadline */}
@@ -122,7 +122,7 @@ export default function NovoBucketModal({ visible, onClose, onCreate, isPending 
               placeholder="AAAA-MM-DD"
               placeholderTextColor="#475569"
               className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 mb-6"
-              style={{ color: '#f1f5f9', fontSize: 15 }}
+              style={{ color: '#0f172a', fontSize: 15 }}
             />
 
             <TouchableOpacity
