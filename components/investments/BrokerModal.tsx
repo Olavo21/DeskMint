@@ -27,7 +27,7 @@ const fmt = (n: number) =>
 export default function BrokerModal({ visible, onClose }: Props) {
   const session    = useAuthStore((s) => s.session)
   const qc         = useQueryClient()
-  const { data: connections, upsertConnection, syncTrading212 } = useBrokerConnections()
+  const { data: connections, upsertConnection, saveCsvConnection, syncTrading212 } = useBrokerConnections()
 
   const [step,     setStep]     = useState<Step>('select_broker')
   const [broker,   setBroker]   = useState<BrokerId | null>(null)
@@ -111,8 +111,8 @@ export default function BrokerModal({ visible, onClose }: Props) {
     setLoading(true)
     setError(null)
     try {
-      // Ensure connection record exists
-      await upsertConnection.mutateAsync({
+      // Ensure connection record exists (CSV path — no API key, direct to Supabase)
+      await saveCsvConnection.mutateAsync({
         broker:       broker!,
         display_name: brokerInfo?.label ?? broker!,
       })

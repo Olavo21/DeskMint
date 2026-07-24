@@ -63,6 +63,25 @@ export function useBrokerConnections() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['broker_connections'] }),
   })
 
+  // ── CSV import — no API key, goes directly to Supabase (no Edge Function)
+  const saveCsvConnection = useMutation({
+    mutationFn: async (input: { broker: string; display_name: string }) => {
+      const { error } = await supabase
+        .from('dm_broker_connections')
+        .upsert(
+          {
+            user_id:      session!.user.id,
+            broker:       input.broker,
+            display_name: input.display_name,
+            status:       'active',
+          },
+          { onConflict: 'user_id,broker' },
+        )
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['broker_connections'] }),
+  })
+
   // ── Delete ─────────────────────────────────────────────────────────────
   const deleteConnection = useMutation({
     mutationFn: async (id: string) => {
@@ -98,5 +117,5 @@ export function useBrokerConnections() {
     },
   })
 
-  return { ...query, upsertConnection, deleteConnection, syncTrading212 }
+  return { ...query, upsertConnection, saveCsvConnection, deleteConnection, syncTrading212 }
 }
