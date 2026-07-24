@@ -13,6 +13,20 @@ import { parseCSV, BROKERS, type BrokerId, type ParsedPosition } from '../../lib
 import { useBrokerConnections } from '../../hooks/useBrokerConnections'
 import { useQueryClient } from '@tanstack/react-query'
 import BrokerLogo from './BrokerLogo'
+import * as XLSX from 'xlsx'
+
+function isExcelFile(name: string, mime?: string | null) {
+  return name.toLowerCase().endsWith('.xlsx') ||
+    name.toLowerCase().endsWith('.xls') ||
+    (mime ?? '').includes('spreadsheetml') ||
+    (mime ?? '').includes('ms-excel')
+}
+
+function excelToText(data: ArrayBuffer | string, type: 'array' | 'base64'): string {
+  const wb = XLSX.read(data, { type })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  return XLSX.utils.sheet_to_csv(ws)
+}
 
 type Step = 'select_broker' | 'setup_api' | 'select_csv' | 'preview' | 'syncing'
 
@@ -52,7 +66,7 @@ export default function BrokerModal({ visible, onClose }: Props) {
     return new Promise((resolve, reject) => {
       const input = document.createElement('input')
       input.type = 'file'
-      input.accept = '.csv,.txt,.tsv,.html,.htm,.mhtml,.mht,*/*'
+      input.accept = '.csv,.txt,.tsv,.html,.htm,.mhtml,.mht,.xlsx,.xls,*/*'
       input.style.display = 'none'
       document.body.appendChild(input)
       input.onchange = () => {
@@ -60,9 +74,15 @@ export default function BrokerModal({ visible, onClose }: Props) {
         document.body.removeChild(input)
         if (!file) { reject(new Error('cancelled')); return }
         const reader = new FileReader()
-        reader.onload = (e) => resolve(e.target?.result as string)
-        reader.onerror = () => reject(new Error('Erro ao ler o ficheiro'))
-        reader.readAsText(file, 'UTF-8')
+        if (isExcelFile(file.name, file.type)) {
+          reader.onload = (e) => resolve(excelToText(e.target?.result as ArrayBuffer, 'array'))
+          reader.onerror = () => reject(new Error('Erro ao ler o ficheiro'))
+          reader.readAsArrayBuffer(file)
+        } else {
+          reader.onload = (e) => resolve(e.target?.result as string)
+          reader.onerror = () => reject(new Error('Erro ao ler o ficheiro'))
+          reader.readAsText(file, 'UTF-8')
+        }
       }
       input.oncancel = () => { document.body.removeChild(input); reject(new Error('cancelled')) }
       input.click()
@@ -83,13 +103,21 @@ export default function BrokerModal({ visible, onClose }: Props) {
         }
       } else {
         const result = await DocumentPicker.getDocumentAsync({
-          type: ['text/csv', 'text/plain', '*/*'],
+          type: ['text/csv', 'text/plain',
+                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                 'application/vnd.ms-excel', '*/*'],
           copyToCacheDirectory: true,
         })
         if (result.canceled || !result.assets?.[0]) return
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const FS = require('expo-file-system')
-        text = await FS.readAsStringAsync(result.assets[0].uri, { encoding: FS.EncodingType.UTF8 })
+        const asset = result.assets[0]
+        if (isExcelFile(asset.name ?? '', asset.mimeType)) {
+          const base64 = await FS.readAsStringAsync(asset.uri, { encoding: FS.EncodingType.Base64 })
+          text = excelToText(base64, 'base64')
+        } else {
+          text = await FS.readAsStringAsync(asset.uri, { encoding: FS.EncodingType.UTF8 })
+        }
       }
 
       const positions = parseCSV(broker!, text)

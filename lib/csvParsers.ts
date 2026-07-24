@@ -31,7 +31,7 @@ export const BROKERS: { id: BrokerId; label: string; icon: string; hasApi: boole
     label:   'XTB',
     icon:    '🔵',
     hasApi:  false,
-    csvHelp: 'xStation → Posições abertas → botão Exportar (canto superior direito) → HTML\n\nOu: Histórico de transações → Exportar → HTML\n\n⚠️ O XTB não exporta CSV — escolhe HTML e importa o ficheiro .html aqui.',
+    csvHelp: 'App XTB (móvel): Portfólio → Exportar → Excel (.xlsx)\n\nxStation (desktop): Posições abertas → botão Exportar → HTML\n\nAceita: .xlsx (Excel) ou .html (xStation)',
   },
   {
     id:      'traderepublic',
