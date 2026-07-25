@@ -347,9 +347,13 @@ export default function BrokerModal({ visible, onClose }: Props) {
           <Text className="text-dark-400 text-sm">Corretoras</Text>
         </TouchableOpacity>
 
-        <Text className="text-dark-50 text-lg font-bold mb-1">{brokerInfo?.label} — CSV</Text>
+        <Text className="text-dark-50 text-lg font-bold mb-1">
+          {brokerInfo?.label} — {broker === 'xtb' ? 'Excel / HTML' : 'CSV'}
+        </Text>
         <Text className="text-dark-400 text-sm mb-5 leading-5">
-          Exporta o teu portfolio em CSV e importa aqui.
+          {broker === 'xtb'
+            ? 'Exporta o teu portfolio em Excel ou HTML e importa aqui.'
+            : 'Exporta o teu portfolio em CSV e importa aqui.'}
         </Text>
 
         <View className="bg-mint-50 border border-mint-200 rounded-xl p-4 mb-5">
@@ -370,7 +374,9 @@ export default function BrokerModal({ visible, onClose }: Props) {
           <Ionicons name="document-attach-outline" size={28} color="#64748b" />
           <View>
             <Text className="text-dark-200 font-semibold">Seleccionar ficheiro</Text>
-            <Text className="text-dark-500 text-xs mt-0.5">CSV ou HTML (exportação do broker)</Text>
+            <Text className="text-dark-500 text-xs mt-0.5">
+              {broker === 'xtb' ? 'Excel (.xlsx) ou HTML' : 'CSV ou HTML'}{' (exportação do broker)'}
+            </Text>
           </View>
         </TouchableOpacity>
       </>

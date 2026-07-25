@@ -71,6 +71,10 @@ function parseNum(s: string): number {
   return parseFloat(s.replace(/[€$£\s]/g, '').replace(',', '.')) || 0
 }
 
+function removeDiacritics(s: string): string {
+  return s.normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+}
+
 const KNOWN_ETF_TICKERS = new Set([
   'VWCE','VWRL','VWRP','VUSA','VUSD','VEUR',
   'IWDA','SWDA','SSAC','ISAC','CSPX','IUSA','IUQQ','SXRV','SPYL','CSUS','EMIM','EIMI','AGGH','IGLO','IBTS','VAGU','IGLT','IBGL','AGBP','IUSQ',
@@ -332,12 +336,16 @@ function parseXTBHtml(html: string): ParsedPosition[] {
 // 2. Transaction History: Position,Symbol,Comment,Type,Volume,Open Time,Open Price,Close Time,Close Price,Commission,...,Net profit
 // Also handles Excel exports that have metadata rows before the actual data table.
 
-const XTB_HEADER_KEYWORDS = ['symbol','position','volume','type','open price','close price',
-                              'instrumento','quantidade','valor','ticker','net profit','commission']
+// Keywords without diacritics (we normalize before matching)
+const XTB_HEADER_KEYWORDS = [
+  'symbol', 'position', 'volume', 'type', 'open price', 'close price',
+  'instrumento', 'quantidade', 'valor', 'ticker', 'net profit', 'commission',
+  'simbolo', 'posicao', 'tipo', 'preco', 'comissao', 'lucro',
+]
 
 function findXTBHeaderRow(allRows: string[][]): number {
   return allRows.findIndex((row) => {
-    const lower = row.map((c) => c.toLowerCase().trim())
+    const lower = row.map((c) => removeDiacritics(c.toLowerCase().trim()))
     const hits = XTB_HEADER_KEYWORDS.filter((k) => lower.some((c) => c.includes(k)))
     return hits.length >= 2
   })
@@ -353,25 +361,26 @@ function parseXTB(text: string): ParsedPosition[] {
   const rows = headerIdx > 0 ? allRows.slice(headerIdx) : allRows
 
   if (rows.length < 2) return []
-  const header = rows[0].map((h) => h.toLowerCase().trim())
+  // Normalize header cells to remove diacritics for robust matching
+  const header = rows[0].map((h) => removeDiacritics(h.toLowerCase().trim()))
   const col = (...names: string[]) => {
     for (const n of names) {
-      const i = header.findIndex((h) => h.includes(n))
+      const i = header.findIndex((h) => h.includes(removeDiacritics(n.toLowerCase())))
       if (i !== -1) return i
     }
     return -1
   }
 
   // Detect format: transaction history has "close time" or "close price" column
-  const isHistory = col('close time', 'close price') !== -1
+  const isHistory = col('close time', 'hora de fecho', 'close price', 'preco de fecho') !== -1
 
   if (isHistory) {
     // Transaction history — aggregate buy/sell by symbol into net positions
-    const iSymbol    = col('symbol', 'instrumento', 'instrument')
+    const iSymbol    = col('symbol', 'instrumento', 'instrument', 'simbolo')
     const iType      = col('type', 'tipo')
     const iVolume    = col('volume', 'quantidade')
-    const iOpenPrice = col('open price', 'preço de abertura', 'preco abertura')
-    const iClosePrice= col('close price', 'preço de fecho', 'preco fecho')
+    const iOpenPrice = col('open price', 'preço de abertura', 'preco de abertura', 'preco abertura')
+    const iClosePrice= col('close price', 'preço de fecho', 'preco de fecho', 'preco fecho')
 
     if (iSymbol === -1) return []
 
@@ -418,11 +427,11 @@ function parseXTB(text: string): ParsedPosition[] {
   }
 
   // Open positions snapshot
-  const iSymbol  = col('symbol', 'instrumento', 'instrument')
+  const iSymbol  = col('symbol', 'instrumento', 'instrument', 'simbolo')
   const iVolume  = col('volume', 'quantidade')
-  const iOpen    = col('open price', 'preço de abertura')
-  const iCurrent = col('current price', 'preço atual', 'current')
-  const iValue   = col('value', 'valor', 'market value')
+  const iOpen    = col('open price', 'preço de abertura', 'preco de abertura', 'preco abertura')
+  const iCurrent = col('current price', 'preço atual', 'preco atual', 'current')
+  const iValue   = col('value', 'valor', 'market value', 'valor de mercado')
 
   return rows.slice(1).flatMap((r) => {
     const ticker = (r[iSymbol] ?? '').trim()
