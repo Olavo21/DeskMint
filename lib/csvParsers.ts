@@ -330,9 +330,28 @@ function parseXTBHtml(html: string): ParsedPosition[] {
 // Handles two export formats:
 // 1. Open Positions: Symbol,Volume,Open price,Current price,Value,Gross profit,...
 // 2. Transaction History: Position,Symbol,Comment,Type,Volume,Open Time,Open Price,Close Time,Close Price,Commission,...,Net profit
+// Also handles Excel exports that have metadata rows before the actual data table.
+
+const XTB_HEADER_KEYWORDS = ['symbol','position','volume','type','open price','close price',
+                              'instrumento','quantidade','valor','ticker','net profit','commission']
+
+function findXTBHeaderRow(allRows: string[][]): number {
+  return allRows.findIndex((row) => {
+    const lower = row.map((c) => c.toLowerCase().trim())
+    const hits = XTB_HEADER_KEYWORDS.filter((k) => lower.some((c) => c.includes(k)))
+    return hits.length >= 2
+  })
+}
+
 function parseXTB(text: string): ParsedPosition[] {
   const delim = detectDelimiter(text)
-  const rows = parseCsv(text, delim)
+  const allRows = parseCsv(text, delim)
+  if (allRows.length < 2) return []
+
+  // Skip metadata rows at the top (Excel exports from XTB have account/date info before data)
+  const headerIdx = findXTBHeaderRow(allRows)
+  const rows = headerIdx > 0 ? allRows.slice(headerIdx) : allRows
+
   if (rows.length < 2) return []
   const header = rows[0].map((h) => h.toLowerCase().trim())
   const col = (...names: string[]) => {
