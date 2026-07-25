@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import * as DocumentPicker from 'expo-document-picker'
+import { File as ExpoFile } from 'expo-file-system'
 import { Platform } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
@@ -109,14 +110,13 @@ export default function BrokerModal({ visible, onClose }: Props) {
           copyToCacheDirectory: true,
         })
         if (result.canceled || !result.assets?.[0]) return
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const FS = require('expo-file-system')
         const asset = result.assets[0]
+        const expoFile = new ExpoFile(asset.uri)
         if (isExcelFile(asset.name ?? '', asset.mimeType)) {
-          const base64 = await FS.readAsStringAsync(asset.uri, { encoding: FS.EncodingType.Base64 })
-          text = excelToText(base64, 'base64')
+          const buffer = await expoFile.arrayBuffer()
+          text = excelToText(buffer, 'array')
         } else {
-          text = await FS.readAsStringAsync(asset.uri, { encoding: FS.EncodingType.UTF8 })
+          text = await expoFile.text()
         }
       }
 
