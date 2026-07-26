@@ -76,7 +76,17 @@ export default function BrokerModal({ visible, onClose }: Props) {
         if (!file) { reject(new Error('cancelled')); return }
         const reader = new FileReader()
         if (isExcelFile(file.name, file.type)) {
-          reader.onload = (e) => resolve(excelToText(e.target?.result as ArrayBuffer, 'array'))
+          reader.onload = (e) => {
+            const buf = e.target?.result as ArrayBuffer
+            let csv: string | null = null
+            try { csv = excelToText(buf, 'array') } catch { /* not real Excel */ }
+            if (csv && csv.trim().length > 0) {
+              resolve(csv)
+            } else {
+              // HTML disguised as .xlsx — resolve as text
+              resolve(new TextDecoder('utf-8').decode(buf))
+            }
+          }
           reader.onerror = () => reject(new Error('Erro ao ler o ficheiro'))
           reader.readAsArrayBuffer(file)
         } else {
@@ -114,7 +124,19 @@ export default function BrokerModal({ visible, onClose }: Props) {
         const expoFile = new ExpoFile(asset.uri)
         if (isExcelFile(asset.name ?? '', asset.mimeType)) {
           const buffer = await expoFile.arrayBuffer()
-          text = excelToText(buffer, 'array')
+          // Try SheetJS first; some brokers export HTML disguised as .xlsx/.xls
+          let csv: string | null = null
+          try {
+            csv = excelToText(buffer, 'array')
+          } catch {
+            // SheetJS failed — file is probably HTML with a .xlsx extension
+          }
+          if (csv && csv.trim().length > 0) {
+            text = csv
+          } else {
+            // Fall back to reading as plain text / HTML
+            text = new TextDecoder('utf-8').decode(buffer)
+          }
         } else {
           text = await expoFile.text()
         }
@@ -123,7 +145,11 @@ export default function BrokerModal({ visible, onClose }: Props) {
       const positions = parseCSV(broker!, text)
 
       if (positions.length === 0) {
-        setError('Não foi possível ler o ficheiro. Confirma que é um CSV exportado deste broker.')
+        setError(
+          'Não foi possível encontrar posições no ficheiro.\n\n' +
+          'XTB móvel: exporta "Posições abertas" → Excel (.xlsx)\n' +
+          'XTB desktop (xStation): Posições abertas → Exportar → HTML'
+        )
         return
       }
 
