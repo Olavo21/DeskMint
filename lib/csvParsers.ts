@@ -274,6 +274,76 @@ function extractHtmlTable(html: string): { headers: string[]; rows: string[][] }
   )
 }
 
+// ─── XTB Stock/ETF Transaction History (shared by CSV and HTML paths) ────────
+// Handles XTB mobile "Histórico de Transações" where Tipo = "Compra de Ações/ETF"
+// Aggregates buy/sell rows by instrument into net open positions.
+
+function parseXTBStockHistory(rows: string[][]): ParsedPosition[] {
+  if (rows.length < 2) return []
+  const header = rows[0].map((h) => removeDiacritics(h.toLowerCase().trim()))
+  const col = (...names: string[]) => {
+    for (const n of names) {
+      const i = header.findIndex((h) => h.includes(removeDiacritics(n.toLowerCase())))
+      if (i !== -1) return i
+    }
+    return -1
+  }
+
+  const iType   = col('tipo', 'type')
+  const iSymbol = col('instrumento', 'simbolo', 'symbol', 'instrument', 'ticker', 'nome')
+  const iQty    = col('quantidade', 'volume', 'qty', 'quantity')
+  const iPrice  = col('preco unitario', 'preco unit', 'preco', 'price', 'cotacao')
+  const iValue  = col('valor', 'montante', 'total', 'value', 'amount')
+
+  if (iSymbol === -1 || iQty === -1) return []
+
+  const map: Record<string, { units: number; cost: number; lastPrice: number }> = {}
+
+  rows.slice(1).forEach((r) => {
+    const tipo   = iType !== -1 ? removeDiacritics((r[iType] ?? '').toLowerCase()) : 'compra'
+    const isBuy  = tipo.includes('compra') || tipo.includes('buy')
+    const isSell = tipo.includes('venda')  || tipo.includes('sell')
+    if (!isBuy && !isSell) return
+
+    const raw    = (r[iSymbol] ?? '').trim()
+    if (!raw) return
+    // "VWCE.UK" → "VWCE", "NVDA.US" → "NVDA", plain "VWCE" → "VWCE"
+    const ticker = raw.split(/[.\s]/)[0].toUpperCase()
+    if (!ticker) return
+
+    const qty   = parseNum(r[iQty]   ?? '0')
+    const price = iPrice !== -1 ? parseNum(r[iPrice] ?? '0') : 0
+    const total = iValue !== -1 ? Math.abs(parseNum(r[iValue] ?? '0')) : 0
+    const unitP = price > 0 ? price : (qty > 0 ? total / qty : 0)
+
+    if (qty === 0) return
+    if (!map[ticker]) map[ticker] = { units: 0, cost: 0, lastPrice: 0 }
+
+    if (isBuy) {
+      map[ticker].units    += qty
+      map[ticker].cost     += total > 0 ? total : qty * unitP
+      map[ticker].lastPrice = unitP
+    } else {
+      map[ticker].units    -= qty
+      map[ticker].cost     -= total > 0 ? total : qty * unitP
+    }
+  })
+
+  return Object.entries(map).flatMap(([ticker, pos]) => {
+    if (pos.units <= 0.0001) return []
+    const avg = pos.units > 0 ? pos.cost / pos.units : 0
+    return [{
+      ticker, name: ticker,
+      units:            Math.round(pos.units * 1e6) / 1e6,
+      avg_price:        avg > 0 ? Math.round(avg * 1e4) / 1e4 : 0,
+      current_value:    Math.round(pos.units * (pos.lastPrice || avg) * 100) / 100,
+      capital_invested: Math.round(pos.cost * 100) / 100,
+      asset_type: detectAssetType(ticker, ticker),
+      broker: 'XTB',
+    }]
+  })
+}
+
 function parseXTBHtml(html: string): ParsedPosition[] {
   // Flatten all HTML to plain text — XTB uses complex nested tables
   const text = html
@@ -282,9 +352,8 @@ function parseXTBHtml(html: string): ParsedPosition[] {
     .replace(/&amp;/g, '&')
     .replace(/\s+/g, ' ')
 
-  // XTB report CASH OPERATION HISTORY contains entries like:
+  // XTB CFD report contains entries like:
   //   OPEN BUY 0.3667 @ 224.60 NVDA.US
-  //   OPEN BUY 0.4021/1.4021 @ 13.24 ONDS.US  (partial fill — take number before /)
   //   CLOSE BUY 0.0293 @ 196.90 NVDA.US
   const pattern = /(OPEN|CLOSE)\s+(BUY|SELL)\s+([\d.]+)(?:\/[\d.]+)?\s*@\s*([\d.]+)\s+([A-Z0-9]+\.[A-Z]+)/gi
 
@@ -295,8 +364,8 @@ function parseXTBHtml(html: string): ParsedPosition[] {
     const action = m[1].toUpperCase()
     const vol    = parseFloat(m[3])
     const price  = parseFloat(m[4])
-    const full   = m[5]                     // e.g. NVDA.US
-    const ticker = full.split('.')[0]       // NVDA
+    const full   = m[5]
+    const ticker = full.split('.')[0]
 
     if (!ticker || isNaN(vol) || isNaN(price) || vol <= 0) continue
     if (!map[ticker]) map[ticker] = { units: 0, costOpen: 0, lastOpen: 0 }
@@ -306,13 +375,12 @@ function parseXTBHtml(html: string): ParsedPosition[] {
       map[ticker].costOpen += vol * price
       map[ticker].lastOpen  = price
     } else {
-      // CLOSE — reduce position
       map[ticker].units    -= vol
       map[ticker].costOpen -= vol * price
     }
   }
 
-  return Object.entries(map).flatMap(([ticker, pos]) => {
+  const cfdResults = Object.entries(map).flatMap(([ticker, pos]) => {
     if (pos.units < 0.0001) return []
     const units  = Math.round(pos.units * 100000) / 100000
     const avg    = pos.costOpen / pos.units
@@ -328,6 +396,15 @@ function parseXTBHtml(html: string): ParsedPosition[] {
       broker: 'XTB',
     }]
   })
+
+  if (cfdResults.length > 0) return cfdResults
+
+  // Fallback: try parsing as structured HTML table (XTB mobile stock/ETF transaction history)
+  const { headers, rows } = extractHtmlTable(html)
+  if (headers.length > 0 && rows.length > 0) {
+    return parseXTBStockHistory([headers, ...rows])
+  }
+  return []
 }
 
 // ─── XTB ──────────────────────────────────────────────────────────────────
@@ -340,7 +417,7 @@ function parseXTBHtml(html: string): ParsedPosition[] {
 const XTB_HEADER_KEYWORDS = [
   'symbol', 'position', 'volume', 'type', 'open price', 'close price',
   'instrumento', 'quantidade', 'valor', 'ticker', 'net profit', 'commission',
-  'simbolo', 'posicao', 'tipo', 'preco', 'comissao', 'lucro',
+  'simbolo', 'posicao', 'tipo', 'preco', 'comissao', 'lucro', 'montante',
 ]
 
 function findXTBHeaderRow(allRows: string[][]): number {
@@ -373,6 +450,15 @@ function parseXTB(text: string): ParsedPosition[] {
 
   // Detect format: transaction history has "close time" or "close price" column
   const isHistory = col('close time', 'hora de fecho', 'close price', 'preco de fecho') !== -1
+
+  // Detect XTB mobile stock/ETF transaction history (Tipo = "Compra de Ações/ETF" etc.)
+  const iTypeCol = col('tipo', 'type')
+  const isStockHistory = !isHistory && iTypeCol !== -1 && rows.slice(1, 6).some((r) => {
+    const t = removeDiacritics((r[iTypeCol] ?? '').toLowerCase())
+    return t.includes('compra') || t.includes('venda') || t.includes('buy') || t.includes('sell')
+  })
+
+  if (isStockHistory) return parseXTBStockHistory(rows)
 
   if (isHistory) {
     // Transaction history — aggregate buy/sell by symbol into net positions
