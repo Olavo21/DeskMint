@@ -5,7 +5,7 @@ import { useFocusEffect, router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import Svg, { Path, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg'
-import { fmt } from '../../utils/format'
+import { useFmt } from '../../utils/format'
 import { supabase } from '../../lib/supabase'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useNetWorthHistory, type NetWorthPoint } from '../../hooks/useNetWorthHistory'
@@ -101,6 +101,7 @@ function KpiCard({ label, value, sub, valueColor }: { label: string; value: stri
 }
 
 function EmergencyCard({ atual, despesaMensal }: { atual: number; despesaMensal: number }) {
+  const fmt         = useFmt()
   const safeDespesa = despesaMensal > 50 ? despesaMensal : 1000
   const alvo        = safeDespesa * 6
   const progress    = alvo > 0 ? Math.min(atual / alvo, 1) : 0
@@ -424,6 +425,7 @@ const GOAL_EMOJI: Record<string, string> = {
 }
 
 function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmProfile | null }) {
+  const fmt   = useFmt()
   const rate  = profile?.investor_type ? RATE_BY_INVESTOR_TYPE[profile.investor_type] ?? null : null
   const years = profile?.time_horizon  ? YEARS_BY_HORIZON[profile.time_horizon]       ?? null : null
   const pmt   = profile?.monthly_invest ?? null
@@ -606,6 +608,7 @@ export default function DashboardScreen() {
     }, [qc])
   )
 
+  const fmt = useFmt()
   const pct = (n: number) => `${(n * 100).toFixed(1)}%`
   const lazerAmt = data?.lazerAmt ?? 0
   const lazerPct = data?.lazerPct ?? 0

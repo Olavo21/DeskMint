@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { SavingBucket } from '../../hooks/useSavingBuckets'
+import { useFmt } from '../../utils/format'
 
 type Props = {
   bucket: SavingBucket
@@ -8,10 +9,8 @@ type Props = {
   onDelete: (id: string) => void
 }
 
-const fmt = (v: number) =>
-  v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-
 export default function BucketCard({ bucket, onAddAmount, onDelete }: Props) {
+  const fmt = useFmt()
   const pct = bucket.target_amount > 0
     ? Math.min(bucket.current_amount / bucket.target_amount, 1)
     : 0

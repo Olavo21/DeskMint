@@ -18,6 +18,7 @@ import AddAmountModal from '../../components/savings/AddAmountModal'
 import BucketCard from '../../components/savings/BucketCard'
 import { getExpenseEmoji } from '../../lib/expenseEmoji'
 import { confirmDestructive } from '../../lib/confirmDialog'
+import { useFmt } from '../../utils/format'
 
 const REAL_TODAY = new Date()
 const REAL_MONTH = REAL_TODAY.getMonth() + 1
@@ -41,12 +42,11 @@ type ExpenseRowProps = {
   onDelete: (id: string) => void
 }
 
-const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
-
 function ExpenseRow({
   e, editMode, isEditing, deletingId,
   onStartEdit, onSaveEdit, onCancelEdit, onDelete,
 }: ExpenseRowProps) {
+  const fmt = useFmt()
   const [localDesc, setLocalDesc] = useState(e.description)
   const [localAmt, setLocalAmt] = useState(String(e.amount))
 
@@ -158,6 +158,7 @@ function ExpenseRow({
 }
 
 export default function OrcamentoScreen() {
+  const fmt = useFmt()
   const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
   const qc = useQueryClient()
   const { data, isLoading, isFetching, update, remove } = useExpenses(MONTH, YEAR)

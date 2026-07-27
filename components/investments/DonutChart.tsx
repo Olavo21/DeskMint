@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import { useFmt } from '../../utils/format'
 import { View, Text, Animated, PanResponder, type GestureResponderEvent } from 'react-native'
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg'
 
@@ -26,7 +27,6 @@ const GAP = 1.5      // graus — micro-linha de separação reta entre fatias
 const RADIAL_PAD = 16 // tolerância radial (px) para detetar o gesto perto do anel
 const TOOLTIP_W = 160
 
-const fmtEUR = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const rad = ((deg - 90) * Math.PI) / 180
@@ -83,6 +83,7 @@ export default function DonutChart({
   centerSub,
   showSegmentLabels = false,
 }: Props) {
+  const fmt = useFmt()
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const fadeAnim = useRef(new Animated.Value(1)).current
 
@@ -287,7 +288,7 @@ export default function DonutChart({
                 style={{ color: active.pl >= 0 ? '#34d399' : '#f87171', fontSize: 11, marginTop: 2, fontWeight: '700' }}
                 numberOfLines={1}
               >
-                Lucro/Perda: {active.pl >= 0 ? '+' : ''}{fmtEUR(active.pl)}
+                Lucro/Perda: {active.pl >= 0 ? '+' : ''}{fmt(active.pl)}
               </Text>
             )}
           </View>

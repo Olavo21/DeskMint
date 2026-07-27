@@ -14,6 +14,7 @@ import BrokerModal from '../../components/investments/BrokerModal'
 import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
 import { getColor } from '../../lib/portfolioColors'
 import { getSector, SECTOR_COLORS } from '../../lib/assetSectors'
+import { useFmt } from '../../utils/format'
 
 type Tab = 'ativos' | 'tipo' | 'setor'
 
@@ -41,7 +42,7 @@ export default function InvestimentosScreen() {
   const donutSize      = Math.min(Math.round(screenW * 0.72), 300)
   const donutThickness = Math.round(donutSize * 0.13)
 
-  const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
+  const fmt = useFmt()
 
   const byAsset = useMemo<DonutSegment[]>(
     () => (data?.assets ?? []).map((a, i) => ({ value: a.current_value, color: getColor(i), label: a.ticker, pl: a.pl })),
