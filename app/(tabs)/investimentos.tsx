@@ -1,4 +1,4 @@
-﻿import Header from '../../components/ui/Header'
+import Header from '../../components/ui/Header'
 import { useState, useMemo } from 'react'
 import {
   ScrollView, View, Text, TouchableOpacity,
@@ -7,23 +7,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { usePortfolio } from '../../hooks/usePortfolio'
-import { usePortfolioHistory } from '../../hooks/usePortfolioHistory'
 import DonutChart, { type DonutSegment } from '../../components/investments/DonutChart'
-import PortfolioLineChart, { type Range } from '../../components/investments/PortfolioLineChart'
 import MarketNews from '../../components/investments/MarketNews'
 import NovoAtivoModal from '../../components/investments/NovoAtivoModal'
 import BrokerModal from '../../components/investments/BrokerModal'
 import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
 import { getColor } from '../../lib/portfolioColors'
-import { getRegion, getRegionLabel, REGION_COLORS } from '../../lib/assetRegions'
+import { getSector, SECTOR_COLORS } from '../../lib/assetSectors'
 
-type Tab = 'ativos' | 'tipo' | 'regiao' | 'historico'
+type Tab = 'ativos' | 'tipo' | 'setor'
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'ativos',    label: 'Ativos',     icon: 'list-outline'        },
-  { key: 'tipo',      label: 'Tipo',       icon: 'shapes-outline'      },
-  { key: 'regiao',    label: 'Região',     icon: 'earth-outline'       },
-  { key: 'historico', label: 'Histórico',  icon: 'trending-up-outline' },
+  { key: 'ativos', label: 'Ativos', icon: 'list-outline'   },
+  { key: 'tipo',   label: 'Tipo',   icon: 'shapes-outline' },
+  { key: 'setor',  label: 'Setor',  icon: 'grid-outline'   },
 ]
 
 const TYPE_LABELS: Record<string, string> = {
@@ -36,16 +33,13 @@ const TYPE_COLORS: Record<string, string> = {
 export default function InvestimentosScreen() {
   const { width: screenW } = useWindowDimensions()
   const { data, isLoading } = usePortfolio()
-  const [activeTab, setActiveTab]         = useState<Tab>('ativos')
-  const [showModal, setShowModal]         = useState(false)
-  const [showBroker, setShowBroker]       = useState(false)
-  const [showManage, setShowManage]       = useState(false)
-  const [historyRange, setHistoryRange]   = useState<Range>('Max')
+  const [activeTab, setActiveTab] = useState<Tab>('ativos')
+  const [showModal, setShowModal]   = useState(false)
+  const [showBroker, setShowBroker] = useState(false)
+  const [showManage, setShowManage] = useState(false)
 
   const donutSize      = Math.min(Math.round(screenW * 0.72), 300)
   const donutThickness = Math.round(donutSize * 0.13)
-
-  const { data: historyData, isLoading: historyLoading } = usePortfolioHistory(historyRange)
 
   const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
 
@@ -60,20 +54,25 @@ export default function InvestimentosScreen() {
       const cur = map[a.asset_type] ?? { value: 0, pl: 0 }
       map[a.asset_type] = { value: cur.value + a.current_value, pl: cur.pl + a.pl }
     })
-    return Object.entries(map).map(([t, v]) => ({ value: v.value, color: TYPE_COLORS[t] ?? '#64748b', label: TYPE_LABELS[t] ?? t, pl: v.pl }))
+    return Object.entries(map).map(([t, v]) => ({
+      value: v.value,
+      color: TYPE_COLORS[t] ?? '#64748b',
+      label: TYPE_LABELS[t] ?? t,
+      pl: v.pl,
+    }))
   }, [data?.assets])
 
-  const byRegion = useMemo<DonutSegment[]>(() => {
+  const bySector = useMemo<DonutSegment[]>(() => {
     const map: Record<string, { value: number; pl: number }> = {}
     ;(data?.assets ?? []).forEach((a) => {
-      const r = getRegion(a.ticker, a.asset_type)
-      const cur = map[r] ?? { value: 0, pl: 0 }
-      map[r] = { value: cur.value + a.current_value, pl: cur.pl + a.pl }
+      const s = getSector(a.ticker, a.asset_type)
+      const cur = map[s] ?? { value: 0, pl: 0 }
+      map[s] = { value: cur.value + a.current_value, pl: cur.pl + a.pl }
     })
-    return Object.entries(map).map(([r, v]) => ({
+    return Object.entries(map).map(([s, v]) => ({
       value: v.value,
-      color: REGION_COLORS[r as keyof typeof REGION_COLORS] ?? '#64748b',
-      label: getRegionLabel(r as Parameters<typeof getRegionLabel>[0]),
+      color: SECTOR_COLORS[s as keyof typeof SECTOR_COLORS] ?? '#64748b',
+      label: s,
       pl: v.pl,
     }))
   }, [data?.assets])
@@ -86,10 +85,10 @@ export default function InvestimentosScreen() {
     )
   }
 
-  const totalValue   = data?.totalValue   ?? 0
-  const totalPL      = data?.totalPL      ?? 0
-  const totalPLPct   = data?.totalPLPct   ?? 0
-  const plPos        = totalPL >= 0
+  const totalValue = data?.totalValue ?? 0
+  const totalPL    = data?.totalPL    ?? 0
+  const totalPLPct = data?.totalPLPct ?? 0
+  const plPos      = totalPL >= 0
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
@@ -102,8 +101,15 @@ export default function InvestimentosScreen() {
           <Text className="text-dark-400 text-xs mb-1">Valor Total</Text>
           <Text className="text-dark-50 text-3xl font-bold">{fmt(totalValue)}</Text>
           <View className="flex-row items-center gap-2 mt-2">
-            <View className="flex-row items-center gap-1 px-2 py-1 rounded-lg" style={{ backgroundColor: plPos ? '#14b8a615' : '#ef444415' }}>
-              <Ionicons name={plPos ? 'trending-up-outline' : 'trending-down-outline'} size={12} color={plPos ? '#14b8a6' : '#ef4444'} />
+            <View
+              className="flex-row items-center gap-1 px-2 py-1 rounded-lg"
+              style={{ backgroundColor: plPos ? '#14b8a615' : '#ef444415' }}
+            >
+              <Ionicons
+                name={plPos ? 'trending-up-outline' : 'trending-down-outline'}
+                size={12}
+                color={plPos ? '#14b8a6' : '#ef4444'}
+              />
               <Text className="text-xs font-semibold" style={{ color: plPos ? '#14b8a6' : '#ef4444' }}>
                 {plPos ? '+' : ''}{fmt(totalPL)} ({plPos ? '+' : ''}{(totalPLPct * 100).toFixed(2)}%)
               </Text>
@@ -113,30 +119,31 @@ export default function InvestimentosScreen() {
         </View>
 
         {/* Tab bar */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4 mb-5">
-          <View className="flex-row gap-2">
-            {TABS.map((tab) => {
-              const active = activeTab === tab.key
-              return (
-                <TouchableOpacity
-                  key={tab.key}
-                  onPress={() => setActiveTab(tab.key)}
-                  className={`flex-row items-center gap-1.5 px-4 py-2 rounded-xl border ${active ? 'bg-teal-500/15 border-teal-500/40' : 'bg-dark-800 border-dark-600'}`}
-                >
-                  <Ionicons name={tab.icon as 'list-outline'} size={14} color={active ? '#14b8a6' : '#64748b'} />
-                  <Text className={`text-sm font-medium ${active ? 'text-teal-400' : 'text-dark-400'}`}>{tab.label}</Text>
-                </TouchableOpacity>
-              )
-            })}
-          </View>
-        </ScrollView>
+        <View className="px-4 mb-5 flex-row gap-2">
+          {TABS.map((tab) => {
+            const active = activeTab === tab.key
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => setActiveTab(tab.key)}
+                className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 rounded-xl border ${
+                  active ? 'bg-teal-500/15 border-teal-500/40' : 'bg-dark-800 border-dark-600'
+                }`}
+              >
+                <Ionicons name={tab.icon as 'list-outline'} size={14} color={active ? '#14b8a6' : '#64748b'} />
+                <Text className={`text-sm font-medium ${active ? 'text-teal-400' : 'text-dark-400'}`}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
+        </View>
 
         {/* ── Ativos ── */}
         {activeTab === 'ativos' && (
           <View>
             {byAsset.length > 0 ? (
               <>
-                {/* Donut centrado */}
                 <View className="items-center pt-2 pb-1">
                   <DonutChart
                     segments={byAsset}
@@ -147,10 +154,8 @@ export default function InvestimentosScreen() {
                     showSegmentLabels
                   />
                 </View>
-                {/* Legenda em baixo */}
                 <Legend segments={byAsset} assets={data?.assets ?? []} fmt={fmt} />
 
-                {/* Botão Editar Ativos */}
                 <View className="mx-4 mt-4">
                   <TouchableOpacity
                     onPress={() => setShowManage(true)}
@@ -169,7 +174,6 @@ export default function InvestimentosScreen() {
               </View>
             )}
 
-            {/* Notícias compactas */}
             <View className="mx-4 mt-6 mb-2">
               <MarketNews />
             </View>
@@ -189,48 +193,29 @@ export default function InvestimentosScreen() {
           </View>
         )}
 
-        {/* ── Região ── */}
-        {activeTab === 'regiao' && (
+        {/* ── Setor ── */}
+        {activeTab === 'setor' && (
           <View>
-            <DonutChart segments={byRegion} centerLabel={fmt(totalValue)} centerSub="Por Região" />
+            <DonutChart segments={bySector} centerLabel={fmt(totalValue)} centerSub="Por Setor" />
             <View className="mx-4 mt-5 gap-2">
-              {byRegion.slice().sort((a, b) => b.value - a.value).map((seg) => (
+              {bySector.slice().sort((a, b) => b.value - a.value).map((seg) => (
                 <GroupRow key={seg.label} seg={seg} total={totalValue} fmt={fmt} />
               ))}
             </View>
             <View className="mx-4 mt-3 bg-dark-800/50 border border-dark-600/50 rounded-xl p-3">
               <Text className="text-dark-500 text-xs">
-                A região é derivada automaticamente do ticker. ETFs globais e temáticos aparecem em "Resto do Mundo".
+                O setor é derivado automaticamente do ticker. ETFs de mercado amplo (VWCE, IWDA, etc.) aparecem em "Diversificado".
               </Text>
             </View>
             <View className="h-24" />
           </View>
         )}
 
-        {/* ── Histórico ── */}
-        {activeTab === 'historico' && (
-          <View className="mx-4">
-            <PortfolioLineChart
-              data={historyData ?? []}
-              range={historyRange}
-              onRangeChange={setHistoryRange}
-              isLoading={historyLoading}
-            />
-            {!historyLoading && (historyData?.length ?? 0) === 0 && (
-              <View className="mt-4 bg-dark-800 border border-dark-600 rounded-xl p-4">
-                <Text className="text-dark-400 text-sm text-center">
-                  Ainda não há snapshots. Os snapshots são gravados automaticamente quando actualizas um ativo.
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
       </ScrollView>
 
-      {/* FABs — bottom-20 clears the 64px tab bar */}
+      {/* FABs */}
       <View className="absolute bottom-20 right-4 gap-2.5 items-end">
-<TouchableOpacity
+        <TouchableOpacity
           onPress={() => setShowBroker(true)}
           className="flex-row items-center gap-2 bg-dark-800 border border-dark-600 rounded-full px-4 py-2.5"
           style={{ shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 }}
@@ -249,7 +234,7 @@ export default function InvestimentosScreen() {
         </TouchableOpacity>
       </View>
 
-<NovoAtivoModal visible={showModal} onClose={() => setShowModal(false)} />
+      <NovoAtivoModal visible={showModal} onClose={() => setShowModal(false)} />
       <BrokerModal visible={showBroker} onClose={() => setShowBroker(false)} />
       <ManageAssetsModal
         visible={showManage}
@@ -260,13 +245,13 @@ export default function InvestimentosScreen() {
   )
 }
 
-// ── Sub-componentes ────────────────────────────────────────────────────────
+// ── Sub-componentes ────────────────────────────────────────────────────────────
 
 function Legend({ segments, assets, fmt }: {
   segments: DonutSegment[]
   assets?: { ticker: string; pl: number; plPct: number }[]
   fmt: (n: number) => string
-  }) {
+}) {
   const total = segments.reduce((s, seg) => s + seg.value, 0)
   return (
     <View className="mx-4 mt-4 gap-1.5">
@@ -310,4 +295,3 @@ function GroupRow({ seg, total, fmt }: { seg: DonutSegment; total: number; fmt: 
     </View>
   )
 }
-

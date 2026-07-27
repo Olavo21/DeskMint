@@ -1,4 +1,4 @@
-﻿import Header from '../../components/ui/Header'
+import Header from '../../components/ui/Header'
 import { useState, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
@@ -6,19 +6,152 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 
 type Message = { role: 'user' | 'assistant'; text: string }
 
 const QUICK_ACTIONS = [
-  { label: 'Analisa a minha carteira', icon: 'pie-chart-outline' },
-  { label: 'Notícias de hoje', icon: 'newspaper-outline' },
-  { label: 'Como está a minha diversificação?', icon: 'git-network-outline' },
-  { label: 'Quanto investi no total?', icon: 'cash-outline' },
+  {
+    label: 'Quanto investi e qual é o valor atual?',
+    icon: 'wallet-outline',
+  },
+  {
+    label: 'Qual é a minha melhor e pior posição?',
+    icon: 'trending-up-outline',
+  },
+  {
+    label: 'Como está dividida a minha carteira?',
+    icon: 'pie-chart-outline',
+  },
+  {
+    label: 'Se mantiver este ritmo, quanto terei daqui a 5 anos?',
+    icon: 'rocket-outline',
+  },
+  {
+    label: 'Qual seria o meu imposto se vendesse tudo hoje?',
+    icon: 'receipt-outline',
+  },
+  {
+    label: 'Quanto preciso de investir por mês para atingir 100 000€?',
+    icon: 'calculator-outline',
+  },
 ]
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!
+
+// ─── Inline markdown renderer ────────────────────────────────────────────────
+
+function InlineText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <Text key={i} style={{ fontWeight: '700', color: '#f1f5f9' }}>
+              {part.slice(2, -2)}
+            </Text>
+          )
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+          return (
+            <Text
+              key={i}
+              style={{
+                fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+                color: '#2dd4bf',
+                backgroundColor: '#0f172a',
+                borderRadius: 3,
+              }}
+            >
+              {part.slice(1, -1)}
+            </Text>
+          )
+        }
+        return <Text key={i}>{part}</Text>
+      })}
+    </>
+  )
+}
+
+function MarkdownText({ text }: { text: string }) {
+  const lines = text.split('\n')
+
+  return (
+    <View style={{ gap: 2 }}>
+      {lines.map((line, i) => {
+        if (line.startsWith('### ')) {
+          return (
+            <Text
+              key={i}
+              style={{
+                color: '#f1f5f9',
+                fontSize: 15,
+                fontWeight: '700',
+                marginTop: 6,
+                marginBottom: 2,
+              }}
+            >
+              {line.slice(4)}
+            </Text>
+          )
+        }
+
+        if (line.startsWith('## ')) {
+          return (
+            <Text
+              key={i}
+              style={{ color: '#f1f5f9', fontSize: 16, fontWeight: '700', marginTop: 8 }}
+            >
+              {line.slice(3)}
+            </Text>
+          )
+        }
+
+        if (line.startsWith('> ')) {
+          return (
+            <View
+              key={i}
+              style={{
+                borderLeftWidth: 2,
+                borderLeftColor: '#14b8a6',
+                paddingLeft: 10,
+                marginVertical: 4,
+              }}
+            >
+              <Text style={{ color: '#94a3b8', fontSize: 13, fontStyle: 'italic', lineHeight: 19 }}>
+                <InlineText text={line.slice(2)} />
+              </Text>
+            </View>
+          )
+        }
+
+        if (line.startsWith('* ') || line.startsWith('- ')) {
+          return (
+            <View key={i} style={{ flexDirection: 'row', gap: 6, marginLeft: 2 }}>
+              <Text style={{ color: '#2dd4bf', fontSize: 13, lineHeight: 20 }}>•</Text>
+              <Text style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 20, flex: 1 }}>
+                <InlineText text={line.slice(2)} />
+              </Text>
+            </View>
+          )
+        }
+
+        if (line.trim() === '') {
+          return <View key={i} style={{ height: 4 }} />
+        }
+
+        return (
+          <Text key={i} style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 20 }}>
+            <InlineText text={line} />
+          </Text>
+        )
+      })}
+    </View>
+  )
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function AssistenteScreen() {
   const session = useAuthStore((s) => s.session)
@@ -75,7 +208,6 @@ export default function AssistenteScreen() {
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header title="Assistente IA" />
 
-      {/* Botão limpar */}
       {messages.length > 0 && (
         <TouchableOpacity
           onPress={clearChat}
@@ -96,7 +228,7 @@ export default function AssistenteScreen() {
           contentContainerStyle={{ paddingTop: 16, paddingBottom: 12 }}
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
-          {/* Estado vazio */}
+          {/* Empty state */}
           {messages.length === 0 && (
             <View className="items-center mt-8 mb-6">
               <View className="w-16 h-16 rounded-full bg-teal-500/10 items-center justify-center mb-4">
@@ -106,10 +238,9 @@ export default function AssistenteScreen() {
                 Assistente de Investimentos
               </Text>
               <Text className="text-dark-400 text-sm text-center px-6">
-                Pergunta-me sobre a tua carteira, diversificação ou notícias dos teus ativos.
+                Pergunta-me sobre a tua carteira, projeções, diversificação ou fiscalidade.
               </Text>
 
-              {/* Ações rápidas */}
               <View className="mt-6 w-full gap-2">
                 {QUICK_ACTIONS.map((a) => (
                   <TouchableOpacity
@@ -117,19 +248,20 @@ export default function AssistenteScreen() {
                     onPress={() => send(a.label)}
                     className="flex-row items-center gap-3 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3"
                   >
-                    <Ionicons name={a.icon as 'pie-chart-outline'} size={16} color="#14b8a6" />
-                    <Text className="text-dark-300 text-sm">{a.label}</Text>
+                    <Ionicons name={a.icon as 'wallet-outline'} size={16} color="#14b8a6" />
+                    <Text className="text-dark-300 text-sm flex-1">{a.label}</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#334155" />
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Mensagens */}
+          {/* Messages */}
           {messages.map((m, i) => (
             <View
               key={i}
-              className={`mb-3 max-w-[88%] ${m.role === 'user' ? 'self-end' : 'self-start'}`}
+              className={`mb-3 max-w-[92%] ${m.role === 'user' ? 'self-end' : 'self-start'}`}
             >
               {m.role === 'assistant' && (
                 <View className="flex-row items-center gap-1 mb-1">
@@ -144,18 +276,16 @@ export default function AssistenteScreen() {
                     : 'bg-dark-800 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3'
                 }
               >
-                <Text
-                  className={
-                    m.role === 'user' ? 'text-dark-50 text-sm' : 'text-dark-200 text-sm leading-5'
-                  }
-                >
-                  {m.text}
-                </Text>
+                {m.role === 'user' ? (
+                  <Text className="text-dark-50 text-sm">{m.text}</Text>
+                ) : (
+                  <MarkdownText text={m.text} />
+                )}
               </View>
             </View>
           ))}
 
-          {/* Indicador de loading */}
+          {/* Loading indicator */}
           {loading && (
             <View className="self-start mb-3 bg-dark-800 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3">
               <ActivityIndicator size="small" color="#14b8a6" />
