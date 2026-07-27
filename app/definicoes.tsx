@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ScrollView, View, Text, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useAuthStore } from '../stores/authStore'
 import { usePlan, PLAN_NAMES, PLAN_COLORS } from '../hooks/usePlan'
 import { supabase } from '../lib/supabase'
 import StepperInput from '../components/ui/StepperInput'
+import i18n, { changeAppLanguage } from '../lib/i18n'
+import { CURRENCIES, getSavedCurrency, saveUserCurrency, type SupportedCurrency } from '../lib/currencies'
+import { usePreferencesStore } from '../stores/preferencesStore'
 
 type InvestorType = 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE' | 'SPECULATIVE'
 type InvestGoal   = 'RETIREMENT' | 'WEALTH' | 'INCOME' | 'EDUCATION' | 'EMERGENCY' | 'OTHER'
@@ -34,6 +38,24 @@ const HORIZONS: { key: TimeHorizon; label: string; sub: string }[] = [
   { key: 'LONG',   label: 'Longo',  sub: '> 7 anos' },
 ]
 
+const LANGUAGES = [
+  { code: 'pt' as const, label: 'Português', flag: '🇵🇹' },
+  { code: 'en' as const, label: 'English',   flag: '🇬🇧' },
+  { code: 'es' as const, label: 'Español',   flag: '🇪🇸' },
+]
+
+const COUNTRIES = [
+  { code: 'PT', label: 'Portugal 🇵🇹' },
+  { code: 'ES', label: 'España 🇪🇸' },
+  { code: 'GB', label: 'United Kingdom 🇬🇧' },
+  { code: 'US', label: 'United States 🇺🇸' },
+  { code: 'CH', label: 'Switzerland 🇨🇭' },
+  { code: 'AO', label: 'Angola 🇦🇴' },
+  { code: 'BR', label: 'Brasil 🇧🇷' },
+]
+
+const COUNTRY_KEY = '@deskmint_user_country'
+
 // ── Ecrã ────────────────────────────────────────────────────────────────────
 
 export default function DefinicoesScreen() {
@@ -52,6 +74,33 @@ export default function DefinicoesScreen() {
   )
   const [saving,        setSaving]        = useState(false)
   const [success,       setSuccess]       = useState(false)
+  const [currentLang,   setCurrentLang]   = useState<'pt' | 'en' | 'es'>('pt')
+  const [currency,      setCurrencyLocal] = useState<SupportedCurrency>('EUR')
+  const [country,       setCountry]       = useState('PT')
+
+  const setCurrencyStore = usePreferencesStore((s) => s.setCurrency)
+
+  useEffect(() => {
+    setCurrentLang((i18n.language as 'pt' | 'en' | 'es') || 'pt')
+    getSavedCurrency().then(setCurrencyLocal)
+    AsyncStorage.getItem(COUNTRY_KEY).then((c) => { if (c) setCountry(c) })
+  }, [])
+
+  async function handleLangChange(lang: 'pt' | 'en' | 'es') {
+    await changeAppLanguage(lang)
+    setCurrentLang(lang)
+  }
+
+  async function handleCurrencyChange(c: SupportedCurrency) {
+    await saveUserCurrency(c)
+    setCurrencyLocal(c)
+    setCurrencyStore(c)
+  }
+
+  async function handleCountryChange(code: string) {
+    await AsyncStorage.setItem(COUNTRY_KEY, code)
+    setCountry(code)
+  }
 
   const soma    = needs + wants + savings
   const somaOk  = soma === 100
@@ -293,6 +342,93 @@ export default function DefinicoesScreen() {
             </Text>
           )}
         </TouchableOpacity>
+
+        {/* ── Língua & Moeda ─────────────────────────────────────────── */}
+        <View style={{ backgroundColor: '#1e293b', borderRadius: 20, borderWidth: 1, borderColor: '#334155', padding: 20 }}>
+          <Text style={{ color: '#475569', fontSize: 10, fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 14 }}>
+            Língua & Moeda
+          </Text>
+
+          {/* Idioma */}
+          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginBottom: 8 }}>Idioma</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 18 }}>
+            {LANGUAGES.map((l) => {
+              const active = currentLang === l.code
+              return (
+                <TouchableOpacity
+                  key={l.code}
+                  onPress={() => handleLangChange(l.code)}
+                  activeOpacity={0.75}
+                  style={{
+                    flex: 1, alignItems: 'center', paddingVertical: 10,
+                    borderRadius: 10, borderWidth: 1.5,
+                    borderColor: active ? '#14b8a6' : '#334155',
+                    backgroundColor: active ? '#14b8a618' : 'transparent',
+                  }}
+                >
+                  <Text style={{ fontSize: 18, marginBottom: 2 }}>{l.flag}</Text>
+                  <Text style={{ color: active ? '#14b8a6' : '#64748b', fontSize: 11, fontWeight: active ? '700' : '500' }}>
+                    {l.label}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+
+          {/* Moeda */}
+          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginBottom: 8 }}>Moeda Principal</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+            {Object.values(CURRENCIES).map((c) => {
+              const active = currency === c.code
+              return (
+                <TouchableOpacity
+                  key={c.code}
+                  onPress={() => handleCurrencyChange(c.code)}
+                  activeOpacity={0.75}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', gap: 6,
+                    paddingHorizontal: 12, paddingVertical: 8,
+                    borderRadius: 10, borderWidth: 1.5,
+                    borderColor: active ? '#f59e0b' : '#334155',
+                    backgroundColor: active ? '#f59e0b18' : 'transparent',
+                  }}
+                >
+                  <Text style={{ color: active ? '#f59e0b' : '#475569', fontSize: 13, fontWeight: '700' }}>
+                    {c.symbol}
+                  </Text>
+                  <Text style={{ color: active ? '#f59e0b' : '#64748b', fontSize: 12, fontWeight: active ? '700' : '500' }}>
+                    {c.code}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+
+          {/* País */}
+          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginBottom: 8 }}>País de Residência</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {COUNTRIES.map((c) => {
+              const active = country === c.code
+              return (
+                <TouchableOpacity
+                  key={c.code}
+                  onPress={() => handleCountryChange(c.code)}
+                  activeOpacity={0.75}
+                  style={{
+                    paddingHorizontal: 12, paddingVertical: 8,
+                    borderRadius: 10, borderWidth: 1.5,
+                    borderColor: active ? '#8b5cf6' : '#334155',
+                    backgroundColor: active ? '#8b5cf618' : 'transparent',
+                  }}
+                >
+                  <Text style={{ color: active ? '#8b5cf6' : '#64748b', fontSize: 12, fontWeight: active ? '700' : '500' }}>
+                    {c.label}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </View>
 
         {/* ── Conta ─────────────────────────────────────────────────── */}
         <View style={{ backgroundColor: '#1e293b', borderRadius: 20, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' }}>

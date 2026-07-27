@@ -1,4 +1,5 @@
 import '../global.css'
+import '../lib/i18n'
 import { useEffect } from 'react'
 import { StyleSheet } from 'react-native'
 import { Stack, router } from 'expo-router'
@@ -12,11 +13,16 @@ import { StatusBar } from 'expo-status-bar'
 import { queryClient } from '../lib/queryClient'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
+import { getSavedCurrency } from '../lib/currencies'
+import { usePreferencesStore } from '../stores/preferencesStore'
 
 export default function RootLayout() {
   const { setSession, setProfile, setLoading } = useAuthStore()
 
   useEffect(() => {
+    // ── Preferências locais ───────────────────────────────────────────────
+    getSavedCurrency().then((c) => usePreferencesStore.getState().setCurrency(c))
+
     // ── Sessão inicial ────────────────────────────────────────────────────
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
