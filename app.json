@@ -19,6 +19,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.deskmint.app",
+      "versionCode": 3,
       "permissions": [
         "INTERNET"
       ]
