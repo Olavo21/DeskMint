@@ -81,20 +81,40 @@ export default function DefinicoesScreen() {
   const setCurrencyStore = usePreferencesStore((s) => s.setCurrency)
 
   useEffect(() => {
-    setCurrentLang((i18n.language as 'pt' | 'en' | 'es') || 'pt')
-    getSavedCurrency().then(setCurrencyLocal)
+    // Supabase profile é a fonte de verdade cross-device; AsyncStorage é o fallback offline
+    const profileLang = (profile as any)?.language as 'pt' | 'en' | 'es' | undefined
+    const profileCurrency = (profile as any)?.currency as SupportedCurrency | undefined
+    if (profileLang) {
+      changeAppLanguage(profileLang)
+      setCurrentLang(profileLang)
+    } else {
+      setCurrentLang((i18n.language as 'pt' | 'en' | 'es') || 'pt')
+    }
+    if (profileCurrency) {
+      saveUserCurrency(profileCurrency)
+      setCurrencyLocal(profileCurrency)
+      setCurrencyStore(profileCurrency)
+    } else {
+      getSavedCurrency().then((c) => { setCurrencyLocal(c); setCurrencyStore(c) })
+    }
     AsyncStorage.getItem(COUNTRY_KEY).then((c) => { if (c) setCountry(c) })
   }, [])
 
   async function handleLangChange(lang: 'pt' | 'en' | 'es') {
     await changeAppLanguage(lang)
     setCurrentLang(lang)
+    if (profile) {
+      supabase.from('dm_profiles').update({ language: lang }).eq('id', profile.id)
+    }
   }
 
   async function handleCurrencyChange(c: SupportedCurrency) {
     await saveUserCurrency(c)
     setCurrencyLocal(c)
     setCurrencyStore(c)
+    if (profile) {
+      supabase.from('dm_profiles').update({ currency: c }).eq('id', profile.id)
+    }
   }
 
   async function handleCountryChange(code: string) {

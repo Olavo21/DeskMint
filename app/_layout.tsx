@@ -13,8 +13,9 @@ import { StatusBar } from 'expo-status-bar'
 import { queryClient } from '../lib/queryClient'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
-import { getSavedCurrency } from '../lib/currencies'
+import { getSavedCurrency, saveUserCurrency, type SupportedCurrency } from '../lib/currencies'
 import { usePreferencesStore } from '../stores/preferencesStore'
+import { changeAppLanguage } from '../lib/i18n'
 
 export default function RootLayout() {
   const { setSession, setProfile, setLoading } = useAuthStore()
@@ -58,6 +59,14 @@ export default function RootLayout() {
       .single()
     if (data) {
       setProfile(data)
+      // Sincroniza preferências de idioma e moeda do perfil Supabase
+      const lang = (data as any).language as 'pt' | 'en' | 'es' | undefined
+      const curr = (data as any).currency as SupportedCurrency | undefined
+      if (lang) changeAppLanguage(lang)
+      if (curr) {
+        saveUserCurrency(curr)
+        usePreferencesStore.getState().setCurrency(curr)
+      }
       router.replace(data.onboarding_done ? '/(tabs)' : '/(auth)/onboarding' as any)
     } else {
       router.replace('/(auth)/onboarding' as any)
