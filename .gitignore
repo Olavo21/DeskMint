@@ -49,3 +49,16 @@ build.log
 # generated native folders
 /ios
 /android
+
+# Build artifacts
+*.aab
+*.apk
+
+# Supabase CLI temp
+supabase/.temp/
+
+# Play Store screenshots (keep locally, not in repo)
+screenshots/
+
+# Test/debug files
+*.mhtml
