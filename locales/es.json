@@ -15,7 +15,8 @@
     "no": "No",
     "saveError": "No se pudo guardar. Inténtalo de nuevo.",
     "totalValue": "Valor Total",
-    "noData": "Sin datos disponibles"
+    "noData": "Sin datos disponibles",
+    "done": "Concluir"
   },
   "navigation": {
     "dashboard": "Inicio",
@@ -78,7 +79,21 @@
     "deleteExpenseConfirm": "¿Seguro que quieres eliminar \"{{name}}\"?",
     "deleteIncome": "Eliminar ingreso",
     "deleteIncomeConfirm": "¿Seguro que quieres eliminar \"{{name}}\"?",
-    "addIncome": "Añadir ingreso"
+    "addIncome": "Añadir ingreso",
+    "netIncome": "Ingresos Netos",
+    "available": "Disponible",
+    "variableExpenses": "Gastos Variables",
+    "recurringExpenses": "Gastos Recurrentes ({{count}})",
+    "savingsInvestment": "Ahorro & Inversión",
+    "savingsRate": "Tasa de ahorro: {{rate}}%",
+    "noGoals": "Sin objetivos todavía",
+    "noGoalsSub": "Crea tu primer objetivo y empieza a ahorrar para lo que más importa.",
+    "createGoal": "Crear Objetivo",
+    "perMonth": "/ mes",
+    "removeRecurrence": "Eliminar recurrencia",
+    "removeRecurrenceMsg": "\"{{name}}\" dejará de crearse automáticamente. Los gastos ya registrados no se eliminarán.",
+    "remove": "Eliminar",
+    "new": "Nueva"
   },
   "investments": {
     "title": "Inversiones",
@@ -92,6 +107,7 @@
     "totalValue": "Valor Total",
     "editAssets": "Editar Activos",
     "noAssets": "Sin activos en la cartera",
+    "portfolio": "Cartera",
     "byType": "Por Tipo",
     "bySector": "Por Sector",
     "sectorNote": "El sector se deriva automáticamente del ticker. Los ETFs de mercado amplio (VWCE, IWDA, etc.) aparecen en \"Diversificado\".",
@@ -117,7 +133,7 @@
   },
   "assistant": {
     "title": "Asistente de Inversiones",
-    "subtitle": "Pregúntame sobre tu cartera, diversificación o noticias de tus activos.",
+    "subtitle": "Pregúntame sobre tu cartera, proyecciones, diversificación o fiscalidad.",
     "label": "Asistente",
     "inputPlaceholder": "Escribe una pregunta...",
     "quickQuestions": {

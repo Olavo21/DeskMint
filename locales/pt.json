@@ -15,7 +15,8 @@
     "no": "Não",
     "saveError": "Não foi possível guardar. Tenta novamente.",
     "totalValue": "Valor Total",
-    "noData": "Sem dados disponíveis"
+    "noData": "Sem dados disponíveis",
+    "done": "Concluir"
   },
   "navigation": {
     "dashboard": "Início",
@@ -78,7 +79,21 @@
     "deleteExpenseConfirm": "Tens a certeza que queres eliminar \"{{name}}\"?",
     "deleteIncome": "Eliminar rendimento",
     "deleteIncomeConfirm": "Tens a certeza que queres eliminar \"{{name}}\"?",
-    "addIncome": "Adicionar rendimento"
+    "addIncome": "Adicionar rendimento",
+    "netIncome": "Rendimento Líquido",
+    "available": "Disponível",
+    "variableExpenses": "Despesas Variáveis",
+    "recurringExpenses": "Despesas Recorrentes ({{count}})",
+    "savingsInvestment": "Poupança & Investimento",
+    "savingsRate": "Taxa de poupança: {{rate}}%",
+    "noGoals": "Sem objetivos ainda",
+    "noGoalsSub": "Cria o teu primeiro objetivo e começa a poupar para o que mais importa.",
+    "createGoal": "Criar Objetivo",
+    "perMonth": "/ mês",
+    "removeRecurrence": "Remover recorrência",
+    "removeRecurrenceMsg": "\"{{name}}\" deixa de ser criada automaticamente. As despesas já lançadas não são apagadas.",
+    "remove": "Remover",
+    "new": "Nova"
   },
   "investments": {
     "title": "Investimentos",
@@ -92,6 +107,7 @@
     "totalValue": "Valor Total",
     "editAssets": "Editar Ativos",
     "noAssets": "Sem ativos no portfolio",
+    "portfolio": "Portfolio",
     "byType": "Por Tipo",
     "bySector": "Por Setor",
     "sectorNote": "O setor é derivado automaticamente do ticker. ETFs de mercado amplo (VWCE, IWDA, etc.) aparecem em \"Diversificado\".",
@@ -117,7 +133,7 @@
   },
   "assistant": {
     "title": "Assistente de Investimentos",
-    "subtitle": "Pergunta-me sobre a tua carteira, diversificação ou notícias dos teus ativos.",
+    "subtitle": "Pergunta-me sobre a tua carteira, projeções, diversificação ou fiscalidade.",
     "label": "Assistente",
     "inputPlaceholder": "Escreve uma pergunta...",
     "quickQuestions": {

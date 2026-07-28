@@ -19,6 +19,7 @@ import BucketCard from '../../components/savings/BucketCard'
 import { getExpenseEmoji } from '../../lib/expenseEmoji'
 import { confirmDestructive } from '../../lib/confirmDialog'
 import { useFmt } from '../../utils/format'
+import { useTranslation } from 'react-i18next'
 
 const REAL_TODAY = new Date()
 const REAL_MONTH = REAL_TODAY.getMonth() + 1
@@ -46,7 +47,8 @@ function ExpenseRow({
   e, editMode, isEditing, deletingId,
   onStartEdit, onSaveEdit, onCancelEdit, onDelete,
 }: ExpenseRowProps) {
-  const fmt = useFmt()
+  const fmt   = useFmt()
+  const { t } = useTranslation()
   const [localDesc, setLocalDesc] = useState(e.description)
   const [localAmt, setLocalAmt] = useState(String(e.amount))
 
@@ -61,9 +63,9 @@ function ExpenseRow({
 
   function handleTrashPress() {
     confirmDestructive(
-      'Eliminar despesa',
-      `Tens a certeza que queres eliminar "${e.description}"?`,
-      'Eliminar',
+      t('budget.deleteExpense'),
+      t('budget.deleteExpenseConfirm', { name: e.description }),
+      t('common.delete'),
       () => onDelete(e.id)
     )
   }
@@ -158,7 +160,8 @@ function ExpenseRow({
 }
 
 export default function OrcamentoScreen() {
-  const fmt = useFmt()
+  const fmt   = useFmt()
+  const { t } = useTranslation()
   const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
   const qc = useQueryClient()
   const { data, isLoading, isFetching, update, remove } = useExpenses(MONTH, YEAR)
@@ -247,7 +250,7 @@ export default function OrcamentoScreen() {
             <Text className="text-dark-400 text-sm capitalize">
               {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
             </Text>
-            <Text className="text-dark-50 text-2xl font-bold">Orçamento</Text>
+            <Text className="text-dark-50 text-2xl font-bold">{t('budget.title')}</Text>
           </View>
           <View className="flex-row gap-2">
             <TouchableOpacity
@@ -256,7 +259,7 @@ export default function OrcamentoScreen() {
             >
               <Ionicons name={editMode ? 'checkmark-done-outline' : 'create-outline'} size={15} color={editMode ? '#14b8a6' : '#94a3b8'} />
               <Text className={`text-xs font-medium ${editMode ? 'text-mint-400' : 'text-dark-400'}`}>
-                {editMode ? 'Concluir' : 'Editar'}
+                {editMode ? t('common.done') : t('common.edit')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -264,7 +267,7 @@ export default function OrcamentoScreen() {
               onPress={() => setShowModal(true)}
             >
               <Ionicons name="add" size={16} color="white" />
-              <Text className="text-dark-50 font-medium text-xs">Nova</Text>
+              <Text className="text-dark-50 font-medium text-xs">{t('budget.new')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -273,7 +276,7 @@ export default function OrcamentoScreen() {
           <>
             {/* Balanço */}
             <View className="bg-mint-100 border border-mint-300 rounded-2xl p-4 mb-4">
-              <Text className="text-mint-700 text-xs mb-1">Rendimento Líquido</Text>
+              <Text className="text-mint-700 text-xs mb-1">{t('budget.netIncome')}</Text>
               {editingSalary ? (
                 <View className="flex-row gap-2 items-center">
                   <TextInput
@@ -302,15 +305,15 @@ export default function OrcamentoScreen() {
               )}
               <View className="flex-row justify-between mt-3">
                 <View>
-                  <Text className="text-dark-300 text-xs">Despesas</Text>
+                  <Text className="text-dark-300 text-xs">{t('dashboard.expensesLabel')}</Text>
                   <Text className="text-red-500 font-semibold">{fmt((data?.totalFixed ?? 0) + (data?.totalVariable ?? 0))}</Text>
                 </View>
                 <View>
-                  <Text className="text-dark-300 text-xs">Poupança</Text>
+                  <Text className="text-dark-300 text-xs">{t('dashboard.savingsLabel')}</Text>
                   <Text className="text-mint-700 font-semibold">{fmt(data?.totalSavings ?? 0)}</Text>
                 </View>
                 <View>
-                  <Text className="text-dark-300 text-xs">Disponível</Text>
+                  <Text className="text-dark-300 text-xs">{t('budget.available')}</Text>
                   <Text className="text-dark-50 font-semibold">
                     {fmt((data?.totalIncome ?? 0) - (data?.totalFixed ?? 0) - (data?.totalVariable ?? 0) - (data?.totalSavings ?? 0))}
                   </Text>
@@ -326,7 +329,7 @@ export default function OrcamentoScreen() {
                   onPress={() => setShowRecurring(!showRecurring)}
                 >
                   <Text className="text-dark-50 font-semibold">
-                    Despesas Recorrentes ({recurring.data!.length})
+                    {t('budget.recurringExpenses', { count: recurring.data!.length })}
                   </Text>
                   <Ionicons name={showRecurring ? 'chevron-up' : 'chevron-down'} size={16} color="#94a3b8" />
                 </TouchableOpacity>
@@ -336,7 +339,7 @@ export default function OrcamentoScreen() {
                       <View key={r.id} className="flex-row items-center justify-between py-2 border-b border-dark-700">
                         <View className="flex-1 mr-2">
                           <Text className="text-dark-200 text-sm">{r.description}</Text>
-                          <Text className="text-dark-500 text-xs">{fmt(r.amount)} / mês</Text>
+                          <Text className="text-dark-500 text-xs">{fmt(r.amount)} {t('budget.perMonth')}</Text>
                         </View>
                         <View className="flex-row items-center gap-3">
                           <Switch
@@ -347,9 +350,9 @@ export default function OrcamentoScreen() {
                           />
                           <TouchableOpacity
                             onPress={() => confirmDestructive(
-                              'Remover recorrência',
-                              `"${r.description}" deixa de ser criada automaticamente. As despesas já lançadas não são apagadas.`,
-                              'Remover',
+                              t('budget.removeRecurrence'),
+                              t('budget.removeRecurrenceMsg', { name: r.description }),
+                              t('budget.remove'),
                               () => recurring.remove.mutate(r.id)
                             )}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -368,7 +371,7 @@ export default function OrcamentoScreen() {
             {(data?.fixed?.length ?? 0) > 0 && (
               <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-dark-50 font-semibold">Despesas Fixas Mensais</Text>
+                  <Text className="text-dark-50 font-semibold">{t('budget.fixedExpenses')}</Text>
                   <Text className="text-red-700 font-semibold">{fmt(data!.totalFixed)}</Text>
                 </View>
                 {data!.fixed.map((e: any) => (
@@ -391,7 +394,7 @@ export default function OrcamentoScreen() {
             {(data?.variable?.length ?? 0) > 0 && (
               <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-dark-50 font-semibold">Despesas Variáveis</Text>
+                  <Text className="text-dark-50 font-semibold">{t('budget.variableExpenses')}</Text>
                   <Text className="text-red-700 font-semibold">{fmt(data!.totalVariable)}</Text>
                 </View>
                 {data!.variable.map((e: any) => (
@@ -414,7 +417,7 @@ export default function OrcamentoScreen() {
             {(data?.savings?.length ?? 0) > 0 && (
               <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                 <View className="flex-row justify-between mb-1">
-                  <Text className="text-dark-50 font-semibold">Poupança & Investimento</Text>
+                  <Text className="text-dark-50 font-semibold">{t('budget.savingsInvestment')}</Text>
                   <Text className="text-mint-800 font-semibold">{fmt(data!.totalSavings)}</Text>
                 </View>
                 {data!.savings.map((e: any) => (
@@ -431,7 +434,7 @@ export default function OrcamentoScreen() {
                   />
                 ))}
                 <Text className="text-dark-400 text-xs mt-3">
-                  Taxa de poupança: {data!.totalIncome > 0 ? ((data!.totalSavings / data!.totalIncome) * 100).toFixed(1) : 0}%
+                  {t('budget.savingsRate', { rate: data!.totalIncome > 0 ? ((data!.totalSavings / data!.totalIncome) * 100).toFixed(1) : 0 })}
                 </Text>
               </View>
             )}
@@ -439,13 +442,13 @@ export default function OrcamentoScreen() {
             {/* Objetivos de Poupança */}
             <View className="mb-8">
               <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-dark-50 font-semibold">Objetivos de Poupança</Text>
+                <Text className="text-dark-50 font-semibold">{t('budget.savingsGoals')}</Text>
                 <TouchableOpacity
                   onPress={() => setShowBucketModal(true)}
                   className="flex-row items-center gap-1 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2"
                 >
                   <Ionicons name="add" size={15} color="#14b8a6" />
-                  <Text style={{ color: '#14b8a6', fontSize: 12, fontWeight: '600' }}>Novo</Text>
+                  <Text style={{ color: '#14b8a6', fontSize: 12, fontWeight: '600' }}>{t('budget.newGoal')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -454,16 +457,16 @@ export default function OrcamentoScreen() {
               ) : (buckets.data?.length ?? 0) === 0 ? (
                 <View className="bg-dark-800 border border-dark-600 border-dashed rounded-2xl p-6 items-center">
                   <Text style={{ fontSize: 32 }}>🎯</Text>
-                  <Text className="text-dark-300 text-sm font-medium mt-2">Sem objetivos ainda</Text>
+                  <Text className="text-dark-300 text-sm font-medium mt-2">{t('budget.noGoals')}</Text>
                   <Text className="text-dark-500 text-xs text-center mt-1">
-                    Cria o teu primeiro objetivo e começa a poupar para o que mais importa.
+                    {t('budget.noGoalsSub')}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setShowBucketModal(true)}
                     className="mt-4 px-5 py-2 rounded-xl"
                     style={{ backgroundColor: '#14b8a6' }}
                   >
-                    <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Criar Objetivo</Text>
+                    <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>{t('budget.createGoal')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -473,9 +476,9 @@ export default function OrcamentoScreen() {
                     bucket={bucket}
                     onAddAmount={(b) => setSelectedBucket(b)}
                     onDelete={(id) => confirmDestructive(
-                      'Eliminar objetivo',
+                      t('budget.savingsGoals'),
                       'Tens a certeza? O progresso guardado será perdido.',
-                      'Eliminar',
+                      t('common.delete'),
                       () => buckets.remove.mutate(id)
                     )}
                   />

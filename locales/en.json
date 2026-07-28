@@ -15,7 +15,8 @@
     "no": "No",
     "saveError": "Could not save. Please try again.",
     "totalValue": "Total Value",
-    "noData": "No data available"
+    "noData": "No data available",
+    "done": "Done"
   },
   "navigation": {
     "dashboard": "Home",
@@ -78,7 +79,21 @@
     "deleteExpenseConfirm": "Are you sure you want to delete \"{{name}}\"?",
     "deleteIncome": "Delete income",
     "deleteIncomeConfirm": "Are you sure you want to delete \"{{name}}\"?",
-    "addIncome": "Add income"
+    "addIncome": "Add income",
+    "netIncome": "Net Income",
+    "available": "Available",
+    "variableExpenses": "Variable Expenses",
+    "recurringExpenses": "Recurring Expenses ({{count}})",
+    "savingsInvestment": "Savings & Investment",
+    "savingsRate": "Savings rate: {{rate}}%",
+    "noGoals": "No goals yet",
+    "noGoalsSub": "Create your first goal and start saving for what matters most.",
+    "createGoal": "Create Goal",
+    "perMonth": "/ month",
+    "removeRecurrence": "Remove recurrence",
+    "removeRecurrenceMsg": "\"{{name}}\" will no longer be created automatically. Existing expenses are not deleted.",
+    "remove": "Remove",
+    "new": "New"
   },
   "investments": {
     "title": "Investments",
@@ -92,6 +107,7 @@
     "totalValue": "Total Value",
     "editAssets": "Edit Assets",
     "noAssets": "No assets in portfolio",
+    "portfolio": "Portfolio",
     "byType": "By Type",
     "bySector": "By Sector",
     "sectorNote": "Sector is derived automatically from the ticker. Broad-market ETFs (VWCE, IWDA, etc.) appear under \"Diversified\".",
@@ -117,7 +133,7 @@
   },
   "assistant": {
     "title": "Investment Assistant",
-    "subtitle": "Ask me about your portfolio, diversification, or asset news.",
+    "subtitle": "Ask me about your portfolio, projections, diversification or tax.",
     "label": "Assistant",
     "inputPlaceholder": "Type a question...",
     "quickQuestions": {

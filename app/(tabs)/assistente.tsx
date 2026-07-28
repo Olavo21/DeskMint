@@ -7,35 +7,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuthStore } from '../../stores/authStore'
+import { useTranslation } from 'react-i18next'
 
 type Message = { role: 'user' | 'assistant'; text: string }
 
 const QUICK_ACTIONS = [
-  {
-    label: 'Quanto investi e qual é o valor atual?',
-    icon: 'wallet-outline',
-  },
-  {
-    label: 'Qual é a minha melhor e pior posição?',
-    icon: 'trending-up-outline',
-  },
-  {
-    label: 'Como está dividida a minha carteira?',
-    icon: 'pie-chart-outline',
-  },
-  {
-    label: 'Se mantiver este ritmo, quanto terei daqui a 5 anos?',
-    icon: 'rocket-outline',
-  },
-  {
-    label: 'Qual seria o meu imposto se vendesse tudo hoje?',
-    icon: 'receipt-outline',
-  },
-  {
-    label: 'Quanto preciso de investir por mês para atingir 100 000€?',
-    icon: 'calculator-outline',
-  },
-]
+  { key: 'invested',    icon: 'wallet-outline'      },
+  { key: 'performers',  icon: 'trending-up-outline'  },
+  { key: 'allocation',  icon: 'pie-chart-outline'    },
+  { key: 'projection',  icon: 'rocket-outline'       },
+  { key: 'tax',         icon: 'receipt-outline'      },
+  { key: 'goal',        icon: 'calculator-outline'   },
+] as const
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!
 
@@ -154,7 +137,8 @@ function MarkdownText({ text }: { text: string }) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function AssistenteScreen() {
-  const session = useAuthStore((s) => s.session)
+  const session   = useAuthStore((s) => s.session)
+  const { t }     = useTranslation()
   const [messages, setMessages] = useState<Message[]>([])
   const [history, setHistory] = useState<object[]>([])
   const [input, setInput] = useState('')
@@ -235,24 +219,27 @@ export default function AssistenteScreen() {
                 <Ionicons name="sparkles" size={28} color="#14b8a6" />
               </View>
               <Text className="text-dark-200 text-lg font-semibold mb-1">
-                Assistente de Investimentos
+                {t('assistant.title')}
               </Text>
               <Text className="text-dark-400 text-sm text-center px-6">
-                Pergunta-me sobre a tua carteira, projeções, diversificação ou fiscalidade.
+                {t('assistant.subtitle')}
               </Text>
 
               <View className="mt-6 w-full gap-2">
-                {QUICK_ACTIONS.map((a) => (
-                  <TouchableOpacity
-                    key={a.label}
-                    onPress={() => send(a.label)}
-                    className="flex-row items-center gap-3 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3"
-                  >
-                    <Ionicons name={a.icon as 'wallet-outline'} size={16} color="#14b8a6" />
-                    <Text className="text-dark-300 text-sm flex-1">{a.label}</Text>
-                    <Ionicons name="chevron-forward" size={14} color="#334155" />
-                  </TouchableOpacity>
-                ))}
+                {QUICK_ACTIONS.map((a) => {
+                  const label = t(`assistant.quickQuestions.${a.key}`)
+                  return (
+                    <TouchableOpacity
+                      key={a.key}
+                      onPress={() => send(label)}
+                      className="flex-row items-center gap-3 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3"
+                    >
+                      <Ionicons name={a.icon as 'wallet-outline'} size={16} color="#14b8a6" />
+                      <Text className="text-dark-300 text-sm flex-1">{label}</Text>
+                      <Ionicons name="chevron-forward" size={14} color="#334155" />
+                    </TouchableOpacity>
+                  )
+                })}
               </View>
             </View>
           )}
@@ -266,7 +253,7 @@ export default function AssistenteScreen() {
               {m.role === 'assistant' && (
                 <View className="flex-row items-center gap-1 mb-1">
                   <Ionicons name="sparkles" size={12} color="#14b8a6" />
-                  <Text className="text-teal-400 text-xs font-medium">Assistente</Text>
+                  <Text className="text-teal-400 text-xs font-medium">{t('assistant.label')}</Text>
                 </View>
               )}
               <View
@@ -300,7 +287,7 @@ export default function AssistenteScreen() {
               value={input}
               onChangeText={setInput}
               onSubmitEditing={() => send(input)}
-              placeholder="Escreve uma pergunta..."
+              placeholder={t('assistant.inputPlaceholder')}
               placeholderTextColor="#475569"
               multiline
               returnKeyType="send"

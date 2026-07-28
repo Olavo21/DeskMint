@@ -22,6 +22,7 @@ import QuickAddFab from '../../components/budget/QuickAddFab'
 import QuickstartChecklist from '../../components/quickstart/QuickstartChecklist'
 import type { DmAsset, DmCredit, DmProfile } from '../../types/database'
 import { computeProjection, RATE_BY_INVESTOR_TYPE, YEARS_BY_HORIZON, GOAL_PHRASE } from '../../lib/projection'
+import { useTranslation } from 'react-i18next'
 
 type AssetWithLiveDebt = DmAsset & { effectiveDebt: number; linkedCredit?: DmCredit }
 
@@ -70,21 +71,22 @@ function NetWorthBanner({ label, value }: { label: string; value: string }) {
 }
 
 function DashboardError({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation()
   return (
     <View className="items-center justify-center mt-20 px-6">
       <Ionicons name="cloud-offline-outline" size={48} color="#94a3b8" />
       <Text className="text-dark-50 text-base font-semibold mt-4 text-center">
-        Não foi possível carregar os teus dados financeiros
+        {t('dashboard.noConnection')}
       </Text>
       <Text className="text-dark-400 text-sm mt-1 text-center">
-        Verifica a tua ligação à internet e tenta novamente.
+        {t('dashboard.checkConnection')}
       </Text>
       <TouchableOpacity
         onPress={onRetry}
         className="bg-mint-600 rounded-xl px-5 py-3 mt-5 flex-row items-center gap-2"
       >
         <Ionicons name="refresh" size={16} color="white" />
-        <Text className="text-white font-semibold text-sm">Tentar Novamente</Text>
+        <Text className="text-white font-semibold text-sm">{t('common.retry')}</Text>
       </TouchableOpacity>
     </View>
   )
@@ -102,6 +104,7 @@ function KpiCard({ label, value, sub, valueColor }: { label: string; value: stri
 
 function EmergencyCard({ atual, despesaMensal }: { atual: number; despesaMensal: number }) {
   const fmt         = useFmt()
+  const { t }       = useTranslation()
   const safeDespesa = despesaMensal > 50 ? despesaMensal : 1000
   const alvo        = safeDespesa * 6
   const progress    = alvo > 0 ? Math.min(atual / alvo, 1) : 0
@@ -117,7 +120,7 @@ function EmergencyCard({ atual, despesaMensal }: { atual: number; despesaMensal:
           <Ionicons name="shield-checkmark-outline" size={14} color="#14b8a6" />
         </View>
         <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-          Emergência
+          {t('dashboard.emergencyCard')}
         </Text>
       </View>
 
@@ -128,10 +131,10 @@ function EmergencyCard({ atual, despesaMensal }: { atual: number; despesaMensal:
 
       {/* Linhas secundárias discretas */}
       <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4 }}>
-        {isOk ? 'Objetivo atingido ✓' : `Faltam ${fmt(faltam)}`}
+        {isOk ? t('dashboard.goalReached') : t('dashboard.remaining', { amount: fmt(faltam) })}
       </Text>
       <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 1 }}>
-        Alvo {fmt(alvo)}
+        {t('dashboard.targetLabel', { amount: fmt(alvo) })}
       </Text>
 
       {/* Barra em fluxo normal — sem position absolute */}
@@ -167,11 +170,13 @@ function NetWorthChart({ points }: { points: NetWorthPoint[] }) {
   const LINE_H  = H - LABEL_H
   const PAD_T   = 8
 
+  const { t } = useTranslation()
+
   if (points.length < 2) {
     return (
       <View style={{ alignItems: 'center', paddingVertical: 18, gap: 6, opacity: 0.45 }}>
         <Ionicons name="trending-up-outline" size={20} color="#64748b" />
-        <Text style={{ color: '#64748b', fontSize: 11 }}>Histórico em construção</Text>
+        <Text style={{ color: '#64748b', fontSize: 11 }}>{t('dashboard.historyBuilding')}</Text>
       </View>
     )
   }
@@ -272,6 +277,7 @@ function AssetRow({
   asset, editMode, isEditing, credits, canLinkCreditToAsset,
   onStartEdit, onSaveEdit, onCancelEdit, onLinkCredit, fmt,
 }: AssetRowProps) {
+  const { t } = useTranslation()
   const [localName, setLocalName] = useState(asset.name)
   const [localValue, setLocalValue] = useState(String(asset.value))
   const [localDebt, setLocalDebt] = useState(String(asset.debt))
@@ -317,7 +323,7 @@ function AssetRow({
           />
           {isLinked ? (
             <View className="flex-1 bg-dark-700 rounded-lg px-3 py-2 border border-dark-600 justify-center">
-              <Text className="text-dark-400 text-xs" numberOfLines={1}>Dívida (automática)</Text>
+              <Text className="text-dark-400 text-xs" numberOfLines={1}>{t('dashboard.debtAutomatic')}</Text>
             </View>
           ) : (
             <TextInput
@@ -356,7 +362,7 @@ function AssetRow({
         {isLinked ? (
           <View className="flex-row items-center gap-1.5 bg-mint-900/40 rounded-lg px-2.5 py-1.5 self-start">
             <Ionicons name="link" size={12} color="#2dd4bf" />
-            <Text className="text-mint-800 text-xs">Vinculado a "{asset.linkedCredit!.name}"</Text>
+            <Text className="text-mint-800 text-xs">{t('dashboard.linkedTo', { name: asset.linkedCredit!.name })}</Text>
             <TouchableOpacity onPress={() => onLinkCredit(asset.id, null)} hitSlop={8} className="ml-1">
               <Ionicons name="close-circle" size={14} color="#2dd4bf" />
             </TouchableOpacity>
@@ -369,8 +375,8 @@ function AssetRow({
                 onPress={() => {
                   if (!canLinkCreditToAsset) {
                     Alert.alert(
-                      'Disponível no plano Pro',
-                      'Vincular créditos a ativos é uma funcionalidade Pro. Faz upgrade para a desbloquear.'
+                      t('dashboard.proFeature'),
+                      t('dashboard.proFeatureDesc')
                     )
                     return
                   }
@@ -380,7 +386,7 @@ function AssetRow({
                 style={{ opacity: canLinkCreditToAsset ? 1 : 0.5 }}
               >
                 <Ionicons name={canLinkCreditToAsset ? 'link-outline' : 'lock-closed-outline'} size={12} color="#94a3b8" />
-                <Text className="text-dark-400 text-xs">Vincular a "{c.name}"</Text>
+                <Text className="text-dark-400 text-xs">{t('dashboard.linkTo', { name: c.name })}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -415,9 +421,11 @@ function AssetRow({
   )
 }
 
-const INVESTOR_LABELS: Record<string, string> = {
-  CONSERVATIVE: 'Conservador', MODERATE: 'Moderado',
-  AGGRESSIVE:   'Agressivo',   SPECULATIVE: 'Especulativo',
+const INVESTOR_TYPE_KEYS: Record<string, string> = {
+  CONSERVATIVE: 'investorTypes.conservative',
+  MODERATE:     'investorTypes.moderate',
+  AGGRESSIVE:   'investorTypes.aggressive',
+  SPECULATIVE:  'investorTypes.speculative',
 }
 const GOAL_EMOJI: Record<string, string> = {
   RETIREMENT: '🏖️', WEALTH: '💎', INCOME: '💰',
@@ -426,6 +434,7 @@ const GOAL_EMOJI: Record<string, string> = {
 
 function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmProfile | null }) {
   const fmt   = useFmt()
+  const { t } = useTranslation()
   const rate  = profile?.investor_type ? RATE_BY_INVESTOR_TYPE[profile.investor_type] ?? null : null
   const years = profile?.time_horizon  ? YEARS_BY_HORIZON[profile.time_horizon]       ?? null : null
   const pmt   = profile?.monthly_invest ?? null
@@ -441,11 +450,11 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
           </View>
           <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600',
                          letterSpacing: 0.5, textTransform: 'uppercase' }}>
-            Projeção de Longo Prazo
+            {t('dashboard.projection')}
           </Text>
         </View>
         <Text style={{ color: '#94a3b8', fontSize: 13, lineHeight: 19, marginBottom: 12 }}>
-          Completa o teu perfil de investidor para veres a projeção personalizada.
+          {t('dashboard.projectionEmpty')}
         </Text>
         <TouchableOpacity
           onPress={() => router.push('/definicoes')}
@@ -455,7 +464,7 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
                    paddingHorizontal: 12, paddingVertical: 7,
                    borderWidth: 1, borderColor: '#14b8a630' }}
         >
-          <Text style={{ color: '#0d9488', fontSize: 12, fontWeight: '600' }}>Completar perfil</Text>
+          <Text style={{ color: '#0d9488', fontSize: 12, fontWeight: '600' }}>{t('dashboard.completeProfile')}</Text>
           <Ionicons name="arrow-forward" size={13} color="#0d9488" />
         </TouchableOpacity>
       </View>
@@ -464,7 +473,7 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
 
   // ── Cálculo ───────────────────────────────────────────────────────────────
   const result = computeProjection({ currentNetWorth: netWorth, monthlyInvest: pmt, annualRate: rate, years })
-  const investorLabel = INVESTOR_LABELS[profile!.investor_type!] ?? ''
+  const investorLabel = t(INVESTOR_TYPE_KEYS[profile!.investor_type!] ?? 'investorTypes.moderate')
   const rateLabel     = `${(rate * 100).toFixed(0)}% ao ano`
   const yearsLabel    = `${years} anos`
   const goalKey       = profile!.invest_goal ?? 'OTHER'
@@ -482,7 +491,7 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
         </View>
         <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600',
                        letterSpacing: 0.5, textTransform: 'uppercase' }}>
-          Projeção de Longo Prazo
+          {t('dashboard.projection')}
         </Text>
       </View>
       <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 14 }}>
@@ -491,7 +500,7 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
 
       {/* Valor final */}
       <Text style={{ color: '#64748b', fontSize: 12, marginBottom: 2 }}>
-        Em {yearsLabel} terás:
+        {t('dashboard.inYears', { years })}
       </Text>
       <Text style={{ color: '#0f172a', fontSize: 32, fontWeight: '800',
                      letterSpacing: -0.5, marginBottom: 16 }}>
@@ -506,7 +515,7 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '600',
                          textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 }}>
-            Total Investido
+            {t('dashboard.totalInvested')}
           </Text>
           <Text style={{ color: '#334155', fontSize: 15, fontWeight: '700' }}>
             {fmt(result.totalInvested)}
@@ -516,7 +525,7 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '600',
                          textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 }}>
-            Juros Ganhos
+            {t('dashboard.interestEarned')}
           </Text>
           <Text style={{ color: '#0d9488', fontSize: 15, fontWeight: '700' }}>
             {fmt(result.interestGained)}
@@ -608,7 +617,8 @@ export default function DashboardScreen() {
     }, [qc])
   )
 
-  const fmt = useFmt()
+  const fmt   = useFmt()
+  const { t } = useTranslation()
   const pct = (n: number) => `${(n * 100).toFixed(1)}%`
   const lazerAmt = data?.lazerAmt ?? 0
   const lazerPct = data?.lazerPct ?? 0
@@ -626,7 +636,7 @@ export default function DashboardScreen() {
           <Text className="text-dark-400 text-sm capitalize">
             {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
           </Text>
-          <Text className="text-dark-50 text-2xl font-bold">Dashboard</Text>
+          <Text className="text-dark-50 text-2xl font-bold">{t('dashboard.title')}</Text>
         </View>
 
         <QuickstartChecklist />
@@ -638,7 +648,7 @@ export default function DashboardScreen() {
         ) : (
           <>
             {/* Património Líquido + gráfico de evolução */}
-            <NetWorthBanner label="Património Líquido" value={fmt(data?.netWorth ?? 0)} />
+            <NetWorthBanner label={t('dashboard.netWorth')} value={fmt(data?.netWorth ?? 0)} />
             <NetWorthChart points={nwHistory} />
 
             {/* Projeção de Longo Prazo */}
@@ -647,13 +657,13 @@ export default function DashboardScreen() {
             {/* ── Grelha 2×2 ─────────────────────────────────────────── */}
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
               <MiniCard
-                label="Saldo Disponível" value={fmt(data?.availableBalance ?? 0)}
-                sub="receitas − despesas" icon="wallet-outline" color="#0d9488"
+                label={t('dashboard.availableBalance')} value={fmt(data?.availableBalance ?? 0)}
+                sub={t('dashboard.incomeMinus')} icon="wallet-outline" color="#0d9488"
                 onPress={() => router.push('/(tabs)/orcamento')}
               />
               <MiniCard
-                label="Total Investido" value={fmt(data?.portfolioValue ?? 0)}
-                sub="ETFs, ações e cripto" icon="trending-up-outline" color="#2563eb"
+                label={t('dashboard.totalInvested')} value={fmt(data?.portfolioValue ?? 0)}
+                sub={t('dashboard.etfStocksCrypto')} icon="trending-up-outline" color="#2563eb"
                 onPress={() => router.push('/(tabs)/investimentos')}
               />
             </View>
@@ -663,8 +673,8 @@ export default function DashboardScreen() {
                 despesaMensal={data?.expenses ?? 0}
               />
               <MiniCard
-                label="Total em Dívida" value={fmt(data?.totalCreditDebt ?? 0)}
-                sub="passivos e créditos" icon="card-outline" color="#dc2626"
+                label={t('dashboard.totalDebt')} value={fmt(data?.totalCreditDebt ?? 0)}
+                sub={t('dashboard.liabilities')} icon="card-outline" color="#dc2626"
                 onPress={() => router.push('/(tabs)/creditos')}
               />
             </View>
@@ -674,7 +684,7 @@ export default function DashboardScreen() {
               onPress={() => setDetailsExpanded(!detailsExpanded)}
             >
               <Text className="text-dark-400 text-sm font-medium">
-                {detailsExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
+                {detailsExpanded ? t('dashboard.hideDetails') : t('dashboard.viewDetails')}
               </Text>
               <Ionicons name={detailsExpanded ? 'chevron-up' : 'chevron-down'} size={14} color="#94a3b8" />
             </TouchableOpacity>
@@ -683,34 +693,34 @@ export default function DashboardScreen() {
               <>
                 {/* KPIs */}
                 <View className="flex-row gap-3 mb-3">
-                  <KpiCard label="Rendimento" value={fmt(data?.income ?? 0)} />
-                  <KpiCard label="Despesas" value={fmt(data?.expenses ?? 0)} />
+                  <KpiCard label={t('dashboard.incomeLabel')} value={fmt(data?.income ?? 0)} />
+                  <KpiCard label={t('dashboard.expensesLabel')} value={fmt(data?.expenses ?? 0)} />
                 </View>
                 <View className="flex-row gap-3 mb-6">
-                  <KpiCard label="Poupança" value={fmt(data?.savings ?? 0)} sub={pct(data?.savingsRate ?? 0)} />
-                  <KpiCard label="Disponível/Lazer" value={fmt(data?.freeCash ?? 0)} sub="não alocado" />
+                  <KpiCard label={t('dashboard.savingsLabel')} value={fmt(data?.savings ?? 0)} sub={pct(data?.savingsRate ?? 0)} />
+                  <KpiCard label={t('dashboard.leisureLabel')} value={fmt(data?.freeCash ?? 0)} sub="não alocado" />
                 </View>
                 <View className="flex-row gap-3 mb-6">
-                  <KpiCard label="Investido" value={fmt(data?.portfolioValue ?? 0)} valueColor="#0d9488" />
-                  <KpiCard label="Total em Dívida" value={fmt(data?.totalCreditDebt ?? 0)} valueColor="#dc2626" />
+                  <KpiCard label={t('dashboard.investedLabel')} value={fmt(data?.portfolioValue ?? 0)} valueColor="#0d9488" />
+                  <KpiCard label={t('dashboard.totalDebt')} value={fmt(data?.totalCreditDebt ?? 0)} valueColor="#dc2626" />
                 </View>
 
                 {/* Necessidades/Lazer/Poupança — metas personalizadas do utilizador */}
                 {data?.budgetRule && (
                   <View className="bg-dark-800 rounded-2xl p-4 mb-4">
                     <Text className="text-dark-50 font-semibold mb-3">
-                      Regra {Math.round(targets.needs * 100)} / {Math.round(targets.wants * 100)} / {Math.round(targets.savings * 100)}
+                      {t('dashboard.ruleLabel', { n: Math.round(targets.needs * 100), w: Math.round(targets.wants * 100), s: Math.round(targets.savings * 100) })}
                     </Text>
-                    <RuleRow label="Necessidades" pct={data.budgetRule.needs_pct} ideal={targets.needs} amt={data.budgetRule.needs_amt} fmt={fmt} />
-                    <RuleRow label="Disponível/Lazer" pct={lazerPct} ideal={targets.wants} amt={lazerAmt} fmt={fmt} />
-                    <RuleRow label="Poupança" pct={data.budgetRule.savings_pct} ideal={targets.savings} amt={data.budgetRule.savings_amt} fmt={fmt} />
+                    <RuleRow label={t('dashboard.needsLabel')} pct={data.budgetRule.needs_pct} ideal={targets.needs} amt={data.budgetRule.needs_amt} fmt={fmt} />
+                    <RuleRow label={t('dashboard.leisureLabel')} pct={lazerPct} ideal={targets.wants} amt={lazerAmt} fmt={fmt} />
+                    <RuleRow label={t('dashboard.savingsLabel')} pct={data.budgetRule.savings_pct} ideal={targets.savings} amt={data.budgetRule.savings_amt} fmt={fmt} />
                   </View>
                 )}
 
                 {/* Património */}
                 <View className="bg-dark-800 rounded-2xl p-4 mb-8">
                   <View className="flex-row justify-between items-center mb-2">
-                    <Text className="text-dark-50 font-semibold">Património Líquido</Text>
+                    <Text className="text-dark-50 font-semibold">{t('dashboard.netWorth')}</Text>
                     <View className="flex-row items-center gap-3">
                       <Text className="text-mint-800 text-lg font-bold">{fmt(data?.netWorth ?? 0)}</Text>
                       <TouchableOpacity
@@ -741,13 +751,13 @@ export default function DashboardScreen() {
                     />
                   ))}
                   <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
-                    <Text className="text-dark-300 text-sm">Portefólio</Text>
+                    <Text className="text-dark-300 text-sm">{t('dashboard.portfolioLabel')}</Text>
                     <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.portfolioValue ?? 0)}</Text>
                   </View>
                   {editingEmergencyFund ? (
                     <View className="py-3 border-b border-dark-700">
                       <View className="flex-row items-center gap-2">
-                        <Text className="text-dark-300 text-sm flex-1">Fundo de Emergência</Text>
+                        <Text className="text-dark-300 text-sm flex-1">{t('dashboard.emergencyFund')}</Text>
                         <TextInput
                           className="bg-dark-700 rounded-lg px-3 py-2 text-sm border border-dark-600"
                           style={{ color: '#0f172a', minWidth: 0, width: 110 }}
@@ -777,7 +787,7 @@ export default function DashboardScreen() {
                     </View>
                   ) : (
                     <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
-                      <Text className="text-dark-300 text-sm">Fundo de Emergência</Text>
+                      <Text className="text-dark-300 text-sm">{t('dashboard.emergencyFund')}</Text>
                       <View className="flex-row items-center gap-3">
                         <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.emergencyFund ?? 0)}</Text>
                         {assetsEditMode && (

@@ -15,13 +15,14 @@ import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
 import { getColor } from '../../lib/portfolioColors'
 import { getSector, SECTOR_COLORS } from '../../lib/assetSectors'
 import { useFmt } from '../../utils/format'
+import { useTranslation } from 'react-i18next'
 
 type Tab = 'ativos' | 'tipo' | 'setor'
 
-const TABS: { key: Tab; label: string; icon: string }[] = [
-  { key: 'ativos', label: 'Ativos', icon: 'list-outline'   },
-  { key: 'tipo',   label: 'Tipo',   icon: 'shapes-outline' },
-  { key: 'setor',  label: 'Setor',  icon: 'grid-outline'   },
+const TABS: { key: Tab; labelKey: string; icon: string }[] = [
+  { key: 'ativos', labelKey: 'investments.assets', icon: 'list-outline'   },
+  { key: 'tipo',   labelKey: 'investments.type',   icon: 'shapes-outline' },
+  { key: 'setor',  labelKey: 'investments.sector',  icon: 'grid-outline'  },
 ]
 
 const TYPE_LABELS: Record<string, string> = {
@@ -42,7 +43,8 @@ export default function InvestimentosScreen() {
   const donutSize      = Math.min(Math.round(screenW * 0.72), 300)
   const donutThickness = Math.round(donutSize * 0.13)
 
-  const fmt = useFmt()
+  const fmt   = useFmt()
+  const { t } = useTranslation()
 
   const byAsset = useMemo<DonutSegment[]>(
     () => (data?.assets ?? []).map((a, i) => ({ value: a.current_value, color: getColor(i), label: a.ticker, pl: a.pl })),
@@ -99,7 +101,7 @@ export default function InvestimentosScreen() {
 
         {/* Summary */}
         <View className="mx-4 mt-3 mb-4 bg-dark-800 border border-dark-600 rounded-2xl px-5 py-4">
-          <Text className="text-dark-400 text-xs mb-1">Valor Total</Text>
+          <Text className="text-dark-400 text-xs mb-1">{t('investments.totalValue')}</Text>
           <Text className="text-dark-50 text-3xl font-bold">{fmt(totalValue)}</Text>
           <View className="flex-row items-center gap-2 mt-2">
             <View
@@ -115,7 +117,7 @@ export default function InvestimentosScreen() {
                 {plPos ? '+' : ''}{fmt(totalPL)} ({plPos ? '+' : ''}{(totalPLPct * 100).toFixed(2)}%)
               </Text>
             </View>
-            <Text className="text-dark-500 text-xs">P/L total</Text>
+            <Text className="text-dark-500 text-xs">{t('investments.pnlTotal')}</Text>
           </View>
         </View>
 
@@ -133,7 +135,7 @@ export default function InvestimentosScreen() {
               >
                 <Ionicons name={tab.icon as 'list-outline'} size={14} color={active ? '#14b8a6' : '#64748b'} />
                 <Text className={`text-sm font-medium ${active ? 'text-teal-400' : 'text-dark-400'}`}>
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </Text>
               </TouchableOpacity>
             )
@@ -149,7 +151,7 @@ export default function InvestimentosScreen() {
                   <DonutChart
                     segments={byAsset}
                     centerLabel={fmt(totalValue)}
-                    centerSub="Portfolio"
+                    centerSub={t('investments.portfolio')}
                     size={donutSize}
                     thickness={donutThickness}
                     showSegmentLabels
@@ -164,14 +166,14 @@ export default function InvestimentosScreen() {
                     style={{ backgroundColor: '#14b8a610' }}
                   >
                     <Ionicons name="create-outline" size={16} color="#14b8a6" />
-                    <Text className="text-teal-500 text-sm font-semibold">Editar Ativos</Text>
+                    <Text className="text-teal-500 text-sm font-semibold">{t('investments.editAssets')}</Text>
                   </TouchableOpacity>
                 </View>
               </>
             ) : (
               <View className="mx-4 py-10 items-center">
                 <Ionicons name="pie-chart-outline" size={48} color="#94a3b8" />
-                <Text className="text-dark-400 text-sm mt-3">Sem ativos no portfolio</Text>
+                <Text className="text-dark-400 text-sm mt-3">{t('investments.noAssets')}</Text>
               </View>
             )}
 
@@ -184,7 +186,7 @@ export default function InvestimentosScreen() {
         {/* ── Tipo ── */}
         {activeTab === 'tipo' && (
           <View>
-            <DonutChart segments={byType} centerLabel={fmt(totalValue)} centerSub="Por Tipo" />
+            <DonutChart segments={byType} centerLabel={fmt(totalValue)} centerSub={t('investments.byType')} />
             <View className="mx-4 mt-5 gap-2">
               {byType.map((seg) => (
                 <GroupRow key={seg.label} seg={seg} total={totalValue} fmt={fmt} />
@@ -197,7 +199,7 @@ export default function InvestimentosScreen() {
         {/* ── Setor ── */}
         {activeTab === 'setor' && (
           <View>
-            <DonutChart segments={bySector} centerLabel={fmt(totalValue)} centerSub="Por Setor" />
+            <DonutChart segments={bySector} centerLabel={fmt(totalValue)} centerSub={t('investments.bySector')} />
             <View className="mx-4 mt-5 gap-2">
               {bySector.slice().sort((a, b) => b.value - a.value).map((seg) => (
                 <GroupRow key={seg.label} seg={seg} total={totalValue} fmt={fmt} />
@@ -205,7 +207,7 @@ export default function InvestimentosScreen() {
             </View>
             <View className="mx-4 mt-3 bg-dark-800/50 border border-dark-600/50 rounded-xl p-3">
               <Text className="text-dark-500 text-xs">
-                O setor é derivado automaticamente do ticker. ETFs de mercado amplo (VWCE, IWDA, etc.) aparecem em "Diversificado".
+                {t('investments.sectorNote')}
               </Text>
             </View>
             <View className="h-24" />
@@ -222,7 +224,7 @@ export default function InvestimentosScreen() {
           style={{ shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 }}
         >
           <Ionicons name="link-outline" size={16} color="#0d9488" />
-          <Text className="text-teal-600 text-sm font-semibold">Corretoras</Text>
+          <Text className="text-teal-600 text-sm font-semibold">{t('investments.brokers')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
