@@ -5,9 +5,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { SavingBucket } from '../../hooks/useSavingBuckets'
-
-const fmt = (v: number) =>
-  v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 })
+import { useFmt2 } from '../../utils/format'
 
 type Props = {
   bucket: SavingBucket | null
@@ -17,6 +15,7 @@ type Props = {
 }
 
 export default function AddAmountModal({ bucket, onClose, onConfirm, isPending }: Props) {
+  const fmt = useFmt2()
   const [value, setValue] = useState('')
 
   const handleClose = () => { setValue(''); onClose() }

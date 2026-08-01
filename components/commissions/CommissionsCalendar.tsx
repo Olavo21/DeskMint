@@ -2,10 +2,9 @@ import { useMemo, useState } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import type { DmCommission } from '../../types/database'
+import { useFmt } from '../../utils/format'
 
 const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
-
-const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 
 function toDateKey(iso: string) {
   return iso.slice(0, 10) // "YYYY-MM-DD"
@@ -25,6 +24,7 @@ interface Props {
 }
 
 export default function CommissionsCalendar({ commissions, selectedDay, onSelectDay }: Props) {
+  const fmt = useFmt()
   const [cursor, setCursor] = useState(() => {
     const now = new Date()
     return { month: now.getMonth(), year: now.getFullYear() }

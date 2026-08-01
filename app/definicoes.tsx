@@ -3,7 +3,8 @@ import { ScrollView, View, Text, TouchableOpacity, Alert, ActivityIndicator, Tex
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+let _AsyncStorage: { getItem: (k: string) => Promise<string | null>; setItem: (k: string, v: string) => Promise<void> } | null = null
+try { _AsyncStorage = require('@react-native-async-storage/async-storage').default } catch {}
 import { useAuthStore } from '../stores/authStore'
 import { usePlan, PLAN_NAMES, PLAN_COLORS } from '../hooks/usePlan'
 import { supabase } from '../lib/supabase'
@@ -97,7 +98,7 @@ export default function DefinicoesScreen() {
     } else {
       getSavedCurrency().then((c) => { setCurrencyLocal(c); setCurrencyStore(c) })
     }
-    AsyncStorage.getItem(COUNTRY_KEY).then((c) => { if (c) setCountry(c) })
+    _AsyncStorage?.getItem(COUNTRY_KEY).then((c) => { if (c) setCountry(c) })
   }, [])
 
   async function handleLangChange(lang: 'pt' | 'en' | 'es') {
@@ -118,7 +119,7 @@ export default function DefinicoesScreen() {
   }
 
   async function handleCountryChange(code: string) {
-    await AsyncStorage.setItem(COUNTRY_KEY, code)
+    if (_AsyncStorage) await _AsyncStorage.setItem(COUNTRY_KEY, code)
     setCountry(code)
   }
 

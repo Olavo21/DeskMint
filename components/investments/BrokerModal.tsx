@@ -15,6 +15,7 @@ import { useBrokerConnections } from '../../hooks/useBrokerConnections'
 import { useQueryClient } from '@tanstack/react-query'
 import BrokerLogo from './BrokerLogo'
 import * as XLSX from 'xlsx'
+import { useFmt } from '../../utils/format'
 
 function isExcelFile(name: string, mime?: string | null) {
   return name.toLowerCase().endsWith('.xlsx') ||
@@ -36,10 +37,8 @@ interface Props {
   onClose: () => void
 }
 
-const fmt = (n: number) =>
-  n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
-
 export default function BrokerModal({ visible, onClose }: Props) {
+  const fmt = useFmt()
   const session    = useAuthStore((s) => s.session)
   const qc         = useQueryClient()
   const { data: connections, upsertConnection, saveCsvConnection, syncTrading212 } = useBrokerConnections()

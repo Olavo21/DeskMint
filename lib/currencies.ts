@@ -1,6 +1,9 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
-
 export type SupportedCurrency = 'EUR' | 'USD' | 'GBP' | 'CHF' | 'AOA'
+
+let _AsyncStorage: { getItem: (k: string) => Promise<string | null>; setItem: (k: string, v: string) => Promise<void> } | null = null
+try {
+  _AsyncStorage = require('@react-native-async-storage/async-storage').default
+} catch {}
 
 export interface CurrencyConfig {
   code: SupportedCurrency
@@ -21,7 +24,8 @@ const CURRENCY_KEY = '@deskmint_user_currency'
 
 export const getSavedCurrency = async (): Promise<SupportedCurrency> => {
   try {
-    const saved = await AsyncStorage.getItem(CURRENCY_KEY)
+    if (!_AsyncStorage) return 'EUR'
+    const saved = await _AsyncStorage.getItem(CURRENCY_KEY)
     if (saved && saved in CURRENCIES) return saved as SupportedCurrency
   } catch {}
   return 'EUR'
@@ -29,7 +33,7 @@ export const getSavedCurrency = async (): Promise<SupportedCurrency> => {
 
 export const saveUserCurrency = async (currency: SupportedCurrency): Promise<void> => {
   try {
-    await AsyncStorage.setItem(CURRENCY_KEY, currency)
+    if (_AsyncStorage) await _AsyncStorage.setItem(CURRENCY_KEY, currency)
   } catch (e) {
     console.error('saveUserCurrency error', e)
   }

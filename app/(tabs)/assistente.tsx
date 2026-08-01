@@ -1,315 +1,519 @@
-import Header from '../../components/ui/Header'
-import { useState, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  View, Text, TouchableOpacity, ScrollView,
+  TextInput, ActivityIndicator,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import Header from '../../components/ui/Header'
+import { usePortfolio } from '../../hooks/usePortfolio'
 import { useAuthStore } from '../../stores/authStore'
-import { useTranslation } from 'react-i18next'
+import { useFmt } from '../../utils/format'
 
-type Message = { role: 'user' | 'assistant'; text: string }
+// ── Types ────────────────────────────────────────────────────────────────────
 
-const QUICK_ACTIONS = [
-  { key: 'invested',    icon: 'wallet-outline'      },
-  { key: 'performers',  icon: 'trending-up-outline'  },
-  { key: 'allocation',  icon: 'pie-chart-outline'    },
-  { key: 'projection',  icon: 'rocket-outline'       },
-  { key: 'tax',         icon: 'receipt-outline'      },
-  { key: 'goal',        icon: 'calculator-outline'   },
-] as const
+type CardKey = 'total' | 'tops' | 'allocation' | 'projection' | 'tax' | 'goal'
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!
-
-// ─── Inline markdown renderer ────────────────────────────────────────────────
-
-function InlineText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g)
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return (
-            <Text key={i} style={{ fontWeight: '700', color: '#f1f5f9' }}>
-              {part.slice(2, -2)}
-            </Text>
-          )
-        }
-        if (part.startsWith('`') && part.endsWith('`')) {
-          return (
-            <Text
-              key={i}
-              style={{
-                fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-                color: '#2dd4bf',
-                backgroundColor: '#0f172a',
-                borderRadius: 3,
-              }}
-            >
-              {part.slice(1, -1)}
-            </Text>
-          )
-        }
-        return <Text key={i}>{part}</Text>
-      })}
-    </>
-  )
+type Asset = {
+  id: string; name: string; ticker: string; asset_type: string
+  broker: string; capital_invested: number; current_value: number
+  pl: number; plPct: number
 }
 
-function MarkdownText({ text }: { text: string }) {
-  const lines = text.split('\n')
+// ── Constants ─────────────────────────────────────────────────────────────────
 
+const CARDS: { key: CardKey; icon: string; label: string }[] = [
+  { key: 'total',      icon: 'wallet-outline',      label: 'Total'     },
+  { key: 'tops',       icon: 'trending-up-outline',  label: 'Tops'      },
+  { key: 'allocation', icon: 'pie-chart-outline',    label: 'Alocação'  },
+  { key: 'projection', icon: 'rocket-outline',       label: 'Projeção'  },
+  { key: 'tax',        icon: 'receipt-outline',      label: 'Imposto'   },
+  { key: 'goal',       icon: 'calculator-outline',   label: 'Objetivo'  },
+]
+
+const ANNUAL_RATE: Record<string, number> = {
+  CONSERVATIVE: 0.04,
+  MODERATE:     0.07,
+  AGGRESSIVE:   0.10,
+  SPECULATIVE:  0.12,
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fv(pv: number, pmt: number, rAnnual: number, years: number): number {
+  const r = rAnnual / 12
+  const n = years * 12
+  if (r === 0) return pv + pmt * n
+  return pv * Math.pow(1 + r, n) + pmt * (Math.pow(1 + r, n) - 1) / r
+}
+
+function pmt(pvVal: number, fvTarget: number, rAnnual: number, years: number): number {
+  const r = rAnnual / 12
+  const n = years * 12
+  if (r === 0) return n > 0 ? (fvTarget - pvVal) / n : 0
+  const factor = Math.pow(1 + r, n)
+  return (fvTarget - pvVal * factor) * r / (factor - 1)
+}
+
+function pct(v: number) { return `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%` }
+
+// ── Shared UI ─────────────────────────────────────────────────────────────────
+
+function Row({ label, value, sub, color }: {
+  label: string; value: string; sub?: string; color?: string
+}) {
   return (
-    <View style={{ gap: 2 }}>
-      {lines.map((line, i) => {
-        if (line.startsWith('### ')) {
-          return (
-            <Text
-              key={i}
-              style={{
-                color: '#f1f5f9',
-                fontSize: 15,
-                fontWeight: '700',
-                marginTop: 6,
-                marginBottom: 2,
-              }}
-            >
-              {line.slice(4)}
-            </Text>
-          )
-        }
-
-        if (line.startsWith('## ')) {
-          return (
-            <Text
-              key={i}
-              style={{ color: '#f1f5f9', fontSize: 16, fontWeight: '700', marginTop: 8 }}
-            >
-              {line.slice(3)}
-            </Text>
-          )
-        }
-
-        if (line.startsWith('> ')) {
-          return (
-            <View
-              key={i}
-              style={{
-                borderLeftWidth: 2,
-                borderLeftColor: '#14b8a6',
-                paddingLeft: 10,
-                marginVertical: 4,
-              }}
-            >
-              <Text style={{ color: '#94a3b8', fontSize: 13, fontStyle: 'italic', lineHeight: 19 }}>
-                <InlineText text={line.slice(2)} />
-              </Text>
-            </View>
-          )
-        }
-
-        if (line.startsWith('* ') || line.startsWith('- ')) {
-          return (
-            <View key={i} style={{ flexDirection: 'row', gap: 6, marginLeft: 2 }}>
-              <Text style={{ color: '#2dd4bf', fontSize: 13, lineHeight: 20 }}>•</Text>
-              <Text style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 20, flex: 1 }}>
-                <InlineText text={line.slice(2)} />
-              </Text>
-            </View>
-          )
-        }
-
-        if (line.trim() === '') {
-          return <View key={i} style={{ height: 4 }} />
-        }
-
-        return (
-          <Text key={i} style={{ color: '#cbd5e1', fontSize: 13, lineHeight: 20 }}>
-            <InlineText text={line} />
-          </Text>
-        )
-      })}
+    <View className="flex-row justify-between items-center py-2.5 border-b border-dark-700">
+      <Text className="text-dark-400 text-sm">{label}</Text>
+      <View className="items-end">
+        <Text style={{ color: color ?? '#e2e8f0', fontWeight: '600', fontSize: 14 }}>{value}</Text>
+        {sub ? <Text className="text-dark-500 text-xs mt-0.5">{sub}</Text> : null}
+      </View>
     </View>
   )
 }
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+function InsightBox({ text }: { text: string }) {
+  return (
+    <View className="mt-4 flex-row gap-2 bg-teal-900/30 border border-teal-800/40 rounded-xl p-3">
+      <Ionicons name="bulb-outline" size={14} color="#2dd4bf" style={{ marginTop: 1 }} />
+      <Text className="text-teal-300 text-xs leading-5 flex-1">{text}</Text>
+    </View>
+  )
+}
 
-export default function AssistenteScreen() {
-  const session   = useAuthStore((s) => s.session)
-  const { t }     = useTranslation()
-  const [messages, setMessages] = useState<Message[]>([])
-  const [history, setHistory] = useState<object[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const scrollRef = useRef<ScrollView>(null)
+function EmptyPortfolio() {
+  return (
+    <View className="items-center py-12 gap-3">
+      <Ionicons name="pie-chart-outline" size={40} color="#334155" />
+      <Text className="text-dark-500 text-sm text-center">
+        Sem ativos no portfólio.{'\n'}Adiciona ativos no separador Investimentos.
+      </Text>
+    </View>
+  )
+}
 
-  async function send(text: string) {
-    if (!text.trim() || loading || !session) return
+// ── Card: Total ───────────────────────────────────────────────────────────────
 
-    const userMsg: Message = { role: 'user', text: text.trim() }
-    setMessages((prev) => [...prev, userMsg])
-    setInput('')
-    setLoading(true)
+function CardTotal({ assets, totalValue, totalCapital, totalPL, totalPLPct }: {
+  assets: Asset[]; totalValue: number; totalCapital: number
+  totalPL: number; totalPLPct: number
+}) {
+  const fmt = useFmt()
+  if (assets.length === 0) return <EmptyPortfolio />
 
-    try {
-      const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/investment-agent`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ message: text.trim(), history }),
+  const plColor = totalPL >= 0 ? '#34d399' : '#f87171'
+
+  return (
+    <View className="gap-0">
+      <Row label="Capital investido" value={fmt(totalCapital)} />
+      <Row label="Valor atual"       value={fmt(totalValue)} />
+      <Row
+        label="Lucro / Prejuízo"
+        value={`${totalPL >= 0 ? '+' : ''}${fmt(totalPL)}`}
+        sub={pct(totalPLPct)}
+        color={plColor}
+      />
+      <Row label="Nº de ativos" value={String(assets.length)} />
+      <InsightBox
+        text={
+          totalPL >= 0
+            ? `O teu portfólio está ${pct(totalPLPct)} acima do capital investido.`
+            : `O teu portfólio está ${pct(totalPLPct)} abaixo do capital investido.`
         }
-      )
+      />
+    </View>
+  )
+}
 
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Erro desconhecido')
+// ── Card: Tops / Flops ────────────────────────────────────────────────────────
 
-      setMessages((prev) => [...prev, { role: 'assistant', text: json.reply }])
-      setHistory(json.updatedHistory)
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', text: `Erro: ${msg}` },
-      ])
-    } finally {
-      setLoading(false)
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100)
-    }
+function CardTops({ assets }: { assets: Asset[] }) {
+  const fmt = useFmt()
+  if (assets.length === 0) return <EmptyPortfolio />
+
+  const sorted = [...assets].sort((a, b) => b.plPct - a.plPct)
+  const tops  = sorted.slice(0, 3)
+  const flops = [...sorted].reverse().slice(0, 3).filter((a) => a.plPct < tops[tops.length - 1]?.plPct)
+
+  function AssetRow({ a, rank }: { a: Asset; rank: number }) {
+    const color = a.plPct >= 0 ? '#34d399' : '#f87171'
+    return (
+      <View className="flex-row items-center gap-3 py-2.5 border-b border-dark-700">
+        <Text className="text-dark-500 text-xs w-4">{rank}</Text>
+        <View className="flex-1">
+          <Text className="text-dark-100 text-sm font-semibold">{a.ticker}</Text>
+          <Text className="text-dark-500 text-xs" numberOfLines={1}>{a.name}</Text>
+        </View>
+        <View className="items-end">
+          <Text style={{ color, fontWeight: '700', fontSize: 13 }}>{pct(a.plPct)}</Text>
+          <Text className="text-dark-500 text-xs">{fmt(a.pl >= 0 ? a.pl : -a.pl)}</Text>
+        </View>
+      </View>
+    )
   }
 
-  function clearChat() {
-    setMessages([])
-    setHistory([])
+  return (
+    <View className="gap-0">
+      <Text className="text-dark-500 text-xs uppercase tracking-wider mb-1">Melhores</Text>
+      {tops.map((a, i) => <AssetRow key={a.id} a={a} rank={i + 1} />)}
+
+      {flops.length > 0 && (
+        <>
+          <Text className="text-dark-500 text-xs uppercase tracking-wider mt-4 mb-1">Piores</Text>
+          {flops.map((a, i) => <AssetRow key={a.id} a={a} rank={i + 1} />)}
+        </>
+      )}
+    </View>
+  )
+}
+
+// ── Card: Allocation ──────────────────────────────────────────────────────────
+
+function CardAllocation({ assets, totalValue }: { assets: Asset[]; totalValue: number }) {
+  const fmt = useFmt()
+  if (assets.length === 0) return <EmptyPortfolio />
+
+  const byType = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const a of assets) {
+      map[a.asset_type] = (map[a.asset_type] ?? 0) + a.current_value
+    }
+    return Object.entries(map)
+      .map(([tipo, valor]) => ({ tipo, valor, pct: totalValue > 0 ? valor / totalValue : 0 }))
+      .sort((a, b) => b.valor - a.valor)
+  }, [assets, totalValue])
+
+  const byBroker = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const a of assets) {
+      map[a.broker] = (map[a.broker] ?? 0) + a.current_value
+    }
+    return Object.entries(map)
+      .map(([broker, valor]) => ({ broker, valor, pct: totalValue > 0 ? valor / totalValue : 0 }))
+      .sort((a, b) => b.valor - a.valor)
+  }, [assets, totalValue])
+
+  const biggest = assets.reduce((m, a) => a.current_value > m.current_value ? a : m, assets[0])
+  const biggestPct = totalValue > 0 ? biggest.current_value / totalValue : 0
+
+  return (
+    <View className="gap-0">
+      <Text className="text-dark-500 text-xs uppercase tracking-wider mb-1">Por Tipo</Text>
+      {byType.map(({ tipo, valor, pct: p }) => (
+        <View key={tipo} className="py-2 border-b border-dark-700">
+          <View className="flex-row justify-between mb-1.5">
+            <Text className="text-dark-200 text-sm">{tipo}</Text>
+            <Text className="text-dark-200 text-sm font-semibold">{(p * 100).toFixed(1)}%</Text>
+          </View>
+          <View className="h-1.5 bg-dark-700 rounded-full overflow-hidden">
+            <View style={{ width: `${p * 100}%`, height: '100%', backgroundColor: '#14b8a6', borderRadius: 99 }} />
+          </View>
+          <Text className="text-dark-500 text-xs mt-1">{fmt(valor)}</Text>
+        </View>
+      ))}
+
+      <Text className="text-dark-500 text-xs uppercase tracking-wider mt-4 mb-1">Por Corretora</Text>
+      {byBroker.map(({ broker, pct: p }) => (
+        <View key={broker} className="flex-row justify-between py-2 border-b border-dark-700">
+          <Text className="text-dark-300 text-sm">{broker}</Text>
+          <Text className="text-dark-200 text-sm font-semibold">{(p * 100).toFixed(1)}%</Text>
+        </View>
+      ))}
+
+      <InsightBox
+        text={
+          biggestPct > 0.5
+            ? `${biggest.ticker} representa ${(biggestPct * 100).toFixed(0)}% do portfólio — concentração elevada.`
+            : `Maior posição: ${biggest.ticker} com ${(biggestPct * 100).toFixed(0)}% — diversificação razoável.`
+        }
+      />
+    </View>
+  )
+}
+
+// ── Card: Projection ─────────────────────────────────────────────────────────
+
+function CardProjection({ totalValue, monthlyInvest, investorType }: {
+  totalValue: number; monthlyInvest: number; investorType: string | null
+}) {
+  const fmt = useFmt()
+  const rate   = ANNUAL_RATE[investorType ?? 'MODERATE'] ?? 0.07
+  const pmtAmt = monthlyInvest > 0 ? monthlyInvest : 0
+
+  const scenarios = [5, 10, 20].map((years) => ({
+    years,
+    fvVal: fv(totalValue, pmtAmt, rate, years),
+  }))
+
+  const rateLabel: Record<string, string> = {
+    CONSERVATIVE: '4% a.a.',
+    MODERATE:     '7% a.a.',
+    AGGRESSIVE:   '10% a.a.',
+    SPECULATIVE:  '12% a.a.',
+  }
+
+  return (
+    <View className="gap-0">
+      <View className="flex-row gap-2 mb-4">
+        <View className="flex-1 bg-dark-700 rounded-xl p-3">
+          <Text className="text-dark-500 text-xs mb-1">Portfólio atual</Text>
+          <Text className="text-dark-100 text-base font-bold">{fmt(totalValue)}</Text>
+        </View>
+        <View className="flex-1 bg-dark-700 rounded-xl p-3">
+          <Text className="text-dark-500 text-xs mb-1">Aporte mensal</Text>
+          <Text className="text-dark-100 text-base font-bold">
+            {pmtAmt > 0 ? fmt(pmtAmt) : '—'}
+          </Text>
+        </View>
+      </View>
+
+      <Row
+        label="Taxa usada"
+        value={rateLabel[investorType ?? 'MODERATE'] ?? '7% a.a.'}
+        sub={investorType ?? 'MODERATE'}
+      />
+
+      {scenarios.map(({ years, fvVal }) => (
+        <Row
+          key={years}
+          label={`Daqui a ${years} anos`}
+          value={fmt(fvVal)}
+          color="#2dd4bf"
+        />
+      ))}
+
+      <InsightBox
+        text={`Com ${fmt(pmtAmt)}/mês e taxa ${(rate * 100).toFixed(0)}%, em 20 anos o teu portfólio pode valer ${fmt(scenarios[2].fvVal)}.`}
+      />
+    </View>
+  )
+}
+
+// ── Card: Tax ─────────────────────────────────────────────────────────────────
+
+function CardTax({ assets, totalValue, totalCapital, totalPL }: {
+  assets: Asset[]; totalValue: number; totalCapital: number; totalPL: number
+}) {
+  const fmt = useFmt()
+  if (assets.length === 0) return <EmptyPortfolio />
+
+  const taxableGain  = Math.max(0, totalPL)
+  const taxEstimated = taxableGain * 0.28
+  const netGain      = totalPL - taxEstimated
+
+  const plColor = totalPL >= 0 ? '#34d399' : '#f87171'
+
+  return (
+    <View className="gap-0">
+      <Row label="Capital investido"     value={fmt(totalCapital)} />
+      <Row label="Valor de venda atual"  value={fmt(totalValue)} />
+      <Row
+        label="Mais-valias brutas"
+        value={`${totalPL >= 0 ? '+' : ''}${fmt(totalPL)}`}
+        color={plColor}
+      />
+      {totalPL > 0 ? (
+        <>
+          <Row label="Imposto estimado (28%)" value={`− ${fmt(taxEstimated)}`} color="#f87171" />
+          <Row label="Ganho líquido"           value={fmt(netGain)} color="#2dd4bf" />
+        </>
+      ) : (
+        <Row label="Imposto estimado" value="0,00 €" sub="Menos-valia — sem imposto" color="#34d399" />
+      )}
+
+      <View className="mt-4 flex-row gap-2 bg-slate-800/60 border border-slate-700/40 rounded-xl p-3">
+        <Ionicons name="information-circle-outline" size={14} color="#475569" style={{ marginTop: 1 }} />
+        <Text className="text-dark-500 text-xs leading-5 flex-1">
+          Simulação com taxa autónoma de 28% (PT). Cripto detida {'>'} 365 dias pode estar isenta. Consulta sempre um fiscalista.
+        </Text>
+      </View>
+    </View>
+  )
+}
+
+// ── Card: Goal ────────────────────────────────────────────────────────────────
+
+function CardGoal({ totalValue, investorType }: {
+  totalValue: number; investorType: string | null
+}) {
+  const fmt  = useFmt()
+  const rate = ANNUAL_RATE[investorType ?? 'MODERATE'] ?? 0.07
+
+  const [goal,  setGoal]  = useState('')
+  const [years, setYears] = useState('10')
+
+  const result = useMemo(() => {
+    const fvTarget = parseFloat(goal.replace('.', '').replace(',', '.'))
+    const y        = parseInt(years) || 10
+    if (!fvTarget || fvTarget <= 0 || y <= 0) return null
+    if (fvTarget <= totalValue) return { pmtNeeded: 0, fvTarget, years: y }
+    return { pmtNeeded: pmt(totalValue, fvTarget, rate, y), fvTarget, years: y }
+  }, [goal, years, totalValue, rate])
+
+  return (
+    <View className="gap-4">
+      <View className="flex-row gap-3">
+        <View className="flex-1">
+          <Text className="text-dark-400 text-xs mb-1.5">Objetivo (€)</Text>
+          <TextInput
+            value={goal}
+            onChangeText={setGoal}
+            placeholder="100.000"
+            placeholderTextColor="#475569"
+            keyboardType="numeric"
+            className="bg-dark-700 border border-dark-600 rounded-xl px-3 py-3 text-dark-100 text-sm"
+            style={{ color: '#e2e8f0' }}
+          />
+        </View>
+        <View style={{ width: 100 }}>
+          <Text className="text-dark-400 text-xs mb-1.5">Prazo (anos)</Text>
+          <TextInput
+            value={years}
+            onChangeText={setYears}
+            placeholder="10"
+            placeholderTextColor="#475569"
+            keyboardType="numeric"
+            className="bg-dark-700 border border-dark-600 rounded-xl px-3 py-3 text-dark-100 text-sm"
+            style={{ color: '#e2e8f0' }}
+          />
+        </View>
+      </View>
+
+      {result ? (
+        <View className="gap-0">
+          <Row label="Portfólio atual (PV)"  value={fmt(totalValue)} />
+          <Row label="Objetivo (FV)"          value={fmt(result.fvTarget)} />
+          <Row label="Taxa assumida"          value={`${(rate * 100).toFixed(0)}% a.a.`} sub={investorType ?? 'MODERATE'} />
+          <Row label="Prazo"                  value={`${result.years} anos`} />
+          {result.pmtNeeded > 0 ? (
+            <>
+              <View className="mt-4 bg-teal-900/40 border border-teal-700/40 rounded-2xl p-4 items-center">
+                <Text className="text-teal-400 text-xs mb-1">Aporte mensal necessário</Text>
+                <Text style={{ color: '#2dd4bf', fontSize: 28, fontWeight: '900' }}>
+                  {fmt(result.pmtNeeded)}
+                </Text>
+                <Text className="text-dark-400 text-xs mt-1">/ mês</Text>
+              </View>
+              <InsightBox
+                text={`Com ${fmt(result.pmtNeeded)}/mês durante ${result.years} anos a ${(rate * 100).toFixed(0)}% a.a., atinges ${fmt(result.fvTarget)}.`}
+              />
+            </>
+          ) : (
+            <View className="mt-4 bg-teal-900/40 border border-teal-700/40 rounded-2xl p-4 items-center">
+              <Ionicons name="checkmark-circle" size={28} color="#34d399" />
+              <Text className="text-teal-300 text-sm font-semibold mt-2">Objetivo já atingido!</Text>
+              <Text className="text-dark-400 text-xs mt-1 text-center">
+                O teu portfólio atual supera o objetivo definido.
+              </Text>
+            </View>
+          )}
+        </View>
+      ) : (
+        <View className="items-center py-8 gap-2">
+          <Ionicons name="calculator-outline" size={36} color="#334155" />
+          <Text className="text-dark-500 text-sm text-center">
+            Introduz o objetivo e o prazo{'\n'}para calcular o aporte necessário.
+          </Text>
+        </View>
+      )}
+    </View>
+  )
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
+
+export default function AssistenteScreen() {
+  const { data, isLoading } = usePortfolio()
+  const profile = useAuthStore((s) => s.profile)
+
+  const [active, setActive] = useState<CardKey>('total')
+
+  const assets       = (data?.assets ?? []) as Asset[]
+  const totalValue   = data?.totalValue   ?? 0
+  const totalCapital = data?.totalCapital ?? 0
+  const totalPL      = data?.totalPL      ?? 0
+  const totalPLPct   = data?.totalPLPct   ?? 0
+
+  const investorType   = (profile?.investor_type as string | null) ?? null
+  const monthlyInvest  = (profile?.monthly_invest as number | null) ?? 0
+
+  function renderCard() {
+    if (isLoading) {
+      return (
+        <View className="items-center py-16">
+          <ActivityIndicator color="#14b8a6" size="large" />
+        </View>
+      )
+    }
+
+    switch (active) {
+      case 'total':
+        return <CardTotal assets={assets} totalValue={totalValue} totalCapital={totalCapital} totalPL={totalPL} totalPLPct={totalPLPct} />
+      case 'tops':
+        return <CardTops assets={assets} />
+      case 'allocation':
+        return <CardAllocation assets={assets} totalValue={totalValue} />
+      case 'projection':
+        return <CardProjection totalValue={totalValue} monthlyInvest={monthlyInvest} investorType={investorType} />
+      case 'tax':
+        return <CardTax assets={assets} totalValue={totalValue} totalCapital={totalCapital} totalPL={totalPL} />
+      case 'goal':
+        return <CardGoal totalValue={totalValue} investorType={investorType} />
+    }
   }
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
-      <Header title="Assistente IA" />
+      <Header title="Análise" />
 
-      {messages.length > 0 && (
-        <TouchableOpacity
-          onPress={clearChat}
-          className="absolute top-14 right-4 z-10 p-2"
-        >
-          <Ionicons name="trash-outline" size={18} color="#64748b" />
-        </TouchableOpacity>
-      )}
-
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
+      {/* Pills */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 12 }}
       >
-        <ScrollView
-          ref={scrollRef}
-          className="flex-1 px-4"
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: 12 }}
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-        >
-          {/* Empty state */}
-          {messages.length === 0 && (
-            <View className="items-center mt-8 mb-6">
-              <View className="w-16 h-16 rounded-full bg-teal-500/10 items-center justify-center mb-4">
-                <Ionicons name="sparkles" size={28} color="#14b8a6" />
-              </View>
-              <Text className="text-dark-200 text-lg font-semibold mb-1">
-                {t('assistant.title')}
-              </Text>
-              <Text className="text-dark-400 text-sm text-center px-6">
-                {t('assistant.subtitle')}
-              </Text>
-
-              <View className="mt-6 w-full gap-2">
-                {QUICK_ACTIONS.map((a) => {
-                  const label = t(`assistant.quickQuestions.${a.key}`)
-                  return (
-                    <TouchableOpacity
-                      key={a.key}
-                      onPress={() => send(label)}
-                      className="flex-row items-center gap-3 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3"
-                    >
-                      <Ionicons name={a.icon as 'wallet-outline'} size={16} color="#14b8a6" />
-                      <Text className="text-dark-300 text-sm flex-1">{label}</Text>
-                      <Ionicons name="chevron-forward" size={14} color="#334155" />
-                    </TouchableOpacity>
-                  )
-                })}
-              </View>
-            </View>
-          )}
-
-          {/* Messages */}
-          {messages.map((m, i) => (
-            <View
-              key={i}
-              className={`mb-3 max-w-[92%] ${m.role === 'user' ? 'self-end' : 'self-start'}`}
-            >
-              {m.role === 'assistant' && (
-                <View className="flex-row items-center gap-1 mb-1">
-                  <Ionicons name="sparkles" size={12} color="#14b8a6" />
-                  <Text className="text-teal-400 text-xs font-medium">{t('assistant.label')}</Text>
-                </View>
-              )}
-              <View
-                className={
-                  m.role === 'user'
-                    ? 'bg-teal-600 rounded-2xl rounded-tr-sm px-4 py-3'
-                    : 'bg-dark-800 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3'
-                }
-              >
-                {m.role === 'user' ? (
-                  <Text className="text-dark-50 text-sm">{m.text}</Text>
-                ) : (
-                  <MarkdownText text={m.text} />
-                )}
-              </View>
-            </View>
-          ))}
-
-          {/* Loading indicator */}
-          {loading && (
-            <View className="self-start mb-3 bg-dark-800 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3">
-              <ActivityIndicator size="small" color="#14b8a6" />
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Input */}
-        <View className="px-4 pb-2 pt-2 border-t border-dark-600 bg-dark-900">
-          <View className="flex-row items-end gap-2">
-            <TextInput
-              value={input}
-              onChangeText={setInput}
-              onSubmitEditing={() => send(input)}
-              placeholder={t('assistant.inputPlaceholder')}
-              placeholderTextColor="#475569"
-              multiline
-              returnKeyType="send"
-              className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-dark-200 text-sm max-h-28"
-              style={{ textAlignVertical: 'top' }}
-            />
+        {CARDS.map((c) => {
+          const isActive = active === c.key
+          return (
             <TouchableOpacity
-              onPress={() => send(input)}
-              disabled={!input.trim() || loading}
-              className={`w-11 h-11 rounded-full items-center justify-center ${
-                input.trim() && !loading ? 'bg-teal-500' : 'bg-dark-700'
-              }`}
+              key={c.key}
+              onPress={() => setActive(c.key)}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                paddingHorizontal: 14, paddingVertical: 8,
+                borderRadius: 99,
+                backgroundColor: isActive ? '#0d9488' : '#1e293b',
+                borderWidth: 1,
+                borderColor: isActive ? '#14b8a6' : '#334155',
+              }}
             >
               <Ionicons
-                name="arrow-up"
-                size={18}
-                color={input.trim() && !loading ? '#fff' : '#475569'}
+                name={c.icon as 'wallet-outline'}
+                size={14}
+                color={isActive ? '#fff' : '#64748b'}
               />
+              <Text style={{
+                fontSize: 13, fontWeight: isActive ? '700' : '400',
+                color: isActive ? '#fff' : '#64748b',
+              }}>
+                {c.label}
+              </Text>
             </TouchableOpacity>
-          </View>
+          )
+        })}
+      </ScrollView>
+
+      {/* Card content */}
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="bg-dark-800 border border-dark-700 rounded-2xl p-4">
+          {renderCard()}
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </SafeAreaView>
   )
 }

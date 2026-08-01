@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useInvestmentChat, type InvestMessage } from '../../hooks/useInvestmentChat'
 import { usePortfolio } from '../../hooks/usePortfolio'
+import { useFmt } from '../../utils/format'
 
 const QUICK_ACTIONS = [
   { label: 'VWCE subiu 1,5% hoje',              icon: 'trending-up-outline'        },
@@ -40,8 +41,7 @@ export default function InvestmentChatSheet({ visible, onClose }: Props) {
     setInput('')
   }
 
-  const fmt = (n: number) =>
-    n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  const fmt = useFmt()
 
   const plPos = (portfolio?.totalPL ?? 0) >= 0
 

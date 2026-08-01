@@ -1,6 +1,7 @@
 ﻿import { useState, useMemo } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
+import { useFmt } from '../../utils/format'
 
 const PRESETS = [
   { label: 'Conservador (AGGH)', taxa: '4' },
@@ -8,9 +9,6 @@ const PRESETS = [
   { label: 'Crescimento (IWDA)', taxa: '10' },
   { label: 'Agressivo (QQQ)',    taxa: '14' },
 ]
-
-const fmt = (v: number) =>
-  v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 
 function MiniAreaChart({ pontos }: { pontos: { ano: string; valor: number; investido: number }[] }) {
   const W = 320
@@ -73,6 +71,7 @@ function MiniAreaChart({ pontos }: { pontos: { ano: string; valor: number; inves
 }
 
 export default function CalculadoraETF() {
+  const fmt = useFmt()
   const [inicial, setInicial]   = useState('1000')
   const [mensal, setMensal]     = useState('100')
   const [taxa, setTaxa]         = useState('10')

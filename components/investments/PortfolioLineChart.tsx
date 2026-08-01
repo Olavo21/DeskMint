@@ -7,6 +7,7 @@ import Svg, {
   Path, Defs, LinearGradient, Stop, Line,
   Text as SvgText, Circle, Rect,
 } from 'react-native-svg'
+import { useFmt } from '../../utils/format'
 
 export type HistoryPoint = { date: string; value: number }
 export type Range = '1M' | '3M' | 'YTD' | '1A' | '5A' | 'Max'
@@ -132,8 +133,7 @@ export default function PortfolioLineChart({ data, range, onRangeChange, isLoadi
     onPanResponderTerminate: () => setTip(null),
   })).current
 
-  const fmtCur = (v: number) =>
-    v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  const fmtCur = useFmt()
 
   return (
     <View>

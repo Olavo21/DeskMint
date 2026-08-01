@@ -3,11 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, FlatList } from 'r
 import { Ionicons } from '@expo/vector-icons'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { ATIVOS, gerarHistorico, calcMetricas, type Ativo } from '../../lib/ativos'
+import { useFmt2 } from '../../utils/format'
 
 type Filtro = 'Todos' | 'ETF' | 'Ação'
-
-const fmt = (v: number, dec = 2) =>
-  v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: dec })
 
 function MiniChart({ historico, cor }: { historico: { data: string; preco: number }[]; cor: string }) {
   const W = 300
@@ -39,6 +37,7 @@ function MiniChart({ historico, cor }: { historico: { data: string; preco: numbe
 }
 
 function AtivoCard({ ativo, onSelect, selected }: { ativo: Ativo; onSelect: () => void; selected: boolean }) {
+  const fmt = useFmt2()
   const historico = useMemo(() => gerarHistorico(ativo), [ativo])
   const metricas  = useMemo(() => calcMetricas(historico), [historico])
   const positivo  = parseFloat(metricas.p1a) >= 0
@@ -97,6 +96,7 @@ function AtivoCard({ ativo, onSelect, selected }: { ativo: Ativo; onSelect: () =
 }
 
 function DetalheAtivo({ ativo, onBack }: { ativo: Ativo; onBack: () => void }) {
+  const fmt = useFmt2()
   const historico = useMemo(() => gerarHistorico(ativo), [ativo])
   const metricas  = useMemo(() => calcMetricas(historico), [historico])
   const positivo  = parseFloat(metricas.p1a) >= 0

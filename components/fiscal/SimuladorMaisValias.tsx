@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'rea
 import { Ionicons } from '@expo/vector-icons'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import CrossDateTimePicker from '../ui/CrossDateTimePicker'
+import { fmt2 as fmt } from '../../utils/format'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -26,9 +27,6 @@ type PortfolioPos = {
 }
 
 // ── Utilitários ────────────────────────────────────────────────────────────
-
-const fmt = (v: number) =>
-  v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 })
 
 function calcularImpostoMaisValias(
   assetType: string,

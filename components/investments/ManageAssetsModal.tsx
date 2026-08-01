@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { getColor } from '../../lib/portfolioColors'
 import TickerLogo from '../ui/TickerLogo'
+import { useFmt } from '../../utils/format'
 
 type Asset = {
   id: string; name: string; ticker: string; broker: string; asset_type: string
@@ -36,11 +37,9 @@ export default function ManageAssetsModal({ visible, onClose, onAdd }: Props) {
   const { data, updateAsset, deleteAsset } = usePortfolio()
   const assets = (data?.assets ?? []) as Asset[]
 
+  const fmt = useFmt()
   const [editState, setEditState] = useState<EditState | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-
-  const fmt = (n: number) =>
-    n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 
   const editingAsset = editState ? assets.find((a) => a.id === editState.id) ?? null : null
 

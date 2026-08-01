@@ -3,9 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import Svg, { Path, Defs, LinearGradient, Stop, Line, Circle } from 'react-native-svg'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useDashboardStore } from '../../stores/dashboardStore'
-
-const fmt = (v: number) =>
-  v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+import { useFmt } from '../../utils/format'
 
 // ── Stepper ────────────────────────────────────────────────────────────────
 function StepperInput({
@@ -133,6 +131,7 @@ function FireChart({
 
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function SimuladorFIRE() {
+  const fmt = useFmt()
   const { selectedMonth, selectedYear } = useDashboardStore()
   const { data, isLoading } = useDashboard(selectedMonth, selectedYear)
 

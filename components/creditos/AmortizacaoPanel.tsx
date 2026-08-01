@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
 import { View, Text, TextInput } from 'react-native'
 import { simulateExtraAmortization } from '../../lib/creditMath'
-
-const fmt = (v: number) => v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
+import { useFmt2 } from '../../utils/format'
 
 interface Props {
   balance: number
@@ -12,6 +11,7 @@ interface Props {
 }
 
 export default function AmortizacaoPanel({ balance, annualRatePct, monthlyPayment, remainingMonths }: Props) {
+  const fmt = useFmt2()
   const [extra, setExtra] = useState('100')
 
   const sim = useMemo(() => {

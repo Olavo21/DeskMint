@@ -9,6 +9,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { useTickerSearch } from '../../hooks/useTickerSearch'
+import { useFmt2 } from '../../utils/format'
 
 type AssetType = 'ETF' | 'STOCK' | 'CRYPTO' | 'BOND' | 'OTHER'
 
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export default function NovoAtivoModal({ visible, onClose }: Props) {
+  const fmt = useFmt2()
   const session = useAuthStore((s) => s.session)
   const qc = useQueryClient()
   const { query: tickerQ, setQuery: setTickerQ, results, loading: searchLoading, typeToAssetType } = useTickerSearch()
@@ -262,7 +264,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
             <View className="bg-dark-700 rounded-xl px-4 py-2.5 mb-4 flex-row justify-between">
               <Text className="text-dark-400 text-sm">Capital investido (calculado)</Text>
               <Text className="text-dark-50 font-semibold text-sm">
-                {capitalInvested.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
+                {fmt(capitalInvested)}
               </Text>
             </View>
           )}

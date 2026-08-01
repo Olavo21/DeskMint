@@ -5,6 +5,7 @@ import { getCreditOutstandingBalance, calcMonthlyPayment } from '../../lib/credi
 import type { DmCredit } from '../../types/database'
 import AmortizacaoPanel from './AmortizacaoPanel'
 import { confirmDestructive } from '../../lib/confirmDialog'
+import { useFmt2 } from '../../utils/format'
 
 const KIND_LABEL: Record<DmCredit['kind'], { label: string; icon: string }> = {
   VEHICLE: { label: 'Automóvel', icon: '🚗' },
@@ -17,8 +18,6 @@ const EURIBOR_CENARIOS = [
   { label: '+2,0%', delta: 2.0 },
 ]
 
-const fmt = (v: number) => v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
-
 interface Props {
   credit: DmCredit
   onEdit: () => void
@@ -27,6 +26,7 @@ interface Props {
 }
 
 export default function CreditoCard({ credit, onEdit, onDelete, isDeleting }: Props) {
+  const fmt = useFmt2()
   const [expanded, setExpanded] = useState(false)
   const kindInfo = KIND_LABEL[credit.kind]
   const { remainingMonths, balance } = getCreditOutstandingBalance(credit)
