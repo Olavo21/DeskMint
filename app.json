@@ -22,7 +22,7 @@
       "predictiveBackGestureEnabled": false,
       "jsEngine": "hermes",
       "package": "com.deskmint.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "permissions": [
         "INTERNET"
       ]
