@@ -7,9 +7,10 @@ type Props = {
   bucket: SavingBucket
   onAddAmount: (bucket: SavingBucket) => void
   onDelete: (id: string) => void
+  onEdit: (bucket: SavingBucket) => void
 }
 
-export default function BucketCard({ bucket, onAddAmount, onDelete }: Props) {
+export default function BucketCard({ bucket, onAddAmount, onDelete, onEdit }: Props) {
   const fmt = useFmt()
   const pct = bucket.target_amount > 0
     ? Math.min(bucket.current_amount / bucket.target_amount, 1)
@@ -38,9 +39,14 @@ export default function BucketCard({ bucket, onAddAmount, onDelete }: Props) {
             )}
           </View>
         </View>
-        <TouchableOpacity onPress={() => onDelete(bucket.id)} hitSlop={8}>
-          <Ionicons name="trash-outline" size={16} color="#475569" />
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-3">
+          <TouchableOpacity onPress={() => onEdit(bucket)} hitSlop={8}>
+            <Ionicons name="pencil-outline" size={16} color="#475569" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onDelete(bucket.id)} hitSlop={8}>
+            <Ionicons name="trash-outline" size={16} color="#475569" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Progress bar */}

@@ -25,6 +25,8 @@ export type CreateBucketPayload = {
   deadline?: string | null
 }
 
+export type UpdateBucketPayload = Partial<CreateBucketPayload>
+
 const QK = ['saving-buckets'] as const
 
 export function useSavingBuckets() {
@@ -90,5 +92,18 @@ export function useSavingBuckets() {
     onError: (e: Error) => Alert.alert('Erro ao eliminar', e.message),
   })
 
-  return { ...query, create, addAmount, remove }
+  const update = useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: UpdateBucketPayload }) => {
+      const { error } = await supabase
+        .from('dm_saving_buckets')
+        .update(payload)
+        .eq('id', id)
+        .eq('user_id', uid!)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: QK }),
+    onError: (e: Error) => Alert.alert('Erro ao editar', e.message),
+  })
+
+  return { ...query, create, addAmount, remove, update }
 }

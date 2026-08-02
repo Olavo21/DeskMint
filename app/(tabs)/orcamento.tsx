@@ -186,6 +186,7 @@ export default function OrcamentoScreen() {
   const [showModal, setShowModal]         = useState(false)
   const [showBucketModal, setShowBucketModal] = useState(false)
   const [selectedBucket, setSelectedBucket]   = useState<SavingBucket | null>(null)
+  const [editingBucket, setEditingBucket]     = useState<SavingBucket | null>(null)
   const [editMode, setEditMode]           = useState(false)
   const [editingSalary, setEditingSalary] = useState(false)
   const [salaryInput, setSalaryInput]     = useState('')
@@ -222,9 +223,11 @@ export default function OrcamentoScreen() {
       <NovaDespesaModal visible={showModal} onClose={() => setShowModal(false)} month={MONTH} year={YEAR} />
       <NovoBucketModal
         visible={showBucketModal}
-        onClose={() => setShowBucketModal(false)}
+        onClose={() => { setShowBucketModal(false); setEditingBucket(null) }}
         onCreate={(payload) => buckets.create.mutate(payload)}
-        isPending={buckets.create.isPending}
+        onUpdate={(id, payload) => buckets.update.mutate({ id, payload })}
+        isPending={editingBucket ? buckets.update.isPending : buckets.create.isPending}
+        initialBucket={editingBucket}
       />
       <AddAmountModal
         bucket={selectedBucket}
@@ -475,6 +478,7 @@ export default function OrcamentoScreen() {
                     key={bucket.id}
                     bucket={bucket}
                     onAddAmount={(b) => setSelectedBucket(b)}
+                    onEdit={(b) => { setEditingBucket(b); setShowBucketModal(true) }}
                     onDelete={(id) => confirmDestructive(
                       t('budget.savingsGoals'),
                       'Tens a certeza? O progresso guardado será perdido.',

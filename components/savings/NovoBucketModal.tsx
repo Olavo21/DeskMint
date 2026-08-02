@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Modal, View, Text, TextInput, TouchableOpacity,
   ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
-import type { CreateBucketPayload } from '../../hooks/useSavingBuckets'
+import type { CreateBucketPayload, SavingBucket, UpdateBucketPayload } from '../../hooks/useSavingBuckets'
 
 const EMOJIS = ['🎯','✈️','🏠','🚗','🎓','💍','📱','🏖️','💊','🐾','🎮','🛋️','👶','🌍','💼','🎸']
 const COLORS = ['#14b8a6','#6366f1','#f59e0b','#ef4444','#10b981','#8b5cf6','#f97316','#06b6d4']
@@ -13,47 +14,73 @@ type Props = {
   visible: boolean
   onClose: () => void
   onCreate: (payload: CreateBucketPayload) => void
+  onUpdate?: (id: string, payload: UpdateBucketPayload) => void
   isPending: boolean
+  initialBucket?: SavingBucket | null
 }
 
-export default function NovoBucketModal({ visible, onClose, onCreate, isPending }: Props) {
-  const [name, setName]         = useState('')
-  const [emoji, setEmoji]       = useState('🎯')
-  const [color, setColor]       = useState('#14b8a6')
-  const [target, setTarget]     = useState('')
-  const [deadline, setDeadline] = useState('')
+export default function NovoBucketModal({ visible, onClose, onCreate, onUpdate, isPending, initialBucket }: Props) {
+  const isEdit = !!initialBucket
 
-  const reset = () => { setName(''); setTarget(''); setDeadline(''); setEmoji('🎯'); setColor('#14b8a6') }
+  const [name, setName]             = useState('')
+  const [emoji, setEmoji]           = useState('🎯')
+  const [color, setColor]           = useState('#14b8a6')
+  const [target, setTarget]         = useState('')
+  const [deadlineDate, setDeadlineDate] = useState<Date | null>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
-  const handleCreate = () => {
+  useEffect(() => {
+    if (!visible) return
+    if (initialBucket) {
+      setName(initialBucket.name)
+      setEmoji(initialBucket.emoji)
+      setColor(initialBucket.color)
+      setTarget(String(initialBucket.target_amount))
+      setDeadlineDate(initialBucket.deadline ? new Date(initialBucket.deadline) : null)
+    } else {
+      setName('')
+      setEmoji('🎯')
+      setColor('#14b8a6')
+      setTarget('')
+      setDeadlineDate(null)
+    }
+    setShowDatePicker(false)
+  }, [visible, initialBucket])
+
+  const handleSubmit = () => {
     const amount = parseFloat(target.replace(',', '.'))
     if (!name.trim() || isNaN(amount) || amount <= 0) return
-    onCreate({
+    const payload: CreateBucketPayload = {
       name: name.trim(),
       emoji,
       color,
       target_amount: amount,
-      deadline: deadline.trim() || null,
-    })
-    reset()
+      deadline: deadlineDate ? deadlineDate.toISOString().split('T')[0] : null,
+    }
+    if (isEdit && onUpdate) {
+      onUpdate(initialBucket!.id, payload)
+    } else {
+      onCreate(payload)
+    }
     onClose()
   }
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
         style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       >
         <View className="flex-1" />
         <View className="bg-dark-900 rounded-t-3xl p-6">
-          {/* Handle */}
           <View className="w-10 h-1 bg-dark-600 rounded-full self-center mb-5" />
 
           <View className="flex-row items-center justify-between mb-5">
-            <Text className="text-dark-50 text-lg font-bold">Novo Objetivo</Text>
-            <TouchableOpacity onPress={() => { reset(); onClose() }}>
+            <Text className="text-dark-50 text-lg font-bold">
+              {isEdit ? 'Editar Objetivo' : 'Novo Objetivo'}
+            </Text>
+            <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={22} color="#64748b" />
             </TouchableOpacity>
           </View>
@@ -116,23 +143,45 @@ export default function NovoBucketModal({ visible, onClose, onCreate, isPending 
 
             {/* Deadline */}
             <Text className="text-dark-400 text-xs font-semibold uppercase tracking-widest mb-2">Prazo (opcional)</Text>
-            <TextInput
-              value={deadline}
-              onChangeText={setDeadline}
-              placeholder="AAAA-MM-DD"
-              placeholderTextColor="#475569"
-              className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 mb-6"
-              style={{ color: '#0f172a', fontSize: 15 }}
-            />
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex-row items-center justify-between"
+              style={{ marginBottom: deadlineDate ? 6 : 24 }}
+            >
+              <Text style={{ color: deadlineDate ? '#0f172a' : '#475569', fontSize: 15 }}>
+                {deadlineDate ? deadlineDate.toLocaleDateString('pt-PT') : 'Sem prazo definido'}
+              </Text>
+              <Ionicons name="calendar-outline" size={16} color="#475569" />
+            </TouchableOpacity>
+            {deadlineDate && (
+              <TouchableOpacity onPress={() => setDeadlineDate(null)} className="mb-5 self-start pl-1">
+                <Text className="text-dark-500 text-xs">Remover prazo</Text>
+              </TouchableOpacity>
+            )}
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={deadlineDate ?? new Date()}
+                mode="date"
+                display="default"
+                minimumDate={new Date()}
+                onChange={(_event, date) => {
+                  if (Platform.OS !== 'ios') setShowDatePicker(false)
+                  if (date) setDeadlineDate(date)
+                }}
+              />
+            )}
 
             <TouchableOpacity
-              onPress={handleCreate}
+              onPress={handleSubmit}
               disabled={isPending || !name.trim() || !target.trim()}
               className="rounded-2xl py-4 items-center"
               style={{ backgroundColor: color, opacity: isPending || !name.trim() || !target.trim() ? 0.5 : 1 }}
             >
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
-                {isPending ? 'A criar...' : 'Criar Objetivo'}
+                {isPending
+                  ? (isEdit ? 'A guardar...' : 'A criar...')
+                  : (isEdit ? 'Guardar' : 'Criar Objetivo')}
               </Text>
             </TouchableOpacity>
             <View className="h-6" />

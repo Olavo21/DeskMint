@@ -622,6 +622,7 @@ export default function DashboardScreen() {
   const pct = (n: number) => `${(n * 100).toFixed(1)}%`
   const lazerAmt = data?.lazerAmt ?? 0
   const lazerPct = data?.lazerPct ?? 0
+  const grossAssetsValue = (data?.assets ?? []).reduce((s, a) => s + a.value, 0)
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
@@ -654,29 +655,129 @@ export default function DashboardScreen() {
             {/* Projeção de Longo Prazo */}
             <ProjectionCard netWorth={data?.netWorth ?? 0} profile={profile} />
 
-            {/* ── Grelha 2×2 ─────────────────────────────────────────── */}
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-              <MiniCard
-                label={t('dashboard.availableBalance')} value={fmt(data?.availableBalance ?? 0)}
-                sub={t('dashboard.incomeMinus')} icon="wallet-outline" color="#0d9488"
+            {/* ── Net Worth — 5 categorias ─────────────────────────── */}
+            <View className="bg-dark-800 border border-dark-700 rounded-2xl mb-3 overflow-hidden">
+
+              {/* Conta à Ordem */}
+              <TouchableOpacity
+                className="flex-row items-center px-4 py-3.5 border-b border-dark-700"
                 onPress={() => router.push('/(tabs)/orcamento')}
-              />
-              <MiniCard
-                label={t('dashboard.totalInvested')} value={fmt(data?.portfolioValue ?? 0)}
-                sub={t('dashboard.etfStocksCrypto')} icon="trending-up-outline" color="#2563eb"
+                activeOpacity={0.7}
+              >
+                <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#3b82f615' }}>
+                  <Ionicons name="wallet-outline" size={15} color="#3b82f6" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-dark-50 text-sm font-medium">Conta à Ordem</Text>
+                  <Text className="text-dark-500 text-xs">Disponível este mês</Text>
+                </View>
+                <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.availableBalance ?? 0)}</Text>
+                <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+
+              {/* Fundo de Emergência */}
+              {editingEmergencyFund ? (
+                <View className="flex-row items-center gap-2 px-4 py-3 border-b border-dark-700">
+                  <View className="w-7 h-7 rounded-xl items-center justify-center" style={{ backgroundColor: '#14b8a615' }}>
+                    <Ionicons name="shield-checkmark-outline" size={15} color="#14b8a6" />
+                  </View>
+                  <TextInput
+                    className="bg-dark-700 rounded-lg px-3 py-2 text-sm border border-dark-600 flex-1"
+                    style={{ color: '#0f172a', minWidth: 0 }}
+                    value={emergencyFundInput}
+                    onChangeText={setEmergencyFundInput}
+                    keyboardType="decimal-pad"
+                    placeholder="0.00"
+                    placeholderTextColor="#94a3b8"
+                    autoFocus
+                    autoCorrect={false}
+                    autoComplete="off"
+                    importantForAutofill="no"
+                  />
+                  <TouchableOpacity
+                    className="bg-mint-600 rounded-lg px-3 py-2 items-center justify-center"
+                    onPress={saveEmergencyFund}
+                  >
+                    <Ionicons name="checkmark" size={16} color="white" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    className="bg-dark-700 rounded-lg px-2.5 py-2 items-center justify-center"
+                    onPress={() => setEditingEmergencyFund(false)}
+                  >
+                    <Ionicons name="close" size={16} color="#64748b" />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  className="flex-row items-center px-4 py-3.5 border-b border-dark-700"
+                  onPress={startEditEmergencyFund}
+                  activeOpacity={0.7}
+                >
+                  <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#14b8a615' }}>
+                    <Ionicons name="shield-checkmark-outline" size={15} color="#14b8a6" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-dark-50 text-sm font-medium">{t('dashboard.emergencyFund')}</Text>
+                    <Text className="text-dark-500 text-xs">6 meses de despesas</Text>
+                  </View>
+                  <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.emergencyFund ?? 0)}</Text>
+                  <Ionicons name="pencil-outline" size={14} color="#475569" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+              )}
+
+              {/* Portfólio */}
+              <TouchableOpacity
+                className="flex-row items-center px-4 py-3.5 border-b border-dark-700"
                 onPress={() => router.push('/(tabs)/investimentos')}
-              />
-            </View>
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-              <EmergencyCard
-                atual={data?.emergencyFund ?? 0}
-                despesaMensal={data?.expenses ?? 0}
-              />
-              <MiniCard
-                label={t('dashboard.totalDebt')} value={fmt(data?.totalCreditDebt ?? 0)}
-                sub={t('dashboard.liabilities')} icon="card-outline" color="#dc2626"
+                activeOpacity={0.7}
+              >
+                <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#6366f115' }}>
+                  <Ionicons name="trending-up-outline" size={15} color="#6366f1" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-dark-50 text-sm font-medium">Portfólio</Text>
+                  <Text className="text-dark-500 text-xs">ETFs, Ações, Cripto</Text>
+                </View>
+                <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.portfolioValue ?? 0)}</Text>
+                <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+
+              {/* Bens Ativos */}
+              <TouchableOpacity
+                className="flex-row items-center px-4 py-3.5 border-b border-dark-700"
+                onPress={() => setDetailsExpanded(true)}
+                activeOpacity={0.7}
+              >
+                <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#f59e0b15' }}>
+                  <Ionicons name="home-outline" size={15} color="#f59e0b" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-dark-50 text-sm font-medium">Bens Ativos</Text>
+                  <Text className="text-dark-500 text-xs">Carro, Casa, …</Text>
+                </View>
+                <Text className="text-dark-50 text-sm font-semibold">{fmt(grossAssetsValue)}</Text>
+                <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+
+              {/* Passivos / Créditos */}
+              <TouchableOpacity
+                className="flex-row items-center px-4 py-3.5"
                 onPress={() => router.push('/(tabs)/creditos')}
-              />
+                activeOpacity={0.7}
+              >
+                <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#ef444415' }}>
+                  <Ionicons name="card-outline" size={15} color="#ef4444" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-dark-50 text-sm font-medium">Passivos / Créditos</Text>
+                  <Text className="text-dark-500 text-xs">Deduzido automaticamente</Text>
+                </View>
+                <Text style={{ color: '#ef4444' }} className="text-sm font-semibold">
+                  -{fmt(data?.totalCreditDebt ?? 0)}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+
             </View>
 
             <TouchableOpacity
@@ -750,57 +851,6 @@ export default function DashboardScreen() {
                       fmt={fmt}
                     />
                   ))}
-                  <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
-                    <Text className="text-dark-300 text-sm">{t('dashboard.portfolioLabel')}</Text>
-                    <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.portfolioValue ?? 0)}</Text>
-                  </View>
-                  {editingEmergencyFund ? (
-                    <View className="py-3 border-b border-dark-700">
-                      <View className="flex-row items-center gap-2">
-                        <Text className="text-dark-300 text-sm flex-1">{t('dashboard.emergencyFund')}</Text>
-                        <TextInput
-                          className="bg-dark-700 rounded-lg px-3 py-2 text-sm border border-dark-600"
-                          style={{ color: '#0f172a', minWidth: 0, width: 110 }}
-                          value={emergencyFundInput}
-                          onChangeText={setEmergencyFundInput}
-                          keyboardType="decimal-pad"
-                          placeholder="0.00"
-                          placeholderTextColor="#94a3b8"
-                          autoFocus
-                          autoCorrect={false}
-                          autoComplete="off"
-                          importantForAutofill="no"
-                        />
-                        <TouchableOpacity
-                          className="bg-mint-600 rounded-lg px-3 py-2 items-center justify-center"
-                          onPress={saveEmergencyFund}
-                        >
-                          <Ionicons name="checkmark" size={16} color="white" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          className="bg-dark-700 rounded-lg px-2.5 py-2 items-center justify-center"
-                          onPress={() => setEditingEmergencyFund(false)}
-                        >
-                          <Ionicons name="close" size={16} color="#64748b" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : (
-                    <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
-                      <Text className="text-dark-300 text-sm">{t('dashboard.emergencyFund')}</Text>
-                      <View className="flex-row items-center gap-3">
-                        <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.emergencyFund ?? 0)}</Text>
-                        {assetsEditMode && (
-                          <TouchableOpacity
-                            onPress={startEditEmergencyFund}
-                            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                          >
-                            <Ionicons name="pencil-outline" size={17} color="#94a3b8" />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    </View>
-                  )}
                 </View>
               </>
             )}
