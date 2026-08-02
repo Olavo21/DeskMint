@@ -75,9 +75,9 @@ function Row({ label, value, sub, color }: {
 
 function InsightBox({ text }: { text: string }) {
   return (
-    <View className="mt-4 flex-row gap-2 bg-teal-900/30 border border-teal-800/40 rounded-xl p-3">
+    <View style={{ marginTop: 16, flexDirection: 'row', gap: 8, backgroundColor: '#0f2a26', borderWidth: 1, borderColor: '#14b8a640', borderRadius: 12, padding: 12 }}>
       <Ionicons name="bulb-outline" size={14} color="#2dd4bf" style={{ marginTop: 1 }} />
-      <Text className="text-teal-300 text-xs leading-5 flex-1">{text}</Text>
+      <Text style={{ color: '#e2e8f0', fontSize: 12, lineHeight: 20, flex: 1 }}>{text}</Text>
     </View>
   )
 }
@@ -471,7 +471,8 @@ export default function AssistenteScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingVertical: 12 }}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingLeft: 16, paddingRight: 24, gap: 8, paddingVertical: 10, alignItems: 'center' }}
       >
         {CARDS.map((c) => {
           const isActive = active === c.key
