@@ -8,9 +8,11 @@
     "scheme": "deskmint",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "jsEngine": "hermes",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.deskmint.app"
+      "bundleIdentifier": "com.deskmint.app",
+      "jsEngine": "hermes"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,6 +20,7 @@
         "backgroundColor": "#0F172A"
       },
       "predictiveBackGestureEnabled": false,
+      "jsEngine": "hermes",
       "package": "com.deskmint.app",
       "versionCode": 4,
       "permissions": [

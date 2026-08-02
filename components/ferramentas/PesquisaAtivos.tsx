@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { View, Text, TextInput, TouchableOpacity, ScrollView, FlatList } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg'
 import { ATIVOS, gerarHistorico, calcMetricas, type Ativo } from '../../lib/ativos'

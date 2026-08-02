@@ -47,7 +47,8 @@ const STEP_TITLES = ['', 'Como te chamamos?', 'Perfil de Investidor', 'Objetivo 
 const STEP_SUBS   = ['', 'O teu nome na app', 'Como defines o teu perfil de risco?', 'Qual o principal objetivo dos teus investimentos?', 'Quanto tempo planeias manter os investimentos?']
 
 export default function OnboardingScreen() {
-  const { session, setProfile } = useAuthStore()
+  const session = useAuthStore((s) => s.session)
+  const setProfile = useAuthStore((s) => s.setProfile)
   const qc = useQueryClient()
   const [step, setStep]                 = useState(1)
   const [investorType, setInvestorType] = useState<InvestorType>('MODERATE')

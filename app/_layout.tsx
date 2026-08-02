@@ -18,7 +18,9 @@ import { usePreferencesStore } from '../stores/preferencesStore'
 import { changeAppLanguage } from '../lib/i18n'
 
 export default function RootLayout() {
-  const { setSession, setProfile, setLoading } = useAuthStore()
+  const setSession = useAuthStore((s) => s.setSession)
+  const setProfile = useAuthStore((s) => s.setProfile)
+  const setLoading = useAuthStore((s) => s.setLoading)
 
   useEffect(() => {
     // ── Preferências locais ───────────────────────────────────────────────
