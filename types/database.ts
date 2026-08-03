@@ -220,6 +220,7 @@ export type Database = {
           category_id: string
           created_at: string
           description: string
+          dia_vencimento: number | null
           id: string
           is_active: boolean
           is_fixed: boolean
@@ -231,6 +232,7 @@ export type Database = {
           category_id: string
           created_at?: string
           description: string
+          dia_vencimento?: number | null
           id?: string
           is_active?: boolean
           is_fixed?: boolean
@@ -242,6 +244,7 @@ export type Database = {
           category_id?: string
           created_at?: string
           description?: string
+          dia_vencimento?: number | null
           id?: string
           is_active?: boolean
           is_fixed?: boolean
