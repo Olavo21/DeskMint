@@ -322,9 +322,9 @@ function CardTax({ assets, totalValue, totalCapital, totalPL }: {
         <Row label="Imposto estimado" value="0,00 €" sub="Menos-valia — sem imposto" color="#34d399" />
       )}
 
-      <View className="mt-4 flex-row gap-2 bg-slate-800/60 border border-slate-700/40 rounded-xl p-3">
-        <Ionicons name="information-circle-outline" size={14} color="#475569" style={{ marginTop: 1 }} />
-        <Text className="text-dark-500 text-xs leading-5 flex-1">
+      <View style={{ marginTop: 14, flexDirection: 'row', gap: 8, backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#fde68a', borderRadius: 12, padding: 12 }}>
+        <Ionicons name="information-circle-outline" size={14} color="#d97706" style={{ marginTop: 1 }} />
+        <Text style={{ color: '#92400e', fontSize: 11, lineHeight: 17, flex: 1 }}>
           Simulação com taxa autónoma de 28% (PT). Cripto detida {'>'} 365 dias pode estar isenta. Consulta sempre um fiscalista.
         </Text>
       </View>
