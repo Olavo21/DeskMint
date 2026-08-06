@@ -12,6 +12,7 @@ import MarketNews from '../../components/investments/MarketNews'
 import NovoAtivoModal from '../../components/investments/NovoAtivoModal'
 import BrokerModal from '../../components/investments/BrokerModal'
 import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
+import XtbImportModal from '../../components/investments/XtbImportModal'
 import { getColor } from '../../lib/portfolioColors'
 import { getSector, SECTOR_COLORS } from '../../lib/assetSectors'
 import { useFmt } from '../../utils/format'
@@ -39,6 +40,7 @@ export default function InvestimentosScreen() {
   const [showModal, setShowModal]   = useState(false)
   const [showBroker, setShowBroker] = useState(false)
   const [showManage, setShowManage] = useState(false)
+  const [showXtb,   setShowXtb]    = useState(false)
 
   const donutSize      = Math.min(Math.round(screenW * 0.72), 300)
   const donutThickness = Math.round(donutSize * 0.13)
@@ -219,6 +221,15 @@ export default function InvestimentosScreen() {
       {/* FABs */}
       <View className="absolute bottom-20 right-4 gap-2.5 items-end">
         <TouchableOpacity
+          onPress={() => setShowXtb(true)}
+          className="flex-row items-center gap-2 bg-dark-800 border border-dark-600 rounded-full px-4 py-2.5"
+          style={{ shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 }}
+        >
+          <Ionicons name="cloud-upload-outline" size={16} color="#0d9488" />
+          <Text className="text-teal-600 text-sm font-semibold">Importar XTB</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           onPress={() => setShowBroker(true)}
           className="flex-row items-center gap-2 bg-dark-800 border border-dark-600 rounded-full px-4 py-2.5"
           style={{ shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 4 }}
@@ -244,6 +255,7 @@ export default function InvestimentosScreen() {
         onClose={() => setShowManage(false)}
         onAdd={() => { setShowManage(false); setTimeout(() => setShowModal(true), 300) }}
       />
+      <XtbImportModal visible={showXtb} onClose={() => setShowXtb(false)} />
     </SafeAreaView>
   )
 }
