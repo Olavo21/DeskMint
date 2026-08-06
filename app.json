@@ -2,7 +2,7 @@
   "expo": {
     "name": "DeskMint",
     "slug": "deskmint",
-    "version": "1.4.0",
+    "version": "1.4.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "deskmint",
@@ -22,7 +22,7 @@
       "predictiveBackGestureEnabled": false,
       "jsEngine": "hermes",
       "package": "com.deskmint.app",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "INTERNET"
       ]
