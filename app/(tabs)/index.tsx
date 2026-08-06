@@ -171,6 +171,7 @@ function NetWorthChart({ points }: { points: NetWorthPoint[] }) {
   const PAD_T   = 8
 
   const { t } = useTranslation()
+  const fmt     = useFmt()
 
   if (points.length < 2) {
     return (
@@ -181,21 +182,45 @@ function NetWorthChart({ points }: { points: NetWorthPoint[] }) {
     )
   }
 
-  const values = points.map((p) => p.net_worth)
-  const min    = Math.min(...values)
-  const max    = Math.max(...values)
-  const range  = max - min || 1
+  const values  = points.map((p) => p.net_worth)
+  const min     = Math.min(...values)
+  const max     = Math.max(...values)
+  const range   = max - min
+  const delta   = values[values.length - 1] - values[0]
+
+  // Linha reta — todos os valores iguais: mostrar indicador de tendência
+  if (range === 0) {
+    const isNew = points.length <= 2
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, opacity: 0.6 }}>
+        <Ionicons name="remove-outline" size={16} color="#64748b" />
+        <Text style={{ color: '#64748b', fontSize: 11 }}>
+          {isNew ? t('dashboard.historyBuilding') : 'Estável — sem variação registada'}
+        </Text>
+      </View>
+    )
+  }
 
   const pts = svgWidth > 0 ? points.map((p, i) => ({
     x: (i / (points.length - 1)) * svgWidth,
     y: PAD_T + (1 - (p.net_worth - min) / range) * (LINE_H - PAD_T),
   })) : []
 
+  const deltaColor = delta > 0 ? '#0d9488' : delta < 0 ? '#ef4444' : '#64748b'
+  const deltaIcon  = delta > 0 ? 'trending-up-outline' : delta < 0 ? 'trending-down-outline' : 'remove-outline'
+
   return (
-    <View
-      style={{ marginTop: 12, marginBottom: 4 }}
-      onLayout={(e) => setSvgWidth(e.nativeEvent.layout.width)}
-    >
+    <View style={{ marginTop: 12, marginBottom: 4 }}>
+      {/* Badge de variação */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8, paddingHorizontal: 2 }}>
+        <Ionicons name={deltaIcon as any} size={13} color={deltaColor} />
+        <Text style={{ color: deltaColor, fontSize: 11, fontWeight: '600' }}>
+          {delta >= 0 ? '+' : ''}{fmt(delta)} desde {points[0].label}
+        </Text>
+      </View>
+      <View
+        onLayout={(e) => setSvgWidth(e.nativeEvent.layout.width)}
+      >
       {svgWidth > 0 && pts.length > 0 && (
         <Svg width={svgWidth} height={H}>
           <Defs>
@@ -233,6 +258,7 @@ function NetWorthChart({ points }: { points: NetWorthPoint[] }) {
           ))}
         </Svg>
       )}
+      </View>
     </View>
   )
 }
