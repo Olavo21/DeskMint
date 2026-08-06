@@ -355,55 +355,53 @@ function CardGoal({ totalValue, investorType }: {
     <View className="gap-4">
       <View className="flex-row gap-3">
         <View className="flex-1">
-          <Text className="text-dark-400 text-xs mb-1.5">Objetivo (€)</Text>
+          <Text style={{ color: '#64748b', fontSize: 11, marginBottom: 6 }}>Objetivo (€)</Text>
           <TextInput
             value={goal}
             onChangeText={setGoal}
             placeholder="100.000"
-            placeholderTextColor="#475569"
+            placeholderTextColor="#94a3b8"
             keyboardType="numeric"
-            className="bg-dark-700 border border-dark-600 rounded-xl px-3 py-3 text-dark-100 text-sm"
-            style={{ color: '#e2e8f0' }}
+            style={{ backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, color: '#0f172a', fontSize: 14 }}
           />
         </View>
         <View style={{ width: 100 }}>
-          <Text className="text-dark-400 text-xs mb-1.5">Prazo (anos)</Text>
+          <Text style={{ color: '#64748b', fontSize: 11, marginBottom: 6 }}>Prazo (anos)</Text>
           <TextInput
             value={years}
             onChangeText={setYears}
             placeholder="10"
-            placeholderTextColor="#475569"
+            placeholderTextColor="#94a3b8"
             keyboardType="numeric"
-            className="bg-dark-700 border border-dark-600 rounded-xl px-3 py-3 text-dark-100 text-sm"
-            style={{ color: '#e2e8f0' }}
+            style={{ backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, color: '#0f172a', fontSize: 14 }}
           />
         </View>
       </View>
 
       {result ? (
         <View className="gap-0">
-          <Row label="Portfólio atual (PV)"  value={fmt(totalValue)} />
-          <Row label="Objetivo (FV)"          value={fmt(result.fvTarget)} />
-          <Row label="Taxa assumida"          value={`${(rate * 100).toFixed(0)}% a.a.`} sub={investorType ?? 'MODERATE'} />
-          <Row label="Prazo"                  value={`${result.years} anos`} />
+          <Row label="Portfólio atual (PV)"  value={fmt(totalValue)}             color="#0f172a" />
+          <Row label="Objetivo (FV)"          value={fmt(result.fvTarget)}        color="#0f172a" />
+          <Row label="Taxa assumida"          value={`${(rate * 100).toFixed(0)}% a.a.`} sub={investorType ?? 'MODERATE'} color="#0f172a" />
+          <Row label="Prazo"                  value={`${result.years} anos`}      color="#0f172a" />
           {result.pmtNeeded > 0 ? (
             <>
-              <View className="mt-4 bg-teal-900/40 border border-teal-700/40 rounded-2xl p-4 items-center">
-                <Text className="text-teal-400 text-xs mb-1">Aporte mensal necessário</Text>
+              <View style={{ marginTop: 16, backgroundColor: '#0f2a26', borderWidth: 1, borderColor: '#14b8a640', borderRadius: 16, padding: 16, alignItems: 'center' }}>
+                <Text style={{ color: '#5eead4', fontSize: 11, marginBottom: 4 }}>Aporte mensal necessário</Text>
                 <Text style={{ color: '#2dd4bf', fontSize: 28, fontWeight: '900' }}>
                   {fmt(result.pmtNeeded)}
                 </Text>
-                <Text className="text-dark-400 text-xs mt-1">/ mês</Text>
+                <Text style={{ color: '#64748b', fontSize: 11, marginTop: 4 }}>/ mês</Text>
               </View>
               <InsightBox
                 text={`Com ${fmt(result.pmtNeeded)}/mês durante ${result.years} anos a ${(rate * 100).toFixed(0)}% a.a., atinges ${fmt(result.fvTarget)}.`}
               />
             </>
           ) : (
-            <View className="mt-4 bg-teal-900/40 border border-teal-700/40 rounded-2xl p-4 items-center">
+            <View style={{ marginTop: 16, backgroundColor: '#0f2a26', borderWidth: 1, borderColor: '#14b8a640', borderRadius: 16, padding: 16, alignItems: 'center' }}>
               <Ionicons name="checkmark-circle" size={28} color="#34d399" />
-              <Text className="text-teal-300 text-sm font-semibold mt-2">Objetivo já atingido!</Text>
-              <Text className="text-dark-400 text-xs mt-1 text-center">
+              <Text style={{ color: '#34d399', fontSize: 14, fontWeight: '600', marginTop: 8 }}>Objetivo já atingido!</Text>
+              <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 4, textAlign: 'center' }}>
                 O teu portfólio atual supera o objetivo definido.
               </Text>
             </View>
@@ -411,8 +409,8 @@ function CardGoal({ totalValue, investorType }: {
         </View>
       ) : (
         <View className="items-center py-8 gap-2">
-          <Ionicons name="calculator-outline" size={36} color="#334155" />
-          <Text className="text-dark-500 text-sm text-center">
+          <Ionicons name="calculator-outline" size={36} color="#94a3b8" />
+          <Text style={{ color: '#64748b', fontSize: 13, textAlign: 'center' }}>
             Introduz o objetivo e o prazo{'\n'}para calcular o aporte necessário.
           </Text>
         </View>
