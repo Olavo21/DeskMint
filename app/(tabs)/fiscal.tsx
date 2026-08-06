@@ -151,7 +151,7 @@ export default function FiscalScreen() {
         </View>
 
         {/* ─── Simulador com Portfólio Real ────────────────────────────── */}
-        <Section title="Simulador com o teu Portfólio" icon="🧮" defaultOpen>
+        <Section title="Simulador com o teu Portfólio" icon="🧮">
           <SimuladorMaisValias />
         </Section>
 
