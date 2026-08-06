@@ -20,8 +20,7 @@ export type XtbParseResult = {
   dividend_count: number
 }
 
-export function parseXtbBase64(base64: string): XtbParseResult {
-  const wb = XLSX.read(base64, { type: 'base64' })
+export function parseXtbWorkbook(wb: XLSX.WorkBook): XtbParseResult {
 
   const holdings: XtbHolding[] = []
   let total_deposits  = 0
@@ -81,4 +80,12 @@ export function parseXtbBase64(base64: string): XtbParseResult {
   }
 
   return { holdings, total_deposits, total_dividends, deposit_count, dividend_count }
+}
+
+export function parseXtbBase64(base64: string): XtbParseResult {
+  return parseXtbWorkbook(XLSX.read(base64, { type: 'base64' }))
+}
+
+export function parseXtbArrayBuffer(buffer: ArrayBuffer): XtbParseResult {
+  return parseXtbWorkbook(XLSX.read(buffer, { type: 'array' }))
 }

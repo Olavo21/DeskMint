@@ -11,6 +11,7 @@ import { Platform } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { parseCSV, BROKERS, type BrokerId, type ParsedPosition } from '../../lib/csvParsers'
+import { parseXtbBase64, parseXtbArrayBuffer } from '../../lib/xtbParser'
 import { useBrokerConnections } from '../../hooks/useBrokerConnections'
 import { useQueryClient } from '@tanstack/react-query'
 import BrokerLogo from './BrokerLogo'
@@ -77,6 +78,25 @@ export default function BrokerModal({ visible, onClose }: Props) {
         if (isExcelFile(file.name, file.type)) {
           reader.onload = (e) => {
             const buf = e.target?.result as ArrayBuffer
+
+            // XTB XLSX: use the dedicated multi-sheet parser (reads Open Positions summary rows)
+            if (broker === 'xtb') {
+              try {
+                const { holdings } = parseXtbArrayBuffer(buf)
+                const positions: ParsedPosition[] = holdings.map((h) => ({
+                  ticker: h.ticker, name: h.name, units: h.units, avg_price: h.avg_price,
+                  current_value: h.current_value, capital_invested: h.capital_invested,
+                  asset_type: h.asset_type, broker: 'XTB',
+                }))
+                if (positions.length > 0) {
+                  setParsed(positions)
+                  setStep('preview')
+                  resolve('__XTB_HANDLED__')
+                  return
+                }
+              } catch { /* fall through to CSV */ }
+            }
+
             let csv: string | null = null
             try { csv = excelToText(buf, 'array') } catch { /* not real Excel */ }
             if (csv && csv.trim().length > 0) {
@@ -120,10 +140,28 @@ export default function BrokerModal({ visible, onClose }: Props) {
         })
         if (result.canceled || !result.assets?.[0]) return
         const asset = result.assets[0]
+
+        // XTB XLSX: use the dedicated multi-sheet parser (reads Open Positions summary rows)
+        if (broker === 'xtb' && isExcelFile(asset.name ?? '', asset.mimeType)) {
+          const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 })
+          const { holdings } = parseXtbBase64(base64)
+          const positions: ParsedPosition[] = holdings.map((h) => ({
+            ticker: h.ticker, name: h.name, units: h.units, avg_price: h.avg_price,
+            current_value: h.current_value, capital_invested: h.capital_invested,
+            asset_type: h.asset_type, broker: 'XTB',
+          }))
+          if (positions.length === 0) {
+            setError('Não foram encontradas posições abertas. Exporta o relatório completo da XTB (.xlsx) que inclui a aba "Open Positions".')
+            return
+          }
+          setParsed(positions)
+          setStep('preview')
+          return
+        }
+
         const expoFile = new ExpoFile(asset.uri)
         if (isExcelFile(asset.name ?? '', asset.mimeType)) {
           const buffer = await expoFile.arrayBuffer()
-          // Try SheetJS first; some brokers export HTML disguised as .xlsx/.xls
           let csv: string | null = null
           try {
             csv = excelToText(buffer, 'array')
@@ -133,13 +171,15 @@ export default function BrokerModal({ visible, onClose }: Props) {
           if (csv && csv.trim().length > 0) {
             text = csv
           } else {
-            // Fall back to reading as plain text / HTML
             text = new TextDecoder('utf-8').decode(buffer)
           }
         } else {
           text = await expoFile.text()
         }
       }
+
+      // XTB web path already set state and resolved with sentinel — skip parseCSV
+      if (text === '__XTB_HANDLED__') return
 
       const positions = parseCSV(broker!, text)
 
