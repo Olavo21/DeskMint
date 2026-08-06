@@ -648,12 +648,39 @@ export default function DashboardScreen() {
           <DashboardError onRetry={() => refetch()} />
         ) : (
           <>
+            {/* Resumo do Mês */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => router.push('/(tabs)/orcamento')}
+              style={{ backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                  {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color="#94a3b8" />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 0 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 3 }}>{t('dashboard.incomeLabel')}</Text>
+                  <Text style={{ color: '#0d9488', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(data?.income ?? 0)}</Text>
+                </View>
+                <View style={{ width: 1, backgroundColor: '#f1f5f9', marginHorizontal: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 3 }}>{t('dashboard.expensesLabel')}</Text>
+                  <Text style={{ color: '#ef4444', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(data?.expenses ?? 0)}</Text>
+                </View>
+                <View style={{ width: 1, backgroundColor: '#f1f5f9', marginHorizontal: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 3 }}>Disponível</Text>
+                  <Text style={{ color: '#0f172a', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(data?.availableBalance ?? 0)}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
             {/* Património Líquido + gráfico de evolução */}
             <NetWorthBanner label={t('dashboard.netWorth')} value={fmt(data?.netWorth ?? 0)} />
             <NetWorthChart points={nwHistory} />
-
-            {/* Projeção de Longo Prazo */}
-            <ProjectionCard netWorth={data?.netWorth ?? 0} profile={profile} />
 
             {/* ── Net Worth — 5 categorias ─────────────────────────── */}
             <View className="bg-dark-800 border border-dark-700 rounded-2xl mb-3 overflow-hidden">
@@ -668,8 +695,8 @@ export default function DashboardScreen() {
                   <Ionicons name="wallet-outline" size={15} color="#3b82f6" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-dark-50 text-sm font-medium">Conta à Ordem</Text>
-                  <Text className="text-dark-500 text-xs">Disponível este mês</Text>
+                  <Text className="text-dark-50 text-sm font-medium">Disponível Este Mês</Text>
+                  <Text className="text-dark-500 text-xs">Saldo após despesas</Text>
                 </View>
                 <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.availableBalance ?? 0)}</Text>
                 <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
@@ -792,20 +819,6 @@ export default function DashboardScreen() {
 
             {detailsExpanded && (
               <>
-                {/* KPIs */}
-                <View className="flex-row gap-3 mb-3">
-                  <KpiCard label={t('dashboard.incomeLabel')} value={fmt(data?.income ?? 0)} />
-                  <KpiCard label={t('dashboard.expensesLabel')} value={fmt(data?.expenses ?? 0)} />
-                </View>
-                <View className="flex-row gap-3 mb-6">
-                  <KpiCard label={t('dashboard.savingsLabel')} value={fmt(data?.savings ?? 0)} sub={pct(data?.savingsRate ?? 0)} />
-                  <KpiCard label={t('dashboard.leisureLabel')} value={fmt(data?.freeCash ?? 0)} sub="não alocado" />
-                </View>
-                <View className="flex-row gap-3 mb-6">
-                  <KpiCard label={t('dashboard.investedLabel')} value={fmt(data?.portfolioValue ?? 0)} valueColor="#0d9488" />
-                  <KpiCard label={t('dashboard.totalDebt')} value={fmt(data?.totalCreditDebt ?? 0)} valueColor="#dc2626" />
-                </View>
-
                 {/* Necessidades/Lazer/Poupança — metas personalizadas do utilizador */}
                 {data?.budgetRule && (
                   <View className="bg-dark-800 rounded-2xl p-4 mb-4">
@@ -854,6 +867,9 @@ export default function DashboardScreen() {
                 </View>
               </>
             )}
+
+            {/* Projeção de Longo Prazo (secundária) */}
+            <ProjectionCard netWorth={data?.netWorth ?? 0} profile={profile} />
           </>
         )}
       </ScrollView>
