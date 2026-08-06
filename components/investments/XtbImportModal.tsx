@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Modal, View, Text, TouchableOpacity, ScrollView, ActivityIndicator,
+  Modal, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
@@ -48,8 +48,12 @@ export default function XtbImportModal({ visible, onClose }: { visible: boolean;
       if (res.canceled || !res.assets?.[0]) return
 
       setStep('parsing')
-      const uri    = res.assets[0].uri
-      const buffer = await new ExpoFile(uri).arrayBuffer()
+      const asset  = res.assets[0]
+      // On web, DocumentPicker exposes the native browser File object directly.
+      // ExpoFile only works on native (validatePath is a native-only method).
+      const buffer: ArrayBuffer = (Platform.OS === 'web' && (asset as any).file)
+        ? await (asset as any).file.arrayBuffer()
+        : await new ExpoFile(asset.uri).arrayBuffer()
       const parsed = parseXtbArrayBuffer(buffer)
 
       if (parsed.holdings.length === 0) {
