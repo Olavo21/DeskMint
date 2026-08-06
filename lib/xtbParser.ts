@@ -20,6 +20,13 @@ export type XtbParseResult = {
   dividend_count: number
 }
 
+// Signature of an Open Positions summary row: col[3] is STOCK|ETF, col[4] is empty.
+// Closed Positions has col[3]=BUY/SELL, Cash Operations has no STOCK/ETF — so this
+// signature uniquely identifies the Open Positions sheet regardless of its name or order.
+function isOpenPositionsSheet(rows: any[][]): boolean {
+  return rows.some(r => (r[3] === 'STOCK' || r[3] === 'ETF') && (r[4] === '' || r[4] == null))
+}
+
 export function parseXtbWorkbook(wb: XLSX.WorkBook): XtbParseResult {
 
   const holdings: XtbHolding[] = []
@@ -29,41 +36,46 @@ export function parseXtbWorkbook(wb: XLSX.WorkBook): XtbParseResult {
   let dividend_count  = 0
 
   // ── Open Positions ─────────────────────────────────────────────────────────
-  // Always the 3rd sheet (index 2) regardless of language.
-  // Summary rows (per ticker): col[4] (Type) is empty, col[3] (Category) is STOCK|ETF
-  // Position rows (per trade):  col[4] is "BUY" etc. → skip
-  const opSheet = wb.Sheets[wb.SheetNames[2]] ?? wb.Sheets['Open Positions']
-  if (opSheet) {
-    const rows = XLSX.utils.sheet_to_json<any[]>(opSheet, { header: 1 })
-    for (const row of rows) {
-      const category = row[3]
-      const type     = row[4]
-      if ((category === 'STOCK' || category === 'ETF') && type === '') {
-        const units         = parseFloat(row[5]) || 0
-        const current_value = parseFloat(row[6]) || 0
-        const avg_price     = parseFloat(row[8]) || 0
-        const net_profit    = parseFloat(row[13]) || 0
-        const net_profit_pct = parseFloat(row[12]) || 0
-        if (units > 0 && current_value > 0) {
-          holdings.push({
-            name:            String(row[1]),
-            ticker:          String(row[2]),
-            asset_type:      category as 'ETF' | 'STOCK',
-            units,
-            current_value,
-            avg_price,
-            capital_invested: current_value - net_profit,
-            net_profit,
-            net_profit_pct,
-          })
-        }
+  // Scan all sheets to find the one with Open Positions structure.
+  // This works regardless of sheet name (language) or order (mobile vs desktop export).
+  let openRows: any[][] = []
+  for (const name of wb.SheetNames) {
+    const sheet = wb.Sheets[name]
+    if (!sheet) continue
+    const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 })
+    if (isOpenPositionsSheet(rows)) { openRows = rows; break }
+  }
+
+  for (const row of openRows) {
+    const category = row[3]
+    const type     = row[4]
+    if ((category === 'STOCK' || category === 'ETF') && (type === '' || type == null)) {
+      const units         = parseFloat(row[5]) || 0
+      const current_value = parseFloat(row[6]) || 0
+      const avg_price     = parseFloat(row[8]) || 0
+      const net_profit    = parseFloat(row[13]) || 0
+      const net_profit_pct = parseFloat(row[12]) || 0
+      if (units > 0 && current_value > 0) {
+        holdings.push({
+          name:             String(row[1]),
+          ticker:           String(row[2]),
+          asset_type:       category as 'ETF' | 'STOCK',
+          units,
+          current_value,
+          avg_price,
+          capital_invested: current_value - net_profit,
+          net_profit,
+          net_profit_pct,
+        })
       }
     }
   }
 
   // ── Cash Operations ────────────────────────────────────────────────────────
-  // Always the 2nd sheet (index 1) regardless of language.
-  const cashSheet = wb.Sheets[wb.SheetNames[1]] ?? wb.Sheets['Cash Operations']
+  // Try by name variants (EN/PT), fall back to 2nd sheet.
+  const cashSheet = wb.Sheets['Cash Operations']
+    ?? wb.Sheets['Operações em Numerário']
+    ?? wb.Sheets[wb.SheetNames[1]]
   if (cashSheet) {
     const rows = XLSX.utils.sheet_to_json<any[]>(cashSheet, { header: 1 })
     for (const row of rows.slice(5)) {
