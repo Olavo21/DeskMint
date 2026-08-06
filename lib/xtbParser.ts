@@ -29,10 +29,10 @@ export function parseXtbWorkbook(wb: XLSX.WorkBook): XtbParseResult {
   let dividend_count  = 0
 
   // ── Open Positions ─────────────────────────────────────────────────────────
-  // Header is row index 10 (0-based); data starts at row 11.
+  // Always the 3rd sheet (index 2) regardless of language.
   // Summary rows (per ticker): col[4] (Type) is empty, col[3] (Category) is STOCK|ETF
   // Position rows (per trade):  col[4] is "BUY" etc. → skip
-  const opSheet = wb.Sheets['Open Positions']
+  const opSheet = wb.Sheets[wb.SheetNames[2]] ?? wb.Sheets['Open Positions']
   if (opSheet) {
     const rows = XLSX.utils.sheet_to_json<any[]>(opSheet, { header: 1 })
     for (const row of rows) {
@@ -62,8 +62,8 @@ export function parseXtbWorkbook(wb: XLSX.WorkBook): XtbParseResult {
   }
 
   // ── Cash Operations ────────────────────────────────────────────────────────
-  // Real data starts at row index 5 (after 4 metadata rows + 1 header row)
-  const cashSheet = wb.Sheets['Cash Operations']
+  // Always the 2nd sheet (index 1) regardless of language.
+  const cashSheet = wb.Sheets[wb.SheetNames[1]] ?? wb.Sheets['Cash Operations']
   if (cashSheet) {
     const rows = XLSX.utils.sheet_to_json<any[]>(cashSheet, { header: 1 })
     for (const row of rows.slice(5)) {

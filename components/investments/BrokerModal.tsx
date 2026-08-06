@@ -79,7 +79,7 @@ export default function BrokerModal({ visible, onClose }: Props) {
           reader.onload = (e) => {
             const buf = e.target?.result as ArrayBuffer
 
-            // XTB XLSX: use the dedicated multi-sheet parser (reads Open Positions summary rows)
+            // XTB XLSX: dedicated parser — never fall through to generic (would read wrong sheet)
             if (broker === 'xtb') {
               try {
                 const { holdings } = parseXtbArrayBuffer(buf)
@@ -88,13 +88,17 @@ export default function BrokerModal({ visible, onClose }: Props) {
                   current_value: h.current_value, capital_invested: h.capital_invested,
                   asset_type: h.asset_type, broker: 'XTB',
                 }))
-                if (positions.length > 0) {
+                if (positions.length === 0) {
+                  reject(new Error('Não foram encontradas posições abertas. Confirma que exportaste o relatório completo da XTB (.xlsx).'))
+                } else {
                   setParsed(positions)
                   setStep('preview')
                   resolve('__XTB_HANDLED__')
-                  return
                 }
-              } catch { /* fall through to CSV */ }
+              } catch (e) {
+                reject(new Error('Erro ao ler o ficheiro XTB: ' + String(e)))
+              }
+              return
             }
 
             let csv: string | null = null
