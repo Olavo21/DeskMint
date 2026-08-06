@@ -5,11 +5,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import * as DocumentPicker from 'expo-document-picker'
-import * as FileSystem from 'expo-file-system'
+import { File as ExpoFile } from 'expo-file-system'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import { parseXtbBase64, type XtbParseResult, type XtbHolding } from '../../lib/xtbParser'
+import { parseXtbArrayBuffer, type XtbParseResult, type XtbHolding } from '../../lib/xtbParser'
 import { useFmt } from '../../utils/format'
 
 type Step = 'idle' | 'parsing' | 'preview' | 'importing' | 'done' | 'error'
@@ -49,8 +49,8 @@ export default function XtbImportModal({ visible, onClose }: { visible: boolean;
 
       setStep('parsing')
       const uri    = res.assets[0].uri
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 })
-      const parsed = parseXtbBase64(base64)
+      const buffer = await new ExpoFile(uri).arrayBuffer()
+      const parsed = parseXtbArrayBuffer(buffer)
 
       if (parsed.holdings.length === 0) {
         setError('Não foram encontradas posições abertas no ficheiro. Certifica-te de que exportaste o relatório correcto da XTB.')

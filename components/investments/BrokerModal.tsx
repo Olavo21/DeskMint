@@ -6,13 +6,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import * as DocumentPicker from 'expo-document-picker'
-import * as FileSystem from 'expo-file-system'
 import { File as ExpoFile } from 'expo-file-system'
 import { Platform } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { parseCSV, BROKERS, type BrokerId, type ParsedPosition } from '../../lib/csvParsers'
-import { parseXtbBase64, parseXtbArrayBuffer } from '../../lib/xtbParser'
+import { parseXtbArrayBuffer } from '../../lib/xtbParser'
 import { useBrokerConnections } from '../../hooks/useBrokerConnections'
 import { useQueryClient } from '@tanstack/react-query'
 import BrokerLogo from './BrokerLogo'
@@ -144,8 +143,8 @@ export default function BrokerModal({ visible, onClose }: Props) {
 
         // XTB XLSX: use the dedicated multi-sheet parser (reads Open Positions summary rows)
         if (broker === 'xtb' && isExcelFile(asset.name ?? '', asset.mimeType)) {
-          const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 })
-          const { holdings } = parseXtbBase64(base64)
+          const buffer = await new ExpoFile(asset.uri).arrayBuffer()
+          const { holdings } = parseXtbArrayBuffer(buffer)
           const positions: ParsedPosition[] = holdings.map((h) => ({
             ticker: h.ticker, name: h.name, units: h.units, avg_price: h.avg_price,
             current_value: h.current_value, capital_invested: h.capital_invested,
