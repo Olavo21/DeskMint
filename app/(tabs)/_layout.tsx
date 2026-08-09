@@ -1,16 +1,12 @@
 import { View } from 'react-native'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { usePlan } from '../../hooks/usePlan'
 
-const TAB_COLOR_ACTIVE   = '#0d9488' // teal-600 — accessible on white (5:1 contrast)
-const TAB_COLOR_INACTIVE = '#94a3b8' // muted gray
-const TAB_COLOR_LOCKED   = '#d1d5db' // light disabled
-const TAB_BG             = '#ffffff' // white tab bar
+const TAB_COLOR_ACTIVE   = '#0d9488'
+const TAB_COLOR_INACTIVE = '#94a3b8'
+const TAB_BG             = '#ffffff'
 
 export default function TabsLayout() {
-  const plan = usePlan()
-
   return (
     <View style={{ flex: 1 }}>
     <Tabs
@@ -55,13 +51,8 @@ export default function TabsLayout() {
         options={{
           title: 'Investimentos',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons
-              name={plan.canAccessInvestimentos ? 'trending-up-outline' : 'lock-closed-outline'}
-              size={size}
-              color={plan.canAccessInvestimentos ? color : TAB_COLOR_LOCKED}
-            />
+            <Ionicons name="trending-up-outline" size={size} color={color} />
           ),
-          tabBarLabelStyle: { color: plan.canAccessInvestimentos ? undefined : TAB_COLOR_LOCKED },
         }}
       />
       <Tabs.Screen
@@ -78,13 +69,8 @@ export default function TabsLayout() {
         options={{
           title: 'Comissões',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons
-              name={plan.canAccessComissoes ? 'checkmark-circle-outline' : 'lock-closed-outline'}
-              size={size}
-              color={plan.canAccessComissoes ? color : TAB_COLOR_LOCKED}
-            />
+            <Ionicons name="checkmark-circle-outline" size={size} color={color} />
           ),
-          tabBarLabelStyle: { color: plan.canAccessComissoes ? undefined : TAB_COLOR_LOCKED },
         }}
       />
       <Tabs.Screen
@@ -92,13 +78,8 @@ export default function TabsLayout() {
         options={{
           title: 'Relatórios',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons
-              name={plan.canAccessRelatorios ? 'bar-chart-outline' : 'lock-closed-outline'}
-              size={size}
-              color={plan.canAccessRelatorios ? color : TAB_COLOR_LOCKED}
-            />
+            <Ionicons name="bar-chart-outline" size={size} color={color} />
           ),
-          tabBarLabelStyle: { color: plan.canAccessRelatorios ? undefined : TAB_COLOR_LOCKED },
         }}
       />
       <Tabs.Screen
