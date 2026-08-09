@@ -6,6 +6,9 @@ const TAB_COLOR_ACTIVE   = '#0d9488'
 const TAB_COLOR_INACTIVE = '#94a3b8'
 const TAB_BG             = '#ffffff'
 
+// Hides a route from the tab bar while keeping it routable
+const hidden = { tabBarButton: () => null } as const
+
 export default function TabsLayout() {
   return (
     <View style={{ flex: 1 }}>
@@ -28,6 +31,7 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, marginTop: -4 },
       }}
     >
+      {/* ── Visible tabs (5) ── */}
       <Tabs.Screen
         name="index"
         options={{
@@ -56,51 +60,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="creditos"
-        options={{
-          title: 'Créditos',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="card-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="comissoes"
-        options={{
-          title: 'Comissões',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkmark-circle-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="relatorios"
-        options={{
-          title: 'Relatórios',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="fiscal"
-        options={{
-          title: 'Fisco',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="ferramentas"
-        options={{
-          title: 'Ferramentas',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="construct-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="assistente"
         options={{
           title: 'Assistente',
@@ -109,6 +68,22 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="mais"
+        options={{
+          title: 'Mais',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="grid-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* ── Hidden tabs — routable via mais.tsx ── */}
+      <Tabs.Screen name="creditos"    options={{ title: 'Créditos',    ...hidden }} />
+      <Tabs.Screen name="comissoes"   options={{ title: 'Comissões',   ...hidden }} />
+      <Tabs.Screen name="relatorios"  options={{ title: 'Relatórios',  ...hidden }} />
+      <Tabs.Screen name="fiscal"      options={{ title: 'Fisco',       ...hidden }} />
+      <Tabs.Screen name="ferramentas" options={{ title: 'Ferramentas', ...hidden }} />
     </Tabs>
     </View>
   )
