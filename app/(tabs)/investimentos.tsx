@@ -7,7 +7,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { usePortfolio } from '../../hooks/usePortfolio'
+import { usePortfolioHistory } from '../../hooks/usePortfolioHistory'
 import DonutChart, { type DonutSegment } from '../../components/investments/DonutChart'
+import PortfolioLineChart, { type Range } from '../../components/investments/PortfolioLineChart'
 import MarketNews from '../../components/investments/MarketNews'
 import NovoAtivoModal from '../../components/investments/NovoAtivoModal'
 import BrokerModal from '../../components/investments/BrokerModal'
@@ -41,6 +43,8 @@ export default function InvestimentosScreen() {
   const [showBroker, setShowBroker] = useState(false)
   const [showManage, setShowManage] = useState(false)
   const [showXtb,   setShowXtb]    = useState(false)
+  const [chartRange, setChartRange] = useState<Range>('1M')
+  const historyQuery = usePortfolioHistory(chartRange)
 
   const donutSize      = Math.min(Math.round(screenW * 0.72), 300)
   const donutThickness = Math.round(donutSize * 0.13)
@@ -122,6 +126,18 @@ export default function InvestimentosScreen() {
             <Text className="text-dark-500 text-xs">{t('investments.pnlTotal')}</Text>
           </View>
         </View>
+
+        {/* ── Portfolio History Chart ── */}
+        {(totalValue > 0) && (
+          <View className="mx-4 mb-4 bg-dark-800 border border-dark-600 rounded-2xl px-4 pt-4 pb-2">
+            <PortfolioLineChart
+              data={historyQuery.data ?? []}
+              range={chartRange}
+              onRangeChange={setChartRange}
+              isLoading={historyQuery.isLoading}
+            />
+          </View>
+        )}
 
         {/* Tab bar */}
         <View className="px-4 mb-5 flex-row gap-2">

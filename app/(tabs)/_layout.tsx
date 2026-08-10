@@ -110,12 +110,6 @@ export default function TabsLayout() {
             ),
           }}
         />
-
-        {/* Mais screen still exists as a route but is hidden from the tab bar */}
-        <Tabs.Screen
-          name="mais"
-          options={{ href: null }}
-        />
       </Tabs>
     </View>
   )

@@ -3,55 +3,15 @@ import { useAuthStore } from '../stores/authStore'
 type Plan = 'FREE' | 'PRO' | 'FOUNDER'
 
 export type PlanFeatures = {
-  // Tabs
-  canAccessInvestimentos: boolean
-  canAccessComissoes:     boolean
-  canAccessRelatorios:    boolean
-  canAccessFiscal:        boolean
-  // Dashboard
-  fullDashboard:          boolean
-  // AI
-  aiMessages:             number   // -1 = unlimited, 0 = none, N = limit/day
-  // Meta
-  plan:                   Plan
-  isFounder:              boolean
-  founderNumber:          number | null
+  plan:         Plan
+  isFounder:    boolean
+  founderNumber: number | null
 }
 
 const PLAN_FEATURES: Record<Plan, PlanFeatures> = {
-  FREE: {
-    canAccessInvestimentos: false,
-    canAccessComissoes:     false,
-    canAccessRelatorios:    false,
-    canAccessFiscal:        true,
-    fullDashboard:          false,
-    aiMessages:             0,
-    plan:                   'FREE',
-    isFounder:              false,
-    founderNumber:          null,
-  },
-  PRO: {
-    canAccessInvestimentos: true,
-    canAccessComissoes:     true,
-    canAccessRelatorios:    true,
-    canAccessFiscal:        true,
-    fullDashboard:          true,
-    aiMessages:             -1,
-    plan:                   'PRO',
-    isFounder:              false,
-    founderNumber:          null,
-  },
-  FOUNDER: {
-    canAccessInvestimentos: true,
-    canAccessComissoes:     true,
-    canAccessRelatorios:    true,
-    canAccessFiscal:        true,
-    fullDashboard:          true,
-    aiMessages:             -1,
-    plan:                   'FOUNDER',
-    isFounder:              true,
-    founderNumber:          null,
-  },
+  FREE:    { plan: 'FREE',    isFounder: false, founderNumber: null },
+  PRO:     { plan: 'PRO',     isFounder: false, founderNumber: null },
+  FOUNDER: { plan: 'FOUNDER', isFounder: true,  founderNumber: null },
 }
 
 export function usePlan(): PlanFeatures {

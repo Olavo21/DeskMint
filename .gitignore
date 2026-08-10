@@ -53,6 +53,7 @@ build.log
 # Build artifacts
 *.aab
 *.apk
+*.exe
 
 # Supabase CLI temp
 supabase/.temp/
