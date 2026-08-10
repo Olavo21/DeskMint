@@ -54,6 +54,7 @@ export function usePortfolio() {
   const query = useQuery({
     queryKey: ['portfolio', session?.user.id],
     enabled: !!session,
+    staleTime: 60_000,
     queryFn: async () => {
       const uid = session!.user.id
 

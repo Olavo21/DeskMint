@@ -22,6 +22,7 @@ export function usePortfolioHistory(range: Range) {
   return useQuery({
     queryKey: ['portfolio-history', session?.user.id, range],
     enabled: !!session,
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const uid = session!.user.id
 

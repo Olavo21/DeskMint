@@ -11,6 +11,7 @@ export function useCredits() {
   const query = useQuery({
     queryKey: ['credits', session?.user.id],
     enabled: !!session,
+    staleTime: 2 * 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('dm_credits')

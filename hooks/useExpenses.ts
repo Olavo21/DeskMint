@@ -61,6 +61,7 @@ export function useExpenses(month: number, year: number) {
   const query = useQuery({
     queryKey: ['expenses', month, year, session?.user.id],
     enabled: !!session,
+    staleTime: 30_000,
     queryFn: async () => {
       const [expRes, incRes] = await Promise.all([
         supabase

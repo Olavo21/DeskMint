@@ -54,7 +54,7 @@ function buildSmoothPath(pts: { x: number; y: number }[]): string {
   return d.join(' ')
 }
 
-export default function PortfolioLineChart({ data, range, onRangeChange, isLoading }: Props) {
+function PortfolioLineChart({ data, range, onRangeChange, isLoading }: Props) {
   const [svgWidth, setSvgWidth] = useState(320)
   const [tip, setTip] = useState<{
     x: number; y: number; value: number; date: string
@@ -311,3 +311,5 @@ export default function PortfolioLineChart({ data, range, onRangeChange, isLoadi
     </View>
   )
 }
+
+export default React.memo(PortfolioLineChart)

@@ -16,6 +16,7 @@ export function useDashboard(month: number, year: number) {
   return useQuery({
     queryKey: ['dashboard', month, year, session?.user.id],
     enabled: !!session,
+    staleTime: 30_000,
     queryFn: async () => {
       const uid = session!.user.id
 

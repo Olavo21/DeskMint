@@ -9,6 +9,7 @@ export function useIncome(month: number, year: number) {
   const query = useQuery({
     queryKey: ['income', month, year, session?.user.id],
     enabled: !!session,
+    staleTime: 5 * 60_000,
     queryFn: async () => {
       const { data } = await supabase
         .from('dm_income')
