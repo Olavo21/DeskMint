@@ -35,8 +35,8 @@ interface DashboardStore {
 
 export const useDashboardStore = create<DashboardStore>((set) => ({
   summary: SEED_DASHBOARD,
-  selectedMonth: 5,
-  selectedYear: 2026,
+  selectedMonth: new Date().getMonth() + 1,
+  selectedYear:  new Date().getFullYear(),
   setSummary: (summary) => set({ summary }),
   setMonth: (selectedMonth, selectedYear) => set({ selectedMonth, selectedYear }),
 }))

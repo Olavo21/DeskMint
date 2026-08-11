@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   Modal, View, Text, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, Switch, Platform, Pressable,
+  KeyboardAvoidingView,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import DateTimePicker from '../ui/CrossDateTimePicker'
@@ -131,7 +132,11 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-4 pt-5" keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+        <ScrollView className="flex-1 px-4 pt-5" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* Selector de categoria */}
           <Text className="text-dark-300 text-xs mb-2 ml-1">Categoria *</Text>
@@ -400,6 +405,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
           </TouchableOpacity>
 
         </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   )

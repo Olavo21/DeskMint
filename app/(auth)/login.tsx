@@ -89,12 +89,33 @@ export default function LoginScreen() {
       >
         {/* Logo */}
         <View className="mb-12 items-center">
-          <Image
-            source={logoSource}
-            style={{ width: 200, height: 160 }}
-            resizeMode="contain"
-          />
-          <Text className="text-dark-400 text-sm mt-2">Orçamento · Poupança · Investimento</Text>
+          <View style={{
+            backgroundColor: '#ffffff',
+            borderRadius: 24,
+            padding: 20,
+            shadowColor: '#0d9488',
+            shadowOpacity: 0.12,
+            shadowRadius: 18,
+            elevation: 6,
+            borderWidth: 1,
+            borderColor: '#d1fae5',
+          }}>
+            <Image
+              source={logoSource}
+              style={{ width: 180, height: 140 }}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 16, alignItems: 'center' }}>
+            {(['Orçamento', 'Poupança', 'Investimento'] as const).map((word, i) => (
+              <View key={word} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {i > 0 && <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: '#14b8a6' }} />}
+                <Text style={{ color: '#0f172a', fontSize: 13, fontWeight: '700', letterSpacing: 0.3 }}>
+                  {word}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         {/* Formulário */}

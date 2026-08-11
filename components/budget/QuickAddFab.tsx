@@ -154,7 +154,7 @@ export default function QuickAddFab() {
               paddingHorizontal: 20,
             }}
           >
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
               {/* Toggle Despesa / Rendimento */}
               <View style={{

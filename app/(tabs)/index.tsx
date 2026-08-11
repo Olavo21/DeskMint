@@ -1,5 +1,5 @@
 ﻿import { useState, useCallback, useEffect } from 'react'
-import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, TextInput, Alert } from 'react-native'
+import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -614,6 +614,7 @@ export default function DashboardScreen() {
   const [assetsEditMode, setAssetsEditMode] = useState(false)
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
   const [detailsExpanded, setDetailsExpanded] = useState(false)
+  const [bensAtivosVisible, setBensAtivosVisible] = useState(false)
   const [editingEmergencyFund, setEditingEmergencyFund] = useState(false)
   const [emergencyFundInput, setEmergencyFundInput] = useState('')
 
@@ -721,8 +722,8 @@ export default function DashboardScreen() {
                   <Ionicons name="wallet-outline" size={15} color="#3b82f6" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-dark-50 text-sm font-medium">Disponível Este Mês</Text>
-                  <Text className="text-dark-500 text-xs">Saldo após despesas</Text>
+                  <Text className="text-dark-50 text-sm font-medium">Conta à Ordem</Text>
+                  <Text className="text-dark-500 text-xs">Saldo disponível imediato</Text>
                 </View>
                 <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.availableBalance ?? 0)}</Text>
                 <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
@@ -798,7 +799,7 @@ export default function DashboardScreen() {
               {/* Bens Ativos */}
               <TouchableOpacity
                 className="flex-row items-center px-4 py-3.5 border-b border-dark-700"
-                onPress={() => setDetailsExpanded(true)}
+                onPress={() => setBensAtivosVisible(true)}
                 activeOpacity={0.7}
               >
                 <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#f59e0b15' }}>
@@ -843,55 +844,15 @@ export default function DashboardScreen() {
               <Ionicons name={detailsExpanded ? 'chevron-up' : 'chevron-down'} size={14} color="#94a3b8" />
             </TouchableOpacity>
 
-            {detailsExpanded && (
-              <>
-                {/* Necessidades/Lazer/Poupança — metas personalizadas do utilizador */}
-                {data?.budgetRule && (
-                  <View className="bg-dark-800 rounded-2xl p-4 mb-4">
-                    <Text className="text-dark-50 font-semibold mb-3">
-                      {t('dashboard.ruleLabel', { n: Math.round(targets.needs * 100), w: Math.round(targets.wants * 100), s: Math.round(targets.savings * 100) })}
-                    </Text>
-                    <RuleRow label={t('dashboard.needsLabel')} pct={data.budgetRule.needs_pct} ideal={targets.needs} amt={data.budgetRule.needs_amt} fmt={fmt} />
-                    <RuleRow label={t('dashboard.leisureLabel')} pct={lazerPct} ideal={targets.wants} amt={lazerAmt} fmt={fmt} />
-                    <RuleRow label={t('dashboard.savingsLabel')} pct={data.budgetRule.savings_pct} ideal={targets.savings} amt={data.budgetRule.savings_amt} fmt={fmt} />
-                  </View>
-                )}
-
-                {/* Património */}
-                <View className="bg-dark-800 rounded-2xl p-4 mb-8">
-                  <View className="flex-row justify-between items-center mb-2">
-                    <Text className="text-dark-50 font-semibold">{t('dashboard.netWorth')}</Text>
-                    <View className="flex-row items-center gap-3">
-                      <Text className="text-mint-800 text-lg font-bold">{fmt(data?.netWorth ?? 0)}</Text>
-                      <TouchableOpacity
-                        onPress={() => { setAssetsEditMode(!assetsEditMode); setEditingAssetId(null) }}
-                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                      >
-                        <Ionicons
-                          name={assetsEditMode ? 'checkmark-done-outline' : 'create-outline'}
-                          size={18}
-                          color={assetsEditMode ? '#14b8a6' : '#94a3b8'}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  {(data?.assets ?? []).map((asset) => (
-                    <AssetRow
-                      key={asset.id}
-                      asset={asset}
-                      editMode={assetsEditMode}
-                      isEditing={editingAssetId === asset.id}
-                      credits={credits}
-                      canLinkCreditToAsset={canLinkCreditToAsset}
-                      onStartEdit={setEditingAssetId}
-                      onSaveEdit={handleSaveAsset}
-                      onCancelEdit={() => setEditingAssetId(null)}
-                      onLinkCredit={handleLinkCredit}
-                      fmt={fmt}
-                    />
-                  ))}
-                </View>
-              </>
+            {detailsExpanded && data?.budgetRule && (
+              <View className="bg-dark-800 rounded-2xl p-4 mb-4">
+                <Text className="text-dark-50 font-semibold mb-3">
+                  {t('dashboard.ruleLabel', { n: Math.round(targets.needs * 100), w: Math.round(targets.wants * 100), s: Math.round(targets.savings * 100) })}
+                </Text>
+                <RuleRow label={t('dashboard.needsLabel')} pct={data.budgetRule.needs_pct} ideal={targets.needs} amt={data.budgetRule.needs_amt} fmt={fmt} />
+                <RuleRow label={t('dashboard.leisureLabel')} pct={lazerPct} ideal={targets.wants} amt={lazerAmt} fmt={fmt} />
+                <RuleRow label={t('dashboard.savingsLabel')} pct={data.budgetRule.savings_pct} ideal={targets.savings} amt={data.budgetRule.savings_amt} fmt={fmt} />
+              </View>
             )}
 
             {/* Projeção de Longo Prazo (secundária) */}
@@ -899,6 +860,78 @@ export default function DashboardScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* ── Modal Bens Ativos ─────────────────────────────────────── */}
+      <Modal
+        visible={bensAtivosVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => { setBensAtivosVisible(false); setAssetsEditMode(false); setEditingAssetId(null) }}
+      >
+        <SafeAreaView className="flex-1 bg-dark-900">
+          <View className="flex-row items-center justify-between px-4 py-4 border-b border-dark-700">
+            <View>
+              <Text className="text-dark-50 text-base font-bold">Bens Ativos</Text>
+              <Text className="text-dark-400 text-xs mt-0.5">Carro, Casa, …</Text>
+            </View>
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity
+                onPress={() => { setAssetsEditMode(!assetsEditMode); setEditingAssetId(null) }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons
+                  name={assetsEditMode ? 'checkmark-done-outline' : 'create-outline'}
+                  size={20}
+                  color={assetsEditMode ? '#14b8a6' : '#94a3b8'}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { setBensAtivosVisible(false); setAssetsEditMode(false); setEditingAssetId(null) }}
+                className="w-8 h-8 rounded-full bg-dark-700 items-center justify-center"
+              >
+                <Ionicons name="close" size={18} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <ScrollView className="flex-1 px-4" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <View className="mt-4 mb-2 flex-row items-center gap-2 bg-dark-800 border border-dark-700 rounded-xl px-3 py-2.5">
+                <Ionicons name="information-circle-outline" size={15} color="#64748b" />
+                <Text className="text-dark-400 text-xs flex-1">
+                  Os bens permanecem no Património Líquido mesmo após o crédito associado ser liquidado.
+                </Text>
+              </View>
+
+              {(data?.assets ?? []).length === 0 ? (
+                <View className="items-center py-20">
+                  <Ionicons name="home-outline" size={44} color="#94a3b8" />
+                  <Text className="text-dark-400 text-sm mt-3 font-medium">Sem bens registados</Text>
+                  <Text className="text-dark-500 text-xs mt-1">Adiciona bens em Definições</Text>
+                </View>
+              ) : (
+                (data?.assets ?? []).map((asset) => (
+                  <AssetRow
+                    key={asset.id}
+                    asset={asset}
+                    editMode={assetsEditMode}
+                    isEditing={editingAssetId === asset.id}
+                    credits={credits}
+                    canLinkCreditToAsset={canLinkCreditToAsset}
+                    onStartEdit={setEditingAssetId}
+                    onSaveEdit={handleSaveAsset}
+                    onCancelEdit={() => setEditingAssetId(null)}
+                    onLinkCredit={handleLinkCredit}
+                    fmt={fmt}
+                  />
+                ))
+              )}
+              <View className="h-10" />
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
       <QuickAddFab />
     </SafeAreaView>
   )
