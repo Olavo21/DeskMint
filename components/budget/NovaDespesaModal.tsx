@@ -263,39 +263,23 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
             {errors.amount && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.amount}</Text>}
           </View>
 
-          {/* Fixo / Variável */}
+          {/* Fixo / Variável — activar fixed implica recurring automaticamente */}
           {selectedCat && selectedCat.type !== 'SAVINGS' && (
             <View className="bg-dark-800 rounded-xl px-4 py-3 mb-4 flex-row items-center justify-between">
-              <View>
+              <View className="flex-1 mr-3">
                 <Text className="text-dark-50 text-sm font-medium">Despesa fixa mensal</Text>
                 <Text className="text-dark-400 text-xs mt-0.5">
-                  {isFixed ? 'Repete todos os meses' : 'Pontual / única'}
+                  {isFixed ? 'Criada automaticamente em todos os meses' : 'Pontual / única vez'}
                 </Text>
               </View>
               <Switch
                 value={isFixed}
-                onValueChange={setIsFixed}
+                onValueChange={(v) => { setIsFixed(v); setIsRecurring(v) }}
                 trackColor={{ false: '#334155', true: '#0d9488' }}
                 thumbColor="white"
               />
             </View>
           )}
-
-          {/* Repetir todos os meses */}
-          <View className="bg-dark-800 rounded-xl px-4 py-3 mb-2 flex-row items-center justify-between">
-            <View className="flex-1 mr-3">
-              <Text className="text-dark-50 text-sm font-medium">Repetir todos os meses</Text>
-              <Text className="text-dark-400 text-xs mt-0.5">
-                Cria automaticamente esta despesa em todos os meses seguintes
-              </Text>
-            </View>
-            <Switch
-              value={isRecurring}
-              onValueChange={setIsRecurring}
-              trackColor={{ false: '#334155', true: '#0d9488' }}
-              thumbColor="white"
-            />
-          </View>
 
           {/* Dia de vencimento (só quando isRecurring) */}
           {isRecurring && (

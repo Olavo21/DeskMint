@@ -576,8 +576,11 @@ export default function DashboardScreen() {
   const profile = useAuthStore((s) => s.profile)
   const session = useAuthStore((s) => s.session)
   const qc = useQueryClient()
-  const { selectedMonth: MONTH, selectedYear: YEAR } = useDashboardStore()
+  const { selectedMonth: MONTH, selectedYear: YEAR, setMonth } = useDashboardStore()
   const { data, isLoading, isError, refetch } = useDashboard(MONTH, YEAR)
+
+  function prevMonth() { MONTH === 1 ? setMonth(12, YEAR - 1) : setMonth(MONTH - 1, YEAR) }
+  function nextMonth() { MONTH === 12 ? setMonth(1, YEAR + 1) : setMonth(MONTH + 1, YEAR) }
   const { update: updateAsset, linkCredit } = useAssets()
   const { data: credits = [] } = useCredits()
   const { upsert: upsertEmergencyFund } = useEmergencyFund()
@@ -661,9 +664,17 @@ export default function DashboardScreen() {
       >
 
         <View className="mt-4 mb-6">
-          <Text className="text-dark-400 text-sm capitalize">
-            {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+            <TouchableOpacity onPress={prevMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <Ionicons name="chevron-back" size={18} color="#94a3b8" />
+            </TouchableOpacity>
+            <Text className="text-dark-400 text-sm capitalize" style={{ flex: 1, textAlign: 'center' }}>
+              {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
+            </Text>
+            <TouchableOpacity onPress={nextMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+            </TouchableOpacity>
+          </View>
           <Text className="text-dark-50 text-2xl font-bold">{t('dashboard.title')}</Text>
         </View>
 
