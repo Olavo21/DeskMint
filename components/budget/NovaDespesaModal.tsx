@@ -9,7 +9,6 @@ import DateTimePicker from '../ui/CrossDateTimePicker'
 import { Ionicons } from '@expo/vector-icons'
 import { useExpenses } from '../../hooks/useExpenses'
 import { useExpenseCategories } from '../../hooks/useExpenseCategories'
-import { useRecurringExpenses } from '../../hooks/useRecurringExpenses'
 import { useCredits } from '../../hooks/useCredits'
 import type { DmCredit, DmExpenseCategory } from '../../types/database'
 
@@ -42,14 +41,12 @@ const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
 export default function NovaDespesaModal({ visible, onClose, month, year }: Props) {
   const { create } = useExpenses(month, year)
   const { data: categories = [], isLoading: loadingCats } = useExpenseCategories()
-  const { create: createRecurring } = useRecurringExpenses()
   const { data: credits = [] } = useCredits()
 
   const [categoryId, setCategoryId]       = useState<string | null>(null)
   const [description, setDescription]     = useState('')
   const [amount, setAmount]               = useState('')
   const [isFixed, setIsFixed]             = useState(true)
-  const [isRecurring, setIsRecurring]     = useState(false)
   const [diaVencimento, setDiaVencimento] = useState(1)
   const [paidAt, setPaidAt]               = useState<Date | null>(getToday)
   const [showPicker, setShowPicker]       = useState(false)
@@ -80,31 +77,22 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
     setErrors({})
 
     await create.mutateAsync({
-      category_id: categoryId!,
-      description:  description.trim(),
-      amount:       Number(amount.replace(',', '.')),
-      is_fixed:     isFixed,
+      category_id:    categoryId!,
+      description:    description.trim(),
+      amount:         Number(amount.replace(',', '.')),
+      is_fixed:       isFixed,
+      dia_vencimento: isFixed ? diaVencimento : null,
       month,
       year,
-      paid_at: paidAt?.toISOString() ?? null,
+      paid_at: isFixed ? null : paidAt?.toISOString() ?? null,
     })
-
-    if (isRecurring) {
-      await createRecurring.mutateAsync({
-        category_id:    categoryId!,
-        description:    description.trim(),
-        amount:         Number(amount.replace(',', '.')),
-        is_fixed:       isFixed,
-        dia_vencimento: diaVencimento,
-      })
-    }
 
     handleClose()
   }
 
   function handleClose() {
     setCategoryId(null); setDescription(''); setAmount('')
-    setIsFixed(true); setIsRecurring(false); setDiaVencimento(1)
+    setIsFixed(true); setDiaVencimento(1)
     setPaidAt(getToday()); setErrors({}); setShowCreditPicker(false)
     onClose()
   }
@@ -269,20 +257,20 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
               <View className="flex-1 mr-3">
                 <Text className="text-dark-50 text-sm font-medium">Despesa fixa mensal</Text>
                 <Text className="text-dark-400 text-xs mt-0.5">
-                  {isFixed ? 'Criada automaticamente em todos os meses' : 'Pontual / única vez'}
+                  {isFixed ? 'Permanente — aparece em todos os meses' : 'Pontual / única vez'}
                 </Text>
               </View>
               <Switch
                 value={isFixed}
-                onValueChange={(v) => { setIsFixed(v); setIsRecurring(v) }}
+                onValueChange={setIsFixed}
                 trackColor={{ false: '#334155', true: '#0d9488' }}
                 thumbColor="white"
               />
             </View>
           )}
 
-          {/* Dia de vencimento (só quando isRecurring) */}
-          {isRecurring && (
+          {/* Dia de vencimento (só para despesas fixas) */}
+          {isFixed && (
             <View className="mb-4">
               <Text className="text-dark-300 text-xs mb-2 ml-1">Dia de vencimento</Text>
               <ScrollView
@@ -325,8 +313,8 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
             </View>
           )}
 
-          {/* Data de pagamento */}
-          <View className="mb-4">
+          {/* Data de pagamento (só para despesas variáveis) */}
+          {!isFixed && <View className="mb-4">
             <Text className="text-dark-300 text-xs mb-1.5 ml-1">Pago a</Text>
             <View className="flex-row gap-2">
               <Pressable
@@ -347,9 +335,9 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
                 </TouchableOpacity>
               )}
             </View>
-          </View>
+          </View>}
 
-          {showPicker && (
+          {!isFixed && showPicker && (
             <DateTimePicker
               value={paidAt ?? getToday()}
               mode="date"
@@ -360,7 +348,8 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
             />
           )}
 
-          {/* Mês/Ano destino */}
+          {/* Mês/Ano destino (só para variáveis) */}
+          {!isFixed && (
           <View className="bg-dark-800 rounded-xl px-4 py-3 mb-4 flex-row items-center gap-2">
             <Ionicons name="calendar-outline" size={16} color="#475569" />
             <Text className="text-dark-400 text-sm">
@@ -370,6 +359,7 @@ export default function NovaDespesaModal({ visible, onClose, month, year }: Prop
               </Text>
             </Text>
           </View>
+          )}
 
           {create.isError && (
             <View className="bg-red-100 border border-red-300 rounded-xl px-4 py-3 mb-4">

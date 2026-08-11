@@ -2,14 +2,14 @@ import Header from '../../components/ui/Header'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   ScrollView, View, Text, ActivityIndicator,
-  TouchableOpacity, TextInput, RefreshControl, Switch,
+  TouchableOpacity, TextInput, RefreshControl,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExpenses } from '../../hooks/useExpenses'
+import type { SourcedExpense } from '../../hooks/useExpenses'
 import { useIncome } from '../../hooks/useIncome'
-import { useRecurringExpenses } from '../../hooks/useRecurringExpenses'
 import { useSavingBuckets, type SavingBucket } from '../../hooks/useSavingBuckets'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import NovaDespesaModal from '../../components/budget/NovaDespesaModal'
@@ -169,20 +169,14 @@ export default function OrcamentoScreen() {
   const qc = useQueryClient()
   const { data, isLoading, isFetching, update, remove } = useExpenses(MONTH, YEAR)
   const { data: income, upsert: upsertIncome } = useIncome(MONTH, YEAR)
-  const recurring = useRecurringExpenses()
 
   // Ref estável para o remove.mutate — evita closures stale no Alert callback
   const removeRef = useRef(remove.mutate)
   useEffect(() => { removeRef.current = remove.mutate }, [remove.mutate])
 
-  // Rede de segurança: garante que os recorrentes do mês real já foram
-  // semeados, mesmo que o cron mensal ainda não tenha corrido. Corre uma
-  // vez por montagem do ecrã — a função SQL é idempotente.
-  const seedRef = useRef(recurring.seedCurrentMonth.mutate)
-  useEffect(() => { seedRef.current = recurring.seedCurrentMonth.mutate }, [recurring.seedCurrentMonth.mutate])
-  useEffect(() => {
-    seedRef.current({ month: MONTH, year: YEAR })
-  }, [MONTH, YEAR])
+  // Ref estável para a lista de despesas — usada no handleDelete para determinar a source
+  const allExpensesRef = useRef<SourcedExpense[]>([])
+  useEffect(() => { allExpensesRef.current = data?.expenses ?? [] }, [data])
 
   const buckets = useSavingBuckets()
 
@@ -195,8 +189,6 @@ export default function OrcamentoScreen() {
   const [salaryInput, setSalaryInput]     = useState('')
   const [editingId, setEditingId]         = useState<string | null>(null)
   const [deletingId, setDeletingId]       = useState<string | null>(null)
-  const [showRecurring, setShowRecurring]   = useState(false)
-
   function startEditSalary() {
     setSalaryInput(String(income?.total_net ?? data?.totalIncome ?? ''))
     setEditingSalary(true)
@@ -209,13 +201,15 @@ export default function OrcamentoScreen() {
   }
 
   async function handleSaveEdit(id: string, description: string, amount: number) {
-    await update.mutateAsync({ id, description, amount })
+    const source = (data?.expenses ?? []).find((e) => e.id === id)?._source ?? 'expense'
+    await update.mutateAsync({ id, description, amount, _source: source })
     setEditingId(null)
   }
 
   const handleDelete = useCallback((id: string) => {
     setDeletingId(id)
-    removeRef.current(id, {
+    const source = allExpensesRef.current.find((e) => e.id === id)?._source ?? 'expense'
+    removeRef.current({ id, _source: source }, {
       onSettled: () => setDeletingId(null),
     })
   }, [])
@@ -334,52 +328,6 @@ export default function OrcamentoScreen() {
                 </View>
               </View>
             </View>
-
-            {/* Despesas Recorrentes */}
-            {(recurring.data?.length ?? 0) > 0 && (
-              <View className="bg-dark-800 rounded-2xl p-4 mb-4">
-                <TouchableOpacity
-                  className="flex-row justify-between items-center"
-                  onPress={() => setShowRecurring(!showRecurring)}
-                >
-                  <Text className="text-dark-50 font-semibold">
-                    {t('budget.recurringExpenses', { count: recurring.data!.length })}
-                  </Text>
-                  <Ionicons name={showRecurring ? 'chevron-up' : 'chevron-down'} size={16} color="#94a3b8" />
-                </TouchableOpacity>
-                {showRecurring && (
-                  <View className="mt-3">
-                    {recurring.data!.map((r) => (
-                      <View key={r.id} className="flex-row items-center justify-between py-2 border-b border-dark-700">
-                        <View className="flex-1 mr-2">
-                          <Text className="text-dark-200 text-sm">{r.description}</Text>
-                          <Text className="text-dark-500 text-xs">{fmt(r.amount)} {t('budget.perMonth')}</Text>
-                        </View>
-                        <View className="flex-row items-center gap-3">
-                          <Switch
-                            value={r.is_active}
-                            onValueChange={(v) => recurring.update.mutate({ id: r.id, is_active: v })}
-                            trackColor={{ false: '#334155', true: '#0d9488' }}
-                            thumbColor="white"
-                          />
-                          <TouchableOpacity
-                            onPress={() => confirmDestructive(
-                              t('budget.removeRecurrence'),
-                              t('budget.removeRecurrenceMsg', { name: r.description }),
-                              t('budget.remove'),
-                              () => recurring.remove.mutate(r.id)
-                            )}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                          >
-                            <Ionicons name="trash-outline" size={16} color="#f87171" />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
 
             {/* Despesas fixas */}
             {(data?.fixed?.length ?? 0) > 0 && (

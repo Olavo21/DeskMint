@@ -20,7 +20,7 @@ export function useDashboard(month: number, year: number) {
     queryFn: async () => {
       const uid = session!.user.id
 
-      const [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes] = await Promise.all([
+      const [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes, recurringRes] = await Promise.all([
         supabase.from('dm_income').select('*').eq('user_id', uid).eq('month', month).eq('year', year).maybeSingle(),
         supabase.from('dm_budget_rules').select('*').eq('user_id', uid).eq('month', month).eq('year', year).maybeSingle(),
         supabase.from('dm_portfolio_assets').select('*').eq('user_id', uid),
@@ -30,11 +30,16 @@ export function useDashboard(month: number, year: number) {
         supabase.from('dm_expenses')
           .select('amount, is_fixed, dm_expense_categories(type)')
           .eq('user_id', uid)
+          .eq('is_fixed', false)
           .eq('month', month)
           .eq('year', year),
+        supabase.from('dm_recurring_expenses')
+          .select('amount, dm_expense_categories(type)')
+          .eq('user_id', uid)
+          .eq('is_active', true),
       ])
 
-      const results = [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes]
+      const results = [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes, recurringRes]
       const failed = results.find((r) => r.error)
       if (failed?.error) throw failed.error
 
@@ -44,12 +49,14 @@ export function useDashboard(month: number, year: number) {
       const emergency = emergencyRes.data as DmEmergencyFund | null
       const assets    = (assetsRes.data as DmAsset[]) ?? []
       const credits   = (creditsRes.data as DmCredit[]) ?? []
-      const rawExp    = (expensesRes.data ?? []) as RawExpense[]
+      const rawExp    = (expensesRes.data ?? []) as unknown as RawExpense[]
+      const rawRec    = (recurringRes.data ?? []) as unknown as RawExpense[]
+      const allExp    = [...rawExp, ...rawRec]
 
-      // Totais reais calculados directamente de dm_expenses
-      const needsAmt   = rawExp.filter((e) => e.dm_expense_categories?.type === 'NEEDS').reduce((s, e) => s + e.amount, 0)
-      const wantsAmt   = rawExp.filter((e) => e.dm_expense_categories?.type === 'WANTS').reduce((s, e) => s + e.amount, 0)
-      const savingsAmt = rawExp.filter((e) => e.dm_expense_categories?.type === 'SAVINGS').reduce((s, e) => s + e.amount, 0)
+      // Fixas vêm de dm_recurring_expenses; variáveis de dm_expenses (is_fixed=false)
+      const needsAmt   = allExp.filter((e) => e.dm_expense_categories?.type === 'NEEDS').reduce((s, e) => s + e.amount, 0)
+      const wantsAmt   = allExp.filter((e) => e.dm_expense_categories?.type === 'WANTS').reduce((s, e) => s + e.amount, 0)
+      const savingsAmt = allExp.filter((e) => e.dm_expense_categories?.type === 'SAVINGS').reduce((s, e) => s + e.amount, 0)
       const totalExpenses = needsAmt + wantsAmt
 
       const portfolioValue   = portfolio.reduce((s, a) => s + a.current_value, 0)
@@ -73,7 +80,7 @@ export function useDashboard(month: number, year: number) {
       // dm_budget_rules só é usado como fallback antes de qualquer registo real
       // (e.g. seed do onboarding) — evita que montantes a zero do seed bloqueiem
       // o cálculo dinâmico após a primeira despesa ou rendimento.
-      const budgetRule: DmBudgetRule | null = (rawExp.length > 0 || income > 0)
+      const budgetRule: DmBudgetRule | null = (allExp.length > 0 || income > 0)
         ? ({
             needs_amt:   needsAmt,
             wants_amt:   wantsAmt,
