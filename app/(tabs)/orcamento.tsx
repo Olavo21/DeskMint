@@ -11,7 +11,6 @@ import { useExpenses } from '../../hooks/useExpenses'
 import type { SourcedExpense } from '../../hooks/useExpenses'
 import { useIncome } from '../../hooks/useIncome'
 import { useSavingBuckets, type SavingBucket } from '../../hooks/useSavingBuckets'
-import { useDashboardStore } from '../../stores/dashboardStore'
 import NovaDespesaModal from '../../components/budget/NovaDespesaModal'
 import NovoBucketModal from '../../components/savings/NovoBucketModal'
 import AddAmountModal from '../../components/savings/AddAmountModal'
@@ -27,7 +26,7 @@ const REAL_YEAR  = REAL_TODAY.getFullYear()
 
 type ExpenseItem = {
   id: string
-  description: string
+  description: string | null
   amount: number
   dm_expense_categories?: { name: string; icon?: string | null } | null
 }
@@ -49,14 +48,14 @@ function ExpenseRow({
 }: ExpenseRowProps) {
   const fmt   = useFmt()
   const { t } = useTranslation()
-  const [localDesc, setLocalDesc] = useState(e.description)
+  const [localDesc, setLocalDesc] = useState(e.description ?? '')
   const [localAmt, setLocalAmt] = useState(String(e.amount))
 
   // Só repõe o texto local quando entra em modo de edição — nunca enquanto
   // o utilizador escreve, para um refetch em segundo plano não apagar o que está a escrever.
   useEffect(() => {
     if (isEditing) {
-      setLocalDesc(e.description)
+      setLocalDesc(e.description ?? '')
       setLocalAmt(String(e.amount))
     }
   }, [isEditing])
@@ -105,7 +104,7 @@ function ExpenseRow({
             onPress={() => {
               const val = parseFloat(localAmt.replace(',', '.'))
               if (!isNaN(val) && val > 0) {
-                onSaveEdit(e.id, localDesc.trim() || e.description, val)
+                onSaveEdit(e.id, localDesc.trim() || (e.description ?? ''), val)
               }
             }}
           >
@@ -122,12 +121,12 @@ function ExpenseRow({
     )
   }
 
-  const emoji = getExpenseEmoji(e.description, e.dm_expense_categories?.icon)
+  const emoji = getExpenseEmoji(e.description ?? '', e.dm_expense_categories?.icon)
 
   return (
     <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
       <View className="flex-1 mr-2">
-        <Text className="text-dark-200 text-sm">{emoji} {e.description}</Text>
+        <Text className="text-dark-200 text-sm">{emoji} {e.description ?? ''}</Text>
         {e.dm_expense_categories && (
           <Text className="text-dark-500 text-xs">{e.dm_expense_categories.name}</Text>
         )}
@@ -162,13 +161,9 @@ function ExpenseRow({
 export default function OrcamentoScreen() {
   const fmt   = useFmt()
   const { t } = useTranslation()
-  const { selectedMonth: MONTH, selectedYear: YEAR, setMonth } = useDashboardStore()
-
-  function prevMonth() { MONTH === 1 ? setMonth(12, YEAR - 1) : setMonth(MONTH - 1, YEAR) }
-  function nextMonth() { MONTH === 12 ? setMonth(1, YEAR + 1) : setMonth(MONTH + 1, YEAR) }
   const qc = useQueryClient()
-  const { data, isLoading, isFetching, update, remove } = useExpenses(MONTH, YEAR)
-  const { data: income, upsert: upsertIncome } = useIncome(MONTH, YEAR)
+  const { data, isLoading, isFetching, update, remove } = useExpenses(REAL_MONTH, REAL_YEAR)
+  const { data: income, upsert: upsertIncome } = useIncome(REAL_MONTH, REAL_YEAR)
 
   // Ref estável para o remove.mutate — evita closures stale no Alert callback
   const removeRef = useRef(remove.mutate)
@@ -217,7 +212,7 @@ export default function OrcamentoScreen() {
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header />
-      <NovaDespesaModal visible={showModal} onClose={() => setShowModal(false)} month={MONTH} year={YEAR} />
+      <NovaDespesaModal visible={showModal} onClose={() => setShowModal(false)} month={REAL_MONTH} year={REAL_YEAR} />
       <NovoBucketModal
         visible={showBucketModal}
         onClose={() => { setShowBucketModal(false); setEditingBucket(null) }}
@@ -246,17 +241,6 @@ export default function OrcamentoScreen() {
 
         {/* Cabeçalho */}
         <View className="mt-4 mb-6">
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-            <TouchableOpacity onPress={prevMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-back" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-            <Text className="text-dark-400 text-sm capitalize" style={{ flex: 1, textAlign: 'center' }}>
-              {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
-            </Text>
-            <TouchableOpacity onPress={nextMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-          </View>
           <View className="flex-row justify-between items-center">
           <Text className="text-dark-50 text-2xl font-bold">{t('budget.title')}</Text>
           <View className="flex-row gap-2">
@@ -282,127 +266,114 @@ export default function OrcamentoScreen() {
 
         {isLoading ? <ActivityIndicator color="#14b8a6" className="mt-20" /> : (
           <>
-            {/* Balanço */}
-            <View className="bg-mint-100 border border-mint-300 rounded-2xl p-4 mb-4">
-              <Text className="text-mint-700 text-xs mb-1">{t('budget.netIncome')}</Text>
-              {editingSalary ? (
-                <View className="flex-row gap-2 items-center">
-                  <TextInput
-                    className="bg-dark-800 rounded-xl px-4 py-3 text-xl font-bold flex-1 border border-dark-600"
-                    style={{ color: '#0f172a', minWidth: 0 }}
-                    value={salaryInput}
-                    onChangeText={setSalaryInput}
-                    keyboardType="decimal-pad"
-                    autoFocus
-                    autoCorrect={false}
-                    autoComplete="off"
-                    importantForAutofill="no"
-                  />
-                  <TouchableOpacity className="bg-mint-600 rounded-xl px-4 py-3" onPress={saveSalary}>
-                    <Ionicons name="checkmark" size={20} color="white" />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  className="flex-row items-center gap-2"
-                  onPress={editMode ? startEditSalary : undefined}
-                >
-                  <Text className="text-dark-50 text-3xl font-bold">{fmt(data?.totalIncome ?? 0)}</Text>
-                  {editMode && <Ionicons name="pencil-outline" size={16} color="#0f766e" />}
-                </TouchableOpacity>
-              )}
-              <View className="flex-row justify-between mt-3">
-                <View>
-                  <Text className="text-dark-300 text-xs">{t('dashboard.expensesLabel')}</Text>
-                  <Text className="text-red-500 font-semibold">{fmt((data?.totalFixed ?? 0) + (data?.totalVariable ?? 0))}</Text>
-                </View>
-                <View>
-                  <Text className="text-dark-300 text-xs">{t('dashboard.savingsLabel')}</Text>
-                  <Text className="text-mint-700 font-semibold">{fmt(data?.totalSavings ?? 0)}</Text>
-                </View>
-                <View>
-                  <Text className="text-dark-300 text-xs">{t('budget.available')}</Text>
-                  <Text className="text-dark-50 font-semibold">
-                    {fmt((data?.totalIncome ?? 0) - (data?.totalFixed ?? 0) - (data?.totalVariable ?? 0) - (data?.totalSavings ?? 0))}
-                  </Text>
-                </View>
-              </View>
-            </View>
+            {(() => {
+              const fixedCosts   = data?.fixed.filter((e) => e.dm_expense_categories?.type !== 'SAVINGS') ?? []
+              const fixedSavings = data?.fixed.filter((e) => e.dm_expense_categories?.type === 'SAVINGS') ?? []
+              const totalCosts   = fixedCosts.reduce((s, e) => s + e.amount, 0)
+              const totalSav     = fixedSavings.reduce((s, e) => s + e.amount, 0)
+              const netIncome    = data?.totalIncome ?? 0
+              const available    = netIncome - totalCosts - totalSav
 
-            {/* Despesas fixas */}
-            {(data?.fixed?.length ?? 0) > 0 && (
-              <View className="bg-dark-800 rounded-2xl p-4 mb-4">
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-dark-50 font-semibold">{t('budget.fixedExpenses')}</Text>
-                  <Text className="text-red-700 font-semibold">{fmt(data!.totalFixed)}</Text>
-                </View>
-                {data!.fixed.map((e: any) => (
-                  <ExpenseRow
-                    key={e.id}
-                    e={e}
-                    editMode={editMode}
-                    isEditing={editingId === e.id}
-                    deletingId={deletingId}
-                    onStartEdit={setEditingId}
-                    onSaveEdit={handleSaveEdit}
-                    onCancelEdit={() => setEditingId(null)}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </View>
-            )}
+              return (
+                <>
+                  {/* Balanço */}
+                  <View className="bg-mint-100 border border-mint-300 rounded-2xl p-4 mb-4">
+                    <Text className="text-mint-700 text-xs mb-1">{t('budget.netIncome')}</Text>
+                    {editingSalary ? (
+                      <View className="flex-row gap-2 items-center">
+                        <TextInput
+                          className="bg-dark-800 rounded-xl px-4 py-3 text-xl font-bold flex-1 border border-dark-600"
+                          style={{ color: '#0f172a', minWidth: 0 }}
+                          value={salaryInput}
+                          onChangeText={setSalaryInput}
+                          keyboardType="decimal-pad"
+                          autoFocus
+                          autoCorrect={false}
+                          autoComplete="off"
+                          importantForAutofill="no"
+                        />
+                        <TouchableOpacity className="bg-mint-600 rounded-xl px-4 py-3" onPress={saveSalary}>
+                          <Ionicons name="checkmark" size={20} color="white" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        className="flex-row items-center gap-2"
+                        onPress={editMode ? startEditSalary : undefined}
+                      >
+                        <Text className="text-dark-50 text-3xl font-bold">{fmt(netIncome)}</Text>
+                        {editMode && <Ionicons name="pencil-outline" size={16} color="#0f766e" />}
+                      </TouchableOpacity>
+                    )}
+                    <View className="flex-row justify-between mt-3">
+                      <View>
+                        <Text className="text-dark-300 text-xs">{t('dashboard.expensesLabel')}</Text>
+                        <Text className="text-red-500 font-semibold">{fmt(totalCosts)}</Text>
+                      </View>
+                      <View>
+                        <Text className="text-dark-300 text-xs">{t('dashboard.savingsLabel')}</Text>
+                        <Text className="text-mint-700 font-semibold">{fmt(totalSav)}</Text>
+                      </View>
+                      <View>
+                        <Text className="text-dark-300 text-xs">{t('budget.available')}</Text>
+                        <Text className="text-dark-50 font-semibold">{fmt(available)}</Text>
+                      </View>
+                    </View>
+                  </View>
 
-            {/* Variáveis */}
-            {(data?.variable?.length ?? 0) > 0 && (
-              <View className="bg-dark-800 rounded-2xl p-4 mb-4">
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-dark-50 font-semibold">{t('budget.variableExpenses')}</Text>
-                  <Text className="text-red-700 font-semibold">{fmt(data!.totalVariable)}</Text>
-                </View>
-                {data!.variable.map((e: any) => (
-                  <ExpenseRow
-                    key={e.id}
-                    e={e}
-                    editMode={editMode}
-                    isEditing={editingId === e.id}
-                    deletingId={deletingId}
-                    onStartEdit={setEditingId}
-                    onSaveEdit={handleSaveEdit}
-                    onCancelEdit={() => setEditingId(null)}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </View>
-            )}
+                  {/* Despesas fixas (NEEDS + WANTS) */}
+                  {fixedCosts.length > 0 && (
+                    <View className="bg-dark-800 rounded-2xl p-4 mb-4">
+                      <View className="flex-row justify-between mb-1">
+                        <Text className="text-dark-50 font-semibold">{t('budget.fixedExpenses')}</Text>
+                        <Text className="text-red-700 font-semibold">{fmt(totalCosts)}</Text>
+                      </View>
+                      {fixedCosts.map((e) => (
+                        <ExpenseRow
+                          key={e.id}
+                          e={e}
+                          editMode={editMode}
+                          isEditing={editingId === e.id}
+                          deletingId={deletingId}
+                          onStartEdit={setEditingId}
+                          onSaveEdit={handleSaveEdit}
+                          onCancelEdit={() => setEditingId(null)}
+                          onDelete={handleDelete}
+                        />
+                      ))}
+                    </View>
+                  )}
 
-            {/* Poupança */}
-            {(data?.savings?.length ?? 0) > 0 && (
-              <View className="bg-dark-800 rounded-2xl p-4 mb-4">
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-dark-50 font-semibold">{t('budget.savingsInvestment')}</Text>
-                  <Text className="text-mint-800 font-semibold">{fmt(data!.totalSavings)}</Text>
-                </View>
-                {data!.savings.map((e: any) => (
-                  <ExpenseRow
-                    key={e.id}
-                    e={e}
-                    editMode={editMode}
-                    isEditing={editingId === e.id}
-                    deletingId={deletingId}
-                    onStartEdit={setEditingId}
-                    onSaveEdit={handleSaveEdit}
-                    onCancelEdit={() => setEditingId(null)}
-                    onDelete={handleDelete}
-                  />
-                ))}
-                <Text className="text-dark-400 text-xs mt-3">
-                  {t('budget.savingsRate', { rate: data!.totalIncome > 0 ? ((data!.totalSavings / data!.totalIncome) * 100).toFixed(1) : 0 })}
-                </Text>
-              </View>
-            )}
+                  {/* Poupança fixa recorrente */}
+                  {fixedSavings.length > 0 && (
+                    <View className="bg-dark-800 rounded-2xl p-4 mb-4">
+                      <View className="flex-row justify-between mb-1">
+                        <Text className="text-dark-50 font-semibold">{t('budget.savingsInvestment')}</Text>
+                        <Text className="text-mint-800 font-semibold">{fmt(totalSav)}</Text>
+                      </View>
+                      {fixedSavings.map((e) => (
+                        <ExpenseRow
+                          key={e.id}
+                          e={e}
+                          editMode={editMode}
+                          isEditing={editingId === e.id}
+                          deletingId={deletingId}
+                          onStartEdit={setEditingId}
+                          onSaveEdit={handleSaveEdit}
+                          onCancelEdit={() => setEditingId(null)}
+                          onDelete={handleDelete}
+                        />
+                      ))}
+                      {netIncome > 0 && (
+                        <Text className="text-dark-400 text-xs mt-3">
+                          {t('budget.savingsRate', { rate: ((totalSav / netIncome) * 100).toFixed(1) })}
+                        </Text>
+                      )}
+                    </View>
+                  )}
 
-            {/* Objetivos de Poupança */}
-            <View className="mb-8">
+                  {/* Objetivos de Poupança */}
+                  <View className="mb-8">
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-dark-50 font-semibold">{t('budget.savingsGoals')}</Text>
                 <TouchableOpacity
@@ -447,7 +418,10 @@ export default function OrcamentoScreen() {
                   />
                 ))
               )}
-            </View>
+                  </View>
+                </>
+              )
+            })()}
           </>
         )}
       </ScrollView>
