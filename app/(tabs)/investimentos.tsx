@@ -15,6 +15,7 @@ import NovoAtivoModal from '../../components/investments/NovoAtivoModal'
 import BrokerModal from '../../components/investments/BrokerModal'
 import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
 import XtbImportModal from '../../components/investments/XtbImportModal'
+import AnaliseModal from '../../components/investments/AnaliseModal'
 import { getColor } from '../../lib/portfolioColors'
 import { getSector, SECTOR_COLORS } from '../../lib/assetSectors'
 import { useFmt } from '../../utils/format'
@@ -39,10 +40,11 @@ export default function InvestimentosScreen() {
   const { width: screenW } = useWindowDimensions()
   const { data, isLoading } = usePortfolio()
   const [activeTab, setActiveTab] = useState<Tab>('ativos')
-  const [showModal, setShowModal]   = useState(false)
-  const [showBroker, setShowBroker] = useState(false)
-  const [showManage, setShowManage] = useState(false)
-  const [showXtb,   setShowXtb]    = useState(false)
+  const [showModal, setShowModal]     = useState(false)
+  const [showBroker, setShowBroker]   = useState(false)
+  const [showManage, setShowManage]   = useState(false)
+  const [showXtb,   setShowXtb]      = useState(false)
+  const [showAnalise, setShowAnalise] = useState(false)
   const [chartRange, setChartRange] = useState<Range>('1M')
   const historyQuery = usePortfolioHistory(chartRange)
 
@@ -102,6 +104,7 @@ export default function InvestimentosScreen() {
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header title="Portfolio" />
+      <AnaliseModal visible={showAnalise} onClose={() => setShowAnalise(false)} />
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
 
@@ -125,6 +128,23 @@ export default function InvestimentosScreen() {
             </View>
             <Text className="text-dark-500 text-xs">{t('investments.pnlTotal')}</Text>
           </View>
+
+          {/* Botão Análise */}
+          {totalValue > 0 && (
+            <TouchableOpacity
+              onPress={() => setShowAnalise(true)}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                gap: 6, marginTop: 12,
+                backgroundColor: '#14b8a610', borderRadius: 12, paddingVertical: 10,
+                borderWidth: 1, borderColor: '#14b8a630',
+              }}
+            >
+              <Ionicons name="bar-chart-outline" size={15} color="#14b8a6" />
+              <Text style={{ color: '#14b8a6', fontSize: 13, fontWeight: '600' }}>Ver Análise Detalhada</Text>
+              <Ionicons name="chevron-forward" size={13} color="#14b8a6" />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── Portfolio History Chart ── */}
