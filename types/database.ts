@@ -407,6 +407,140 @@ export type Database = {
           user_id?: string
         }
       }
+      dm_portfolio_thresholds: {
+        Row: {
+          id: string
+          user_id: string
+          block_name: string
+          ticker: string | null
+          asset_type: string | null
+          max_pct: number | null
+          min_pct: number | null
+          use_look_through: boolean
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          block_name: string
+          ticker?: string | null
+          asset_type?: string | null
+          max_pct?: number | null
+          min_pct?: number | null
+          use_look_through?: boolean
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          block_name?: string
+          ticker?: string | null
+          asset_type?: string | null
+          max_pct?: number | null
+          min_pct?: number | null
+          use_look_through?: boolean
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      dm_portfolio_limits: {
+        Row: {
+          id: string
+          user_id: string
+          ticker: string
+          max_pct: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          ticker: string
+          max_pct: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          ticker?: string
+          max_pct?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      dm_etf_composition: {
+        Row: {
+          id: string
+          user_id: string
+          etf_id: string
+          company_ticker: string
+          company_name: string
+          weight_pct: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          etf_id: string
+          company_ticker: string
+          company_name?: string
+          weight_pct: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          etf_id?: string
+          company_ticker?: string
+          company_name?: string
+          weight_pct?: number
+          updated_at?: string
+        }
+      }
+      dm_portfolio_lots: {
+        Row: {
+          id: string
+          user_id: string
+          asset_id: string
+          ticker: string
+          quantity: number
+          unit_price: number
+          purchase_date: string
+          broker: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          asset_id: string
+          ticker: string
+          quantity: number
+          unit_price: number
+          purchase_date: string
+          broker?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          asset_id?: string
+          ticker?: string
+          quantity?: number
+          unit_price?: number
+          purchase_date?: string
+          broker?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
       dm_portfolio_snapshots: {
         Row: {
           date: string
@@ -611,3 +745,7 @@ export type DmCredit             = Tables<"dm_credits">
 export type DmEmergencyFund      = Tables<"dm_emergency_fund">
 export type DmRetirementPlan     = Tables<"dm_retirement_plans">
 export type DmRetirementScenario = Tables<"dm_retirement_scenarios">
+export type DmPortfolioLot       = Tables<"dm_portfolio_lots">
+export type DmEtfComposition     = Tables<"dm_etf_composition">
+export type DmPortfolioLimit     = Tables<"dm_portfolio_limits">
+export type DmPortfolioThreshold = Tables<"dm_portfolio_thresholds">

@@ -16,6 +16,7 @@ import BrokerModal from '../../components/investments/BrokerModal'
 import ManageAssetsModal from '../../components/investments/ManageAssetsModal'
 import XtbImportModal from '../../components/investments/XtbImportModal'
 import AnaliseModal from '../../components/investments/AnaliseModal'
+import ThresholdAlertsCard from '../../components/investments/ThresholdAlertsCard'
 import { getColor } from '../../lib/portfolioColors'
 import { getSector, SECTOR_COLORS } from '../../lib/assetSectors'
 import { useFmt } from '../../utils/format'
@@ -146,6 +147,11 @@ export default function InvestimentosScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* ── Threshold Alerts ── */}
+        {totalValue > 0 && (
+          <ThresholdAlertsCard assets={data?.assets ?? []} />
+        )}
 
         {/* ── Portfolio History Chart ── */}
         {(totalValue > 0) && (
