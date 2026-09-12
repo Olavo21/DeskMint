@@ -1,8 +1,11 @@
 import '../global.css'
 import '../lib/i18n'
+import '../lib/sentry'
 import { useEffect } from 'react'
 import { StyleSheet } from 'react-native'
 import { Stack, router } from 'expo-router'
+import * as Sentry from '@sentry/react-native'
+import ErrorBoundary from '../components/ErrorBoundary'
 
 // NativeWind web: forçar dark mode via classe em vez de media query
 if (typeof (StyleSheet as any).setFlag === 'function') {
@@ -14,10 +17,11 @@ import { queryClient } from '../lib/queryClient'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import { getSavedCurrency, saveUserCurrency, type SupportedCurrency } from '../lib/currencies'
+import { getSavedTickerBarEnabled } from '../lib/tickerBarPref'
 import { usePreferencesStore } from '../stores/preferencesStore'
 import { changeAppLanguage } from '../lib/i18n'
 
-export default function RootLayout() {
+function RootLayout() {
   const setSession = useAuthStore((s) => s.setSession)
   const setProfile = useAuthStore((s) => s.setProfile)
   const setLoading = useAuthStore((s) => s.setLoading)
@@ -25,11 +29,13 @@ export default function RootLayout() {
   useEffect(() => {
     // ── Preferências locais ───────────────────────────────────────────────
     getSavedCurrency().then((c) => usePreferencesStore.getState().setCurrency(c))
+    getSavedTickerBarEnabled().then((v) => usePreferencesStore.getState().setTickerBarEnabled(v))
 
     // ── Sessão inicial ────────────────────────────────────────────────────
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setLoading(false)
+      Sentry.setUser(session ? { id: session.user.id } : null)
       if (session) {
         fetchProfile(session.user.id)
       } else {
@@ -40,6 +46,7 @@ export default function RootLayout() {
     // ── Mudanças de auth (login / logout / refresh de token) ──────────────
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
+      Sentry.setUser(session ? { id: session.user.id } : null)
       if (session) {
         fetchProfile(session.user.id)
       } else {
@@ -76,14 +83,18 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="notificacoes" options={{ presentation: 'card' }} />
-        <Stack.Screen name="definicoes"  options={{ presentation: 'card' }} />
-      </Stack>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <StatusBar style="light" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="notificacoes" options={{ presentation: 'card' }} />
+          <Stack.Screen name="definicoes"  options={{ presentation: 'card' }} />
+        </Stack>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
+
+export default Sentry.wrap(RootLayout)

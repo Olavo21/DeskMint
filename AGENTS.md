@@ -104,3 +104,46 @@ direto às conclusões abaixo.
 - É uma API não-documentada/não-suportada oficialmente — pode mudar ou
   bloquear pedidos sem aviso. Tratar como best-effort, nunca como fonte
   única para algo crítico.
+
+## Sentry (12 set 2026)
+
+`@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/
+ErrorBoundary.tsx`, `app/_layout.tsx`, `metro.config.js`). Conta e projeto
+"DeskMint" já criados em sentry.io (12 set 2026) — `EXPO_PUBLIC_SENTRY_DSN`
+está definido em `.env.local` e como env var `production` no EAS
+(`eas env:set production --name EXPO_PUBLIC_SENTRY_DSN --visibility
+sensitive`). `lib/sentry.ts` só ativa (`enabled: true`) quando há DSN **e**
+a build é de produção (`NODE_ENV === 'production'`) — continua sempre
+desligado em `expo start` local, mesmo com o DSN preenchido. Ainda não
+testado contra o dashboard real (precisa de build de produção — ver nota
+sobre o LogBox mais abaixo); confirmar lá o primeiro evento antes de
+assumir que chega.
+
+- `npx expo install @sentry/react-native` já adicionou sozinho o config
+  plugin a `app.json` (`"plugins": [..., "@sentry/react-native"]`) — não
+  corri o `npx @sentry/wizard`, porque ele exige login interativo numa
+  conta sentry.io que ainda não existe. O wizard só traria mais-valia
+  para configurar `organization`/`project` (necessário para os source
+  maps subirem nos builds EAS) — isso fica como passo manual.
+- **Duas gerações de comando deprecadas, não só uma.** `eas secret:create`
+  (o que foi pedido inicialmente) está deprecated a favor de `eas env` —
+  mas `eas env:create` **também** está deprecated a favor de `eas
+  env:set` (só se descobre ao correr o comando, não está óbvio de fora).
+  O comando certo, hoje, testado e a funcionar:
+  `eas env:set production --name EXPO_PUBLIC_SENTRY_DSN --value <dsn>
+  --visibility sensitive --non-interactive` (falta o `--visibility` dá
+  erro em modo não-interativo). Já criado só em `production` — repetir
+  para `preview`/`development` se for preciso testar lá também.
+  `eas env:list --environment production` mostra o que já lá está.
+- **Testar o `ErrorBoundary` num build de dev não mostra o ecrã amigável.**
+  Em modo `__DEV__`, o LogBox do React Native intercepta sempre primeiro
+  qualquer erro não apanhado (o ecrã vermelho "Uncaught Error" com stack
+  trace) — isto acontece *antes* do `Sentry.ErrorBoundary` conseguir
+  mostrar o fallback, mesmo com tudo bem ligado. Não é bug de config. Para
+  ver mesmo o ecrã "Algo correu mal" é preciso um build de produção (ou
+  desligar o LogBox). Confirmado a testar no emulador: o erro apareceu
+  como redbox do RN e não como o fallback custom.
+- O botão de teste "throw new Error(...)" pedido no passo de validação
+  foi usado uma vez e removido — não ficou no código (deliberado, para não
+  deixar código morto/de teste em produção). Se for preciso testar outra
+  vez, replicar temporariamente num ecrã, nunca commitar.
