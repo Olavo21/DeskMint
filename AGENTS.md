@@ -147,6 +147,31 @@ assumir que chega.
   foi usado uma vez e removido — não ficou no código (deliberado, para não
   deixar código morto/de teste em produção). Se for preciso testar outra
   vez, replicar temporariamente num ecrã, nunca commitar.
+- **`withSentryConfig` em `metro.config.js` partiu o primeiro build de
+  produção (13 set 2026).** Build `1e6c6b49...` falhou na fase
+  `EAGER_BUNDLE` com `TypeError: Cannot read properties of undefined
+  (reading 'match')` dentro de
+  `@sentry/react-native/dist/js/tools/utils.js:determineDebugIdFromBundleSource`,
+  logo a seguir ao aviso `Missing config for organization, project.` —
+  exatamente o passo manual do wizard que tinha ficado por fazer (ver
+  acima). Não há confirmação de que configurar `organization`/`project`
+  resolveria (seria preciso login em sentry.io para obter os slugs) e
+  não valia a pena arriscar isso em cima da hora de um lançamento.
+  **Correção aplicada:** removido o `withSentryConfig(...)` de
+  `metro.config.js` — voltou a ser só
+  `withNativeWind(getDefaultConfig(__dirname), {...})`. Isto **não**
+  desliga o Sentry: `Sentry.init`/`ErrorBoundary` continuam ativos e
+  continuam a capturar erros em produção, só deixa de haver
+  debug-id/source-map automático no bundle (stack traces no dashboard
+  sentry.io ficam minificados/ilegíveis em vez de apontar para o
+  ficheiro/linha original). Versão instalada é `@sentry/react-native
+  7.11.0`; a última no npm é `8.26.0` (major bump) — não tentado agora,
+  API pode ter mudado (`Sentry.init`, `ErrorBoundary`), fica para sessão
+  dedicada. Para reativar `withSentryConfig` no futuro: fazer login em
+  sentry.io, obter `organization`/`project` slugs (ou correr `npx
+  @sentry/wizard -i reactNative -p android` interativo), escrever
+  `sentry.properties` ou passar essas opções a `withSentryConfig`, testar
+  um build de produção completo antes de assumir que está resolvido.
 
 ## Auditoria de segurança pré-lançamento (12 set 2026)
 
