@@ -4,11 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, router } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import Svg, { Path, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg'
 import { useFmt } from '../../utils/format'
 import { supabase } from '../../lib/supabase'
 import { useDashboard } from '../../hooks/useDashboard'
-import { useNetWorthHistory, type NetWorthPoint } from '../../hooks/useNetWorthHistory'
+import { useFixedBudget } from '../../hooks/useFixedBudget'
 import { useNotificationEngine } from '../../hooks/useNotificationEngine'
 import { useAssets } from '../../hooks/useAssets'
 import { useCredits } from '../../hooks/useCredits'
@@ -16,13 +15,16 @@ import { useEmergencyFund } from '../../hooks/useEmergencyFund'
 import { useSubscription } from '../../hooks/useSubscription'
 import { useBudgetTargets } from '../../hooks/useBudgetTargets'
 import { useAuthStore } from '../../stores/authStore'
-import { useDashboardStore } from '../../stores/dashboardStore'
 import Header from '../../components/ui/Header'
 import QuickAddFab from '../../components/budget/QuickAddFab'
 import QuickstartChecklist from '../../components/quickstart/QuickstartChecklist'
 import type { DmAsset, DmCredit, DmProfile } from '../../types/database'
 import { computeProjection, RATE_BY_INVESTOR_TYPE, YEARS_BY_HORIZON, GOAL_PHRASE } from '../../lib/projection'
 import { useTranslation } from 'react-i18next'
+
+const REAL_TODAY = new Date()
+const REAL_MONTH = REAL_TODAY.getMonth() + 1
+const REAL_YEAR  = REAL_TODAY.getFullYear()
 
 type AssetWithLiveDebt = DmAsset & { effectiveDebt: number; linkedCredit?: DmCredit }
 
@@ -141,123 +143,6 @@ function EmergencyCard({ atual, despesaMensal }: { atual: number; despesaMensal:
       <View style={{ width: '100%', height: 4, backgroundColor: '#f1f5f9', borderRadius: 2, marginTop: 10, flexDirection: 'row', overflow: 'hidden' }}>
         {progress > 0 && <View style={{ flex: progress,     backgroundColor: barColor, borderRadius: 2 }} />}
         {progress < 1 && <View style={{ flex: 1 - progress                                             }} />}
-      </View>
-    </View>
-  )
-}
-
-// ── NetWorthChart ──────────────────────────────────────────────────────────
-
-function smoothLinePath(pts: { x: number; y: number }[]): string {
-  if (pts.length < 2) return ''
-  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`
-  for (let i = 1; i < pts.length; i++) {
-    const cpx = ((pts[i - 1].x + pts[i].x) / 2).toFixed(2)
-    d += ` C ${cpx} ${pts[i - 1].y.toFixed(2)}, ${cpx} ${pts[i].y.toFixed(2)}, ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`
-  }
-  return d
-}
-
-function areaPath(pts: { x: number; y: number }[], lineH: number): string {
-  if (pts.length < 2) return ''
-  return `${smoothLinePath(pts)} L ${pts.at(-1)!.x.toFixed(2)} ${lineH} L ${pts[0].x.toFixed(2)} ${lineH} Z`
-}
-
-function NetWorthChart({ points }: { points: NetWorthPoint[] }) {
-  const [svgWidth, setSvgWidth] = useState(0)
-  const H       = 90
-  const LABEL_H = 18
-  const LINE_H  = H - LABEL_H
-  const PAD_T   = 8
-
-  const { t } = useTranslation()
-  const fmt     = useFmt()
-
-  if (points.length < 2) {
-    return (
-      <View style={{ alignItems: 'center', paddingVertical: 18, gap: 6, opacity: 0.45 }}>
-        <Ionicons name="trending-up-outline" size={20} color="#64748b" />
-        <Text style={{ color: '#64748b', fontSize: 11 }}>{t('dashboard.historyBuilding')}</Text>
-      </View>
-    )
-  }
-
-  const values  = points.map((p) => p.net_worth)
-  const min     = Math.min(...values)
-  const max     = Math.max(...values)
-  const range   = max - min
-  const delta   = values[values.length - 1] - values[0]
-
-  // Linha reta — todos os valores iguais: mostrar indicador de tendência
-  if (range === 0) {
-    const isNew = points.length <= 2
-    return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, opacity: 0.6 }}>
-        <Ionicons name="remove-outline" size={16} color="#64748b" />
-        <Text style={{ color: '#64748b', fontSize: 11 }}>
-          {isNew ? t('dashboard.historyBuilding') : 'Estável — sem variação registada'}
-        </Text>
-      </View>
-    )
-  }
-
-  const pts = svgWidth > 0 ? points.map((p, i) => ({
-    x: (i / (points.length - 1)) * svgWidth,
-    y: PAD_T + (1 - (p.net_worth - min) / range) * (LINE_H - PAD_T),
-  })) : []
-
-  const deltaColor = delta > 0 ? '#0d9488' : delta < 0 ? '#ef4444' : '#64748b'
-  const deltaIcon  = delta > 0 ? 'trending-up-outline' : delta < 0 ? 'trending-down-outline' : 'remove-outline'
-
-  return (
-    <View style={{ marginTop: 12, marginBottom: 4 }}>
-      {/* Badge de variação */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8, paddingHorizontal: 2 }}>
-        <Ionicons name={deltaIcon as any} size={13} color={deltaColor} />
-        <Text style={{ color: deltaColor, fontSize: 11, fontWeight: '600' }}>
-          {delta >= 0 ? '+' : ''}{fmt(delta)} desde {points[0].label}
-        </Text>
-      </View>
-      <View
-        onLayout={(e) => setSvgWidth(e.nativeEvent.layout.width)}
-      >
-      {svgWidth > 0 && pts.length > 0 && (
-        <Svg width={svgWidth} height={H}>
-          <Defs>
-            <LinearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#14b8a6" stopOpacity={0.18} />
-              <Stop offset="1" stopColor="#14b8a6" stopOpacity={0}    />
-            </LinearGradient>
-          </Defs>
-
-          {/* Área sombreada */}
-          <Path d={areaPath(pts, LINE_H)} fill="url(#nwGrad)" />
-
-          {/* Linha principal */}
-          <Path
-            d={smoothLinePath(pts)}
-            fill="none"
-            stroke="#14b8a6"
-            strokeWidth={2}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-
-          {/* Labels dos meses */}
-          {points.map((p, i) => (
-            <SvgText
-              key={i}
-              x={(i / (points.length - 1)) * svgWidth}
-              y={H - 2}
-              fontSize={10}
-              fill="#94a3b8"
-              textAnchor={i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}
-            >
-              {p.label}
-            </SvgText>
-          ))}
-        </Svg>
-      )}
       </View>
     </View>
   )
@@ -576,17 +461,14 @@ export default function DashboardScreen() {
   const profile = useAuthStore((s) => s.profile)
   const session = useAuthStore((s) => s.session)
   const qc = useQueryClient()
-  const { selectedMonth: MONTH, selectedYear: YEAR, setMonth } = useDashboardStore()
-  const { data, isLoading, isError, refetch } = useDashboard(MONTH, YEAR)
+  const { data, isLoading, isError, refetch } = useDashboard(REAL_MONTH, REAL_YEAR)
+  const { data: fixedBudget, upsertIncome } = useFixedBudget()
 
-  function prevMonth() { MONTH === 1 ? setMonth(12, YEAR - 1) : setMonth(MONTH - 1, YEAR) }
-  function nextMonth() { MONTH === 12 ? setMonth(1, YEAR + 1) : setMonth(MONTH + 1, YEAR) }
   const { update: updateAsset, linkCredit } = useAssets()
   const { data: credits = [] } = useCredits()
   const { upsert: upsertEmergencyFund } = useEmergencyFund()
   const { canLinkCreditToAsset } = useSubscription()
   const targets = useBudgetTargets()
-  const { data: nwHistory = [] } = useNetWorthHistory()
 
   useNotificationEngine({
     availableBalance: data?.availableBalance,
@@ -620,6 +502,8 @@ export default function DashboardScreen() {
   const [bensAtivosVisible, setBensAtivosVisible] = useState(false)
   const [editingEmergencyFund, setEditingEmergencyFund] = useState(false)
   const [emergencyFundInput, setEmergencyFundInput] = useState('')
+  const [editingIncome, setEditingIncome] = useState(false)
+  const [incomeInput, setIncomeInput] = useState('')
 
   async function handleSaveAsset(id: string, name: string, value: number, debt: number) {
     await updateAsset.mutateAsync({ id, name, value, debt })
@@ -639,6 +523,17 @@ export default function DashboardScreen() {
     const val = parseFloat(emergencyFundInput.replace(',', '.'))
     if (!isNaN(val) && val >= 0) await upsertEmergencyFund.mutateAsync(val)
     setEditingEmergencyFund(false)
+  }
+
+  function startEditIncome() {
+    setIncomeInput(String(fixedBudget?.income ?? 0))
+    setEditingIncome(true)
+  }
+
+  async function saveIncome() {
+    const val = parseFloat(incomeInput.replace(',', '.'))
+    if (!isNaN(val) && val >= 0) await upsertIncome.mutateAsync(val)
+    setEditingIncome(false)
   }
 
   useFocusEffect(
@@ -664,17 +559,6 @@ export default function DashboardScreen() {
       >
 
         <View className="mt-4 mb-6">
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-            <TouchableOpacity onPress={prevMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-back" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-            <Text className="text-dark-400 text-sm capitalize" style={{ flex: 1, textAlign: 'center' }}>
-              {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
-            </Text>
-            <TouchableOpacity onPress={nextMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-          </View>
           <Text className="text-dark-50 text-2xl font-bold">{t('dashboard.title')}</Text>
         </View>
 
@@ -686,39 +570,59 @@ export default function DashboardScreen() {
           <DashboardError onRetry={() => refetch()} />
         ) : (
           <>
-            {/* Resumo do Mês */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push('/(tabs)/orcamento')}
-              style={{ backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 }}
-            >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                  {new Date(YEAR, MONTH - 1).toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })}
-                </Text>
-                <Ionicons name="chevron-forward" size={14} color="#94a3b8" />
-              </View>
-              <View style={{ flexDirection: 'row', gap: 0 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 3 }}>{t('dashboard.incomeLabel')}</Text>
-                  <Text style={{ color: '#0d9488', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(data?.income ?? 0)}</Text>
+            {/* Orçamento Fixo — permanente, sem navegação mensal. Mesma
+                estrutura (Rendimento Líquido / Despesas / Poupança /
+                Disponível) que o separador Orçamento, para os dois ecrãs
+                mostrarem sempre os mesmos números. */}
+            <View style={{ backgroundColor: '#ffffff', borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 }}>
+              <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>
+                {t('budget.netIncome')}
+              </Text>
+              {editingIncome ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <TextInput
+                    style={{ color: '#0f172a', fontSize: 26, fontWeight: '800', borderBottomWidth: 1, borderColor: '#14b8a6', flex: 1, minWidth: 0, paddingVertical: 2 }}
+                    value={incomeInput}
+                    onChangeText={setIncomeInput}
+                    keyboardType="decimal-pad"
+                    autoFocus
+                    autoCorrect={false}
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    onSubmitEditing={saveIncome}
+                  />
+                  <TouchableOpacity onPress={saveIncome} hitSlop={8}>
+                    <Ionicons name="checkmark" size={20} color="#0d9488" />
+                  </TouchableOpacity>
                 </View>
-                <View style={{ width: 1, backgroundColor: '#f1f5f9', marginHorizontal: 12 }} />
+              ) : (
+                <TouchableOpacity onPress={startEditIncome} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ color: '#0f172a', fontSize: 30, fontWeight: '800', letterSpacing: -0.5 }} adjustsFontSizeToFit numberOfLines={1}>
+                    {fmt(fixedBudget?.income ?? 0)}
+                  </Text>
+                  <Ionicons name="pencil-outline" size={16} color="#0d9488" />
+                </TouchableOpacity>
+              )}
+              <View style={{ flexDirection: 'row', gap: 0, marginTop: 14 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 3 }}>{t('dashboard.expensesLabel')}</Text>
-                  <Text style={{ color: '#ef4444', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(data?.expenses ?? 0)}</Text>
+                  <Text style={{ color: '#ef4444', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(fixedBudget?.expenses ?? 0)}</Text>
                 </View>
                 <View style={{ width: 1, backgroundColor: '#f1f5f9', marginHorizontal: 12 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 3 }}>Disponível</Text>
-                  <Text style={{ color: '#0f172a', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(data?.availableBalance ?? 0)}</Text>
+                  <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 3 }}>{t('dashboard.savingsLabel')}</Text>
+                  <Text style={{ color: '#0d9488', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(fixedBudget?.savings ?? 0)}</Text>
+                </View>
+                <View style={{ width: 1, backgroundColor: '#f1f5f9', marginHorizontal: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#64748b', fontSize: 10, marginBottom: 3 }}>{t('dashboard.availableLabel')}</Text>
+                  <Text style={{ color: '#0f172a', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 }} adjustsFontSizeToFit numberOfLines={1}>{fmt(fixedBudget?.available ?? 0)}</Text>
                 </View>
               </View>
-            </TouchableOpacity>
+            </View>
 
-            {/* Património Líquido + gráfico de evolução */}
+            {/* Património Líquido */}
             <NetWorthBanner label={t('dashboard.netWorth')} value={fmt(data?.netWorth ?? 0)} />
-            <NetWorthChart points={nwHistory} />
 
             {/* ── Net Worth — 5 categorias ─────────────────────────── */}
             <View className="bg-dark-800 border border-dark-700 rounded-2xl mb-3 overflow-hidden">

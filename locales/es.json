@@ -45,6 +45,7 @@
     "hideDetails": "Ocultar detalles",
     "incomeLabel": "Ingresos",
     "expensesLabel": "Gastos",
+    "availableLabel": "Disponible",
     "savingsLabel": "Ahorro",
     "leisureLabel": "Disponible/Ocio",
     "investedLabel": "Invertido",
@@ -69,6 +70,7 @@
   "budget": {
     "title": "Presupuesto",
     "fixedExpenses": "Gastos Fijos Mensuales",
+    "linkedToCredit": "Cuota automática — \"{{name}}\"",
     "addExpense": "Añadir gasto",
     "noFixedExpenses": "Sin gastos fijos",
     "noExpenses": "Sin gastos este mes",

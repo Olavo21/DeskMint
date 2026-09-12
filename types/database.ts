@@ -219,6 +219,7 @@ export type Database = {
           amount: number
           category_id: string
           created_at: string
+          credit_id: string | null
           description: string
           dia_vencimento: number | null
           id: string
@@ -231,6 +232,7 @@ export type Database = {
           amount: number
           category_id: string
           created_at?: string
+          credit_id?: string | null
           description: string
           dia_vencimento?: number | null
           id?: string
@@ -243,6 +245,7 @@ export type Database = {
           amount?: number
           category_id?: string
           created_at?: string
+          credit_id?: string | null
           description?: string
           dia_vencimento?: number | null
           id?: string

@@ -45,6 +45,7 @@
     "hideDetails": "Hide details",
     "incomeLabel": "Income",
     "expensesLabel": "Expenses",
+    "availableLabel": "Available",
     "savingsLabel": "Savings",
     "leisureLabel": "Available/Leisure",
     "investedLabel": "Invested",
@@ -69,6 +70,7 @@
   "budget": {
     "title": "Budget",
     "fixedExpenses": "Fixed Monthly Expenses",
+    "linkedToCredit": "Automatic payment — \"{{name}}\"",
     "addExpense": "Add expense",
     "noFixedExpenses": "No fixed expenses",
     "noExpenses": "No expenses this month",

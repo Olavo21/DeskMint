@@ -8,6 +8,7 @@ type RawExpense = {
   amount: number
   is_fixed: boolean
   dm_expense_categories: { type: string } | null
+  credit_id?: string | null
 }
 
 export function useDashboard(month: number, year: number) {
@@ -21,7 +22,10 @@ export function useDashboard(month: number, year: number) {
       const uid = session!.user.id
 
       const [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes, recurringRes] = await Promise.all([
-        supabase.from('dm_income').select('*').eq('user_id', uid).eq('month', month).eq('year', year).maybeSingle(),
+        // Rendimento não é filtrado ao mês/ano pedido — lê sempre a linha mais
+        // recente, para não zerar quando o mês civil muda sem o utilizador
+        // reeditar (mesmo comportamento de hooks/useFixedBudget.ts).
+        supabase.from('dm_income').select('*').eq('user_id', uid).order('year', { ascending: false }).order('month', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('dm_budget_rules').select('*').eq('user_id', uid).eq('month', month).eq('year', year).maybeSingle(),
         supabase.from('dm_portfolio_assets').select('*').eq('user_id', uid),
         supabase.from('dm_emergency_fund').select('*').eq('user_id', uid).maybeSingle(),
@@ -34,7 +38,7 @@ export function useDashboard(month: number, year: number) {
           .eq('month', month)
           .eq('year', year),
         supabase.from('dm_recurring_expenses')
-          .select('amount, dm_expense_categories(type)')
+          .select('amount, credit_id, dm_expense_categories(type)')
           .eq('user_id', uid)
           .eq('is_active', true),
       ])
@@ -49,9 +53,16 @@ export function useDashboard(month: number, year: number) {
       const emergency = emergencyRes.data as DmEmergencyFund | null
       const assets    = (assetsRes.data as DmAsset[]) ?? []
       const credits   = (creditsRes.data as DmCredit[]) ?? []
-      const rawExp    = (expensesRes.data ?? []) as unknown as RawExpense[]
-      const rawRec    = (recurringRes.data ?? []) as unknown as RawExpense[]
-      const allExp    = [...rawExp, ...rawRec]
+      const rawExp     = (expensesRes.data ?? []) as unknown as RawExpense[]
+      const rawRecRaw  = (recurringRes.data ?? []) as unknown as RawExpense[]
+      const creditsById = new Map(credits.map((c) => [c.id, c]))
+      // Despesa fixa ligada a um crédito (ex: prestação do carro) usa sempre
+      // a prestação mensal atual do crédito, não o amount guardado.
+      const rawRec = rawRecRaw.map((e) => ({
+        ...e,
+        amount: e.credit_id ? (creditsById.get(e.credit_id)?.monthly_payment ?? e.amount) : e.amount,
+      }))
+      const allExp = [...rawExp, ...rawRec]
 
       // Fixas vêm de dm_recurring_expenses; variáveis de dm_expenses (is_fixed=false)
       const needsAmt   = allExp.filter((e) => e.dm_expense_categories?.type === 'NEEDS').reduce((s, e) => s + e.amount, 0)
@@ -68,7 +79,6 @@ export function useDashboard(month: number, year: number) {
       // apresentada deixa de ser o valor estático guardado e passa a ser o
       // saldo em dívida real desse crédito — desce automaticamente mês a mês
       // conforme as prestações são pagas, sem qualquer edição manual.
-      const creditsById = new Map(credits.map((c) => [c.id, c]))
       const assetsWithLiveDebt = assets.map((a) => {
         const linkedCredit = a.credit_id ? creditsById.get(a.credit_id) : undefined
         const effectiveDebt = linkedCredit ? getCreditOutstandingBalance(linkedCredit).balance : a.debt

@@ -18,6 +18,7 @@ export type SourcedExpense = {
   updated_at: string
   dm_expense_categories: DmExpenseCategory | null
   _source: 'recurring' | 'expense'
+  linkedCreditName?: string | null
 }
 
 type CreatePayload = Omit<TablesInsert<'dm_expenses'>, 'user_id'> & {
@@ -136,27 +137,33 @@ export function useExpenses(month: number, year: number) {
           .order('created_at', { ascending: false }),
         supabase
           .from('dm_recurring_expenses')
-          .select('*, dm_expense_categories(id, name, type, icon)')
+          .select('*, dm_expense_categories(id, name, type, icon), dm_credits(name, monthly_payment)')
           .eq('user_id', uid)
           .eq('is_active', true),
+        // Rendimento não é filtrado ao mês/ano pedido — lê sempre a linha mais
+        // recente (mesmo padrão de useIncome.ts/useDashboard.ts/useFixedBudget.ts).
         supabase
           .from('dm_income')
           .select('total_net')
           .eq('user_id', uid)
-          .eq('month', month)
-          .eq('year', year)
+          .order('year', { ascending: false })
+          .order('month', { ascending: false })
+          .limit(1)
           .maybeSingle(),
       ])
 
       if (expRes.error) throw expRes.error
       if (recRes.error) throw recRes.error
 
+      // Despesa ligada a um crédito (ex: prestação do carro): o valor mostrado
+      // é sempre a prestação mensal atual do crédito, não o amount guardado —
+      // evita desincronizar quando o crédito é editado em Créditos.
       const fixedExpenses: SourcedExpense[] = ((recRes.data ?? []) as any[]).map((r) => ({
         id:           r.id,
         user_id:      r.user_id,
         category_id:  r.category_id,
         description:  r.description,
-        amount:       r.amount,
+        amount:       r.dm_credits?.monthly_payment ?? r.amount,
         is_fixed:     true,
         month,
         year,
@@ -165,6 +172,7 @@ export function useExpenses(month: number, year: number) {
         updated_at:   r.updated_at,
         dm_expense_categories: r.dm_expense_categories,
         _source:      'recurring' as const,
+        linkedCreditName: r.dm_credits?.name ?? null,
       }))
 
       const variableExpenses: SourcedExpense[] = ((expRes.data ?? []) as any[]).map((e) => ({

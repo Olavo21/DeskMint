@@ -6,8 +6,11 @@ export function useIncome(month: number, year: number) {
   const session = useAuthStore((s) => s.session)
   const qc = useQueryClient()
 
+  // Leitura ignora month/year: rendimento é fixo (não reseta ao mudar o mês),
+  // lê sempre a linha mais recente — mesmo padrão de hooks/useDashboard.ts e
+  // hooks/useFixedBudget.ts. O upsert continua a escrever no month/year pedido.
   const query = useQuery({
-    queryKey: ['income', month, year, session?.user.id],
+    queryKey: ['income', session?.user.id],
     enabled: !!session,
     staleTime: 5 * 60_000,
     queryFn: async () => {
@@ -15,8 +18,9 @@ export function useIncome(month: number, year: number) {
         .from('dm_income')
         .select('*')
         .eq('user_id', session!.user.id)
-        .eq('month', month)
-        .eq('year', year)
+        .order('year', { ascending: false })
+        .order('month', { ascending: false })
+        .limit(1)
         .maybeSingle()
       return data
     },

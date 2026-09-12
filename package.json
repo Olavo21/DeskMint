@@ -34,6 +34,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@expo/ngrok": "^4.1.3",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@types/pg": "^8.20.0",
@@ -53,7 +54,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:export": "node scripts/export-dm-tables.mjs"
   },
   "private": true
 }

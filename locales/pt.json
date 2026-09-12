@@ -45,6 +45,7 @@
     "hideDetails": "Ocultar detalhes",
     "incomeLabel": "Rendimento",
     "expensesLabel": "Despesas",
+    "availableLabel": "Disponível",
     "savingsLabel": "Poupança",
     "leisureLabel": "Disponível/Lazer",
     "investedLabel": "Investido",
@@ -69,6 +70,7 @@
   "budget": {
     "title": "Orçamento",
     "fixedExpenses": "Despesas Fixas Mensais",
+    "linkedToCredit": "Prestação automática — \"{{name}}\"",
     "addExpense": "Adicionar despesa",
     "noFixedExpenses": "Sem despesas fixas",
     "noExpenses": "Sem despesas este mês",

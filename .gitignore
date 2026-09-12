@@ -63,3 +63,6 @@ screenshots/
 
 # Test/debug files
 *.mhtml
+
+# DB export backups (dados pessoais/financeiros)
+backups/

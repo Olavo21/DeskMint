@@ -29,6 +29,7 @@ type ExpenseItem = {
   description: string | null
   amount: number
   dm_expense_categories?: { name: string; icon?: string | null } | null
+  linkedCreditName?: string | null
 }
 
 type ExpenseRowProps = {
@@ -122,19 +123,25 @@ function ExpenseRow({
   }
 
   const emoji = getExpenseEmoji(e.description ?? '', e.dm_expense_categories?.icon)
+  const isCreditLinked = !!e.linkedCreditName
 
   return (
     <View className="flex-row justify-between items-center py-3 border-b border-dark-700">
       <View className="flex-1 mr-2">
         <Text className="text-dark-200 text-sm">{emoji} {e.description ?? ''}</Text>
-        {e.dm_expense_categories && (
+        {isCreditLinked ? (
+          <View className="flex-row items-center gap-1 mt-0.5">
+            <Ionicons name="link" size={10} color="#64748b" />
+            <Text className="text-dark-500 text-xs">{t('budget.linkedToCredit', { name: e.linkedCreditName })}</Text>
+          </View>
+        ) : e.dm_expense_categories && (
           <Text className="text-dark-500 text-xs">{e.dm_expense_categories.name}</Text>
         )}
       </View>
       <View className="flex-row items-center gap-3">
         <Text className="text-dark-50 text-sm font-medium">{fmt(e.amount)}</Text>
         <View className="flex-row gap-3 items-center">
-          {editMode && (
+          {editMode && !isCreditLinked && (
             <TouchableOpacity
               onPress={() => onStartEdit(e.id)}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
