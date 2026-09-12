@@ -5,69 +5,50 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] — sessão 2026-09-12
-
-Ainda na v1.5.0 / versionCode 10 (sem bump de versão nesta sessão). Duas
-frentes de trabalho independentes: TickerBar/StockDetailModal e Sentry.
-Testado no emulador Android (dev client, Metro local) — não testado em
-build de produção nem na Web.
+## [1.6.0] — 2026-09-12 · versionCode 11
 
 ### Added
-- **TickerBar → StockDetailModal**: tocar num ativo do `TickerBar` (topo
+- **Dashboard**: card "Orçamento Fixo" permanente — rendimento e
+  despesas fixas deixam de zerar quando o mês civil muda (lê sempre o
+  último valor registado). Despesas fixas ligadas a um crédito (ex:
+  prestação do carro) sincronizam automaticamente com o valor real do
+  crédito. Orçamento e Dashboard mostram sempre os mesmos números.
+- **Comissões**: campo de hora opcional junto à Data do Serviço.
+- **TickerBar → StockDetailModal**: tocar num ativo do TickerBar (topo
   do ecrã Investimentos) abre um bottom sheet estilo widget de ações do
-  X/Twitter — `components/investments/StockDetailModal.tsx`.
-  - Header: logo (`TickerLogo`), nome, `TICKER · BOLSA`, preço, variação
-    com seta colorida, volume, "Após horário" quando disponível.
-  - Gráfico interativo `components/investments/StockLineChart.tsx`
-    (copiado/adaptado de `PortfolioLineChart.tsx` — mesmo padrão
-    react-native-svg + `PanResponder`, sem biblioteca nova): tabs
-    1D/1S/1M/1A/TUDO, área preenchida verde/vermelha, crosshair ao
-    arrastar (preço + hora). Testado visualmente nos 5 períodos.
-  - Notícias recentes via `hooks/useCompanyNews.ts` →
-    `lib/newsApi.ts` `getCompanyNews()` (Finnhub, já integrada — **não**
-    Yahoo, ver AGENTS.md).
-  - Sparkline mini (verde/vermelho, sem eixos) em cada item do
-    `TickerBar`, dados intraday via `hooks/useYahooChart.ts`
-    (`useTickerSparklines`, uma query batched para todos os tickers).
-- **`lib/yahooFinance.ts`** (novo): cliente para `/v8/finance/chart` da
-  Yahoo (não-oficial, sem chave) — única fonte de histórico de preços
-  encontrada (Finnhub free bloqueia `/stock/candle`). Detalhes completos
-  (limitações, CORS, símbolos) documentados no `AGENTS.md`.
-- **Sentry** (`@sentry/react-native` instalado): `lib/sentry.ts`
-  (`Sentry.init`), `components/ErrorBoundary.tsx` (fallback à medida do
-  tema, envolve toda a `<Stack>` em `app/_layout.tsx`), `Sentry.setUser`/
-  `setUser(null)` no único ponto de verdade da sessão
-  (`onAuthStateChange`), `metro.config.js` com `withSentryConfig`.
-  Conta/projeto "DeskMint" já criados em sentry.io; DSN já em
-  `.env.local` e como env var `production` no EAS
-  (`eas env:set production --name EXPO_PUBLIC_SENTRY_DSN --visibility
-  sensitive`).
+  X/Twitter — header com preço/variação/volume, gráfico interativo
+  (1D/1S/1M/1A/TUDO) com crosshair ao arrastar, notícias recentes.
+  Sparkline intraday em cada item do TickerBar.
+- **Sentry**: monitorização de erros em produção, com ecrã de erro
+  amigável (`ErrorBoundary`) em vez de crash direto.
+- **Backup semanal**: script de export de todas as tabelas `dm_*` para
+  ficheiro local (`npm run db:export`, agendado no Task Scheduler).
 
-### Pending / próximos passos
-- **Sentry ainda não confirmado no dashboard real.** Só foi testado que
-  o `ErrorBoundary` está ligado (não que o evento chega ao sentry.io) —
-  isso só é verificável num build de produção (LogBox do RN intercepta
-  sempre primeiro em dev, ver `AGENTS.md`). Próximo passo lógico: gerar
-  um build `preview`/`production` via EAS e confirmar lá o primeiro
-  evento antes de dar isto como fechado.
-- **Source maps do Sentry**: falta `SENTRY_AUTH_TOKEN` (+ org/project)
-  como env var EAS para os stack traces mostrarem código original em vez
-  de bundle minificado.
-- **TickerBar/gráfico só funcionam em iOS/Android**, não na build Web
-  (Yahoo não tem CORS — ver `AGENTS.md`, secção "Dados de mercado").
-- Sem Market Cap no header do `StockDetailModal` — Yahoo passou a exigir
-  autenticação por "crumb" nesse endpoint, não vale a pena perseguir sem
-  implementar esse fluxo.
-- Nenhuma migração de BD nesta sessão (ao contrário da sessão anterior,
-  22 ago) — só ficheiros novos + edição de `app.json`/`metro.config.js`/
-  `_layout.tsx`.
+### Fixed — auditoria de segurança pré-lançamento
+- `stock-fundamentals`: rate limiting (20 chamadas/hora/utilizador) e
+  cache de 5 min por utilizador+ticker; CORS restrito ao domínio de
+  produção; erros deixam de expor detalhe interno ao cliente.
+- `stock-fundamentals`: corrigido sufixo `.US` não removido antes de
+  perguntar à Finnhub — a Análise Fundamentalista nunca tinha mostrado
+  dados para nenhum ativo americano do portefólio.
+- `FINNHUB_KEY` estava em falta nos secrets do Supabase desde sempre —
+  é provável que a Análise nunca tenha funcionado em produção até agora.
+- `sync-trading212`: 2 pontos a devolver erro do Postgres diretamente
+  ao cliente, agora mensagem genérica.
+- Validação de limites reforçada nos formulários de Comissões, Lotes,
+  Tetos e Novo Ativo.
 
-### Correções ao pedido original registadas no AGENTS.md
-Todas as divergências entre o que foi pedido e o que foi implementado
-(Yahoo vs Finnhub, victory-native vs react-native-svg, `eas secret` vs
-`eas env:set`, etc.) estão documentadas com o "porquê" em `AGENTS.md` —
-ler esse ficheiro antes de mexer em dados de mercado ou no Sentry, poupa
-horas de redescoberta.
+### Known issues (adiado deliberadamente)
+- `xlsx` (import de ficheiros do broker) tem 2 CVEs sem correção
+  disponível via npm — superfície de ataque contida (só ficheiros que o
+  próprio utilizador carrega). Resolver numa sessão dedicada, com tempo
+  para testar todos os formatos de import já suportados.
+- CORS ainda wildcard nas outras 4 edge functions (só `stock-fundamentals`
+  foi restrita, por ser a única pedida).
+- TickerBar/gráfico de ações só funcionam em iOS/Android, não na build
+  Web (a Yahoo Finance não tem cabeçalhos CORS).
+
+Detalhe técnico completo, decisões e "porquês" em `AGENTS.md`.
 
 ---
 
