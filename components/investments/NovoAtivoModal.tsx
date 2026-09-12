@@ -23,6 +23,11 @@ const TYPES: { key: AssetType; label: string; icon: string }[] = [
 
 const COMMON_BROKERS = ['XTB', 'Degiro', 'Revolut', 'Interactive Brokers', 'Trading212', 'eToro']
 
+const MAX_TICKER_LEN = 10
+const MAX_NAME_LEN   = 100
+const MAX_VALUE       = 1_000_000_000
+const MAX_UNITS        = 1_000_000_000
+
 interface Props {
   visible: boolean
   onClose: () => void
@@ -80,8 +85,23 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
     const e: Record<string, string> = {}
     if (!name.trim())   e.name   = 'Nome obrigatório'
     if (!ticker.trim()) e.ticker = 'Ticker obrigatório (ex: AAPL)'
-    if (!currentValue || isNaN(parseFloat(currentValue.replace(',', '.'))))
-                        e.currentValue = 'Valor atual obrigatório'
+    else if (ticker.trim().length > MAX_TICKER_LEN) e.ticker = `Máximo ${MAX_TICKER_LEN} caracteres`
+
+    const curr = parseFloat(currentValue.replace(',', '.'))
+    if (!currentValue || isNaN(curr) || curr < 0)
+                        e.currentValue = 'Valor atual inválido'
+    else if (curr > MAX_VALUE) e.currentValue = `Valor máximo ${MAX_VALUE.toLocaleString('pt-PT')}`
+
+    if (units) {
+      const u = parseFloat(units.replace(',', '.'))
+      if (isNaN(u) || u < 0)      e.units = 'Unidades inválidas'
+      else if (u > MAX_UNITS)    e.units = `Máximo ${MAX_UNITS.toLocaleString('pt-PT')}`
+    }
+    if (avgPrice) {
+      const p = parseFloat(avgPrice.replace(',', '.'))
+      if (isNaN(p) || p < 0)     e.avgPrice = 'Preço inválido'
+      else if (p > MAX_VALUE)   e.avgPrice = `Valor máximo ${MAX_VALUE.toLocaleString('pt-PT')}`
+    }
     return e
   }
 
@@ -158,6 +178,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
               placeholderTextColor="#475569"
               value={name}
               onChangeText={setName}
+              maxLength={MAX_NAME_LEN}
             />
             {errors.name && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.name}</Text>}
           </View>
@@ -174,9 +195,10 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                 value={tickerQ || ticker}
                 onChangeText={(v) => {
                   setTickerQ(v)
-                  setTicker(v.toUpperCase())
+                  setTicker(v.toUpperCase().slice(0, MAX_TICKER_LEN))
                   setShowSuggestions(true)
                 }}
+                maxLength={MAX_TICKER_LEN}
                 autoCapitalize="characters"
               />
               {searchLoading && <ActivityIndicator size="small" color="#14b8a6" />}
@@ -245,6 +267,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                 onChangeText={setUnits}
                 keyboardType="decimal-pad"
               />
+              {errors.units && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.units}</Text>}
             </View>
             <View className="flex-1">
               <Text className="text-dark-300 text-xs mb-1.5 ml-1">Preço médio (€)</Text>
@@ -256,6 +279,7 @@ export default function NovoAtivoModal({ visible, onClose }: Props) {
                 onChangeText={setAvgPrice}
                 keyboardType="decimal-pad"
               />
+              {errors.avgPrice && <Text className="text-red-700 text-xs mt-1 ml-1">{errors.avgPrice}</Text>}
             </View>
           </View>
 

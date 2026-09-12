@@ -87,6 +87,10 @@ function LotRow({ lot, onDelete }: { lot: LotWithIrs; onDelete: (id: string) => 
   )
 }
 
+const MAX_QUANTITY   = 1_000_000
+const MAX_UNIT_PRICE = 1_000_000
+const MAX_BROKER_LEN = 50
+
 const getToday = () => new Date()
 
 function fmtDateLocal(d: Date) {
@@ -122,7 +126,9 @@ export default function LotsModal({ visible, onClose, assetId, ticker }: Props) 
     const qty = Number(quantity.replace(',', '.'))
     const price = Number(unitPrice.replace(',', '.'))
     if (!quantity || isNaN(qty) || qty <= 0) e.quantity = 'Quantidade inválida'
-    if (!unitPrice || isNaN(price) || price < 0) e.unitPrice = 'Preço inválido'
+    else if (qty > MAX_QUANTITY)            e.quantity = `Máximo ${MAX_QUANTITY.toLocaleString('pt-PT')}`
+    if (!unitPrice || isNaN(price) || price <= 0) e.unitPrice = 'Preço inválido'
+    else if (price > MAX_UNIT_PRICE)              e.unitPrice = `Máximo ${MAX_UNIT_PRICE.toLocaleString('pt-PT')}€`
     return e
   }
 
@@ -303,6 +309,7 @@ export default function LotsModal({ visible, onClose, assetId, ticker }: Props) 
                   <TextInput
                     value={broker}
                     onChangeText={setBroker}
+                    maxLength={MAX_BROKER_LEN}
                     placeholder="ex: XTB, DEGIRO, Trading212…"
                     placeholderTextColor="#94a3b8"
                     style={{

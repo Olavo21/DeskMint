@@ -59,6 +59,9 @@ const SUGGESTIONS: Suggestion[] = [
   },
 ]
 
+const MAX_BLOCK_NAME_LEN = 50
+const MAX_TICKER_LEN = 10
+
 const ASSET_TYPE_LABELS: Record<string, string> = {
   ETF: 'ETF', STOCK: 'Ação', CRYPTO: 'Cripto', BOND: 'Obrigação', OTHER: 'Outro',
 }
@@ -145,10 +148,16 @@ export default function ThresholdsModal({ visible, onClose, assets, lookThroughE
   async function handleAdd() {
     const name = blockName.trim()
     if (!name) { Alert.alert('Nome obrigatório'); return }
-    const parsedMax = maxPct ? parseFloat(maxPct) : null
-    const parsedMin = minPct ? parseFloat(minPct) : null
+    const parsedMax = maxPct ? parseFloat(maxPct.replace(',', '.')) : null
+    const parsedMin = minPct ? parseFloat(minPct.replace(',', '.')) : null
     if (parsedMax === null && parsedMin === null) {
       Alert.alert('Define pelo menos teto máximo ou mínimo'); return
+    }
+    if (parsedMax !== null && (isNaN(parsedMax) || parsedMax < 0 || parsedMax > 100)) {
+      Alert.alert('Teto máximo inválido', 'Tem de estar entre 0 e 100%.'); return
+    }
+    if (parsedMin !== null && (isNaN(parsedMin) || parsedMin < 0 || parsedMin > 100)) {
+      Alert.alert('Mínimo inválido', 'Tem de estar entre 0 e 100%.'); return
     }
     setSaving(true)
     try {
@@ -288,6 +297,7 @@ export default function ThresholdsModal({ visible, onClose, assets, lookThroughE
                 <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 5 }}>NOME DO BLOCO</Text>
                 <TextInput
                   value={blockName} onChangeText={setBlockName}
+                  maxLength={MAX_BLOCK_NAME_LEN}
                   placeholder="ex: Nvidia total"
                   placeholderTextColor="#475569"
                   style={{ backgroundColor: '#0f172a', color: '#f8faf9', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 }}
@@ -297,7 +307,8 @@ export default function ThresholdsModal({ visible, onClose, assets, lookThroughE
               <View>
                 <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 5 }}>TICKER (opcional)</Text>
                 <TextInput
-                  value={ticker} onChangeText={(v) => setTicker(v.toUpperCase())}
+                  value={ticker} onChangeText={(v) => setTicker(v.toUpperCase().slice(0, MAX_TICKER_LEN))}
+                  maxLength={MAX_TICKER_LEN}
                   placeholder="ex: NVDA"
                   placeholderTextColor="#475569"
                   autoCapitalize="characters"

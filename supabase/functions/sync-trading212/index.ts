@@ -132,7 +132,10 @@ Deno.serve(async (req: Request) => {
           error_message: null,
         }, { onConflict: 'user_id,broker' })
 
-      if (upsertErr) return fail(500, upsertErr.message)
+      if (upsertErr) {
+        console.error('sync-trading212 upsert connection error:', upsertErr)
+        return fail(500, 'internal_error')
+      }
       return ok({ saved: true })
     }
 
@@ -199,7 +202,10 @@ Deno.serve(async (req: Request) => {
       const { error: upsertError } = await supabase
         .from('dm_portfolio_assets')
         .upsert(upserts, { onConflict: 'user_id,ticker', ignoreDuplicates: false })
-      if (upsertError) return fail(500, upsertError.message)
+      if (upsertError) {
+        console.error('sync-trading212 upsert assets error:', upsertError)
+        return fail(500, 'internal_error')
+      }
     }
 
     await supabase

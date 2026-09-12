@@ -147,3 +147,70 @@ assumir que chega.
   foi usado uma vez e removido — não ficou no código (deliberado, para não
   deixar código morto/de teste em produção). Se for preciso testar outra
   vez, replicar temporariamente num ecrã, nunca commitar.
+
+## Auditoria de segurança pré-lançamento (12 set 2026)
+
+- **Rate limiting em `stock-fundamentals`**: duas tabelas novas,
+  `dm_fundamentals_cache` (5 min por user+ticker) e `dm_rate_limits`
+  (contador por user+endpoint+hora, máx. 20), RLS `auth.uid() = user_id`
+  igual ao resto da BD. Um cache-hit não conta para o limite — só conta o
+  que realmente vai à Finnhub. **Confirmado ao vivo** (12 set, depois de
+  corrigir o FINNHUB_KEY e o sufixo `.US`): 1º toque em "Auto" criou uma
+  linha em cada tabela (NVDA.US, dados reais da NVIDIA Corp); 2º toque
+  imediato não criou linhas novas (mesmo `created_at`) — a cache travou a
+  chamada repetida à Finnhub sem consumir quota. Nota para a próxima vez
+  que for preciso mexer no `FundamentalsModal` no emulador: o botão "Auto"
+  fica visualmente atrás do overlay "Perf Monitor" do dev client, mas
+  continua clicável — usar `adb shell uiautomator dump` para apanhar as
+  bounds exatas do `TextView` "Auto" em vez de adivinhar por screenshot.
+- **`FINNHUB_KEY` não estava em `supabase secrets list` — corrigido** (12
+  set): definido com `npx supabase secrets set FINNHUB_KEY=<a mesma
+  chave de EXPO_PUBLIC_FINNHUB_KEY em .env.local>`. Isto explica por que
+  "Análise" nunca funcionou em produção — não era bug das alterações
+  desta sessão, era falta de secret desde sempre.
+- **`.env.local` e as env vars de produção no EAS têm os mesmos valores**
+  (Supabase URL/anon key/Finnhub key) — não há projeto Supabase separado
+  para dev/staging, só o de produção. Não é um bug introduzido agora, mas
+  significa que testar localmente (`expo start`) lê/escreve na mesma BD
+  real. Continuar a ter cuidado extra antes de qualquer escrita ao testar.
+- **CORS wildcard (`*`) continua nas outras 4 edge functions**
+  (`ai-assistant`, `investment-agent`, `investment-chat`,
+  `sync-trading212`) — só `stock-fundamentals` foi restrita a
+  `https://deskmint.app`, porque foi o único pedido explicitamente. Se for
+  para aplicar o mesmo às outras, replicar o mesmo padrão.
+- **`sync-trading212` tinha 2 pontos a devolver `error.message` do
+  Postgres diretamente ao cliente** (upsert de ligação e de ativos) — 
+  corrigido para mensagem genérica + `console.error` só no lado do
+  servidor, mesmo padrão do `stock-fundamentals`.
+- **`ticker.US` não era limpo antes de perguntar à Finnhub em
+  `stock-fundamentals` — corrigido** (12 set): mesma regra
+  `.endsWith('.US')` de `toYahooSymbol()` em `lib/yahooFinance.ts`, agora
+  como `finnhubSymbol` local — o `ticker` original (com sufixo) continua
+  a ser a chave da cache/rate-limit, só o pedido à Finnhub muda. Bug
+  pré-existente (não desta sessão), confirmado ao vivo depois da correção:
+  NVDA.US → "NVIDIA Corp", P/E 27.48, ROE 110.11, etc., todos reais.
+- **`npm audit`**: 0 critical, 23 high, 20 moderate, 2 low. A maioria é
+  toolchain de build (metro/react-native/prisma), não código que corre em
+  produção — não vale a pena `--force` (arriscaria downgrades do Expo).
+  Exceção: `xlsx` (usado em `lib/xtbParser.ts` para importar ficheiros
+  reais do utilizador) tem 2 CVEs sem fix disponível a montante
+  (prototype pollution + ReDoS) — é o único caso com superfície de ataque
+  real (ficheiro Excel controlado pelo utilizador); não há package.json
+  fix, só trocar de biblioteca resolveria. **Decisão (12 set): adiado
+  para uma sessão dedicada só a isto** — superfície de ataque contida
+  (só ficheiros que o próprio utilizador carrega), sem correção simples
+  via npm (implicaria trocar para outra biblioteca como `exceljs`, não
+  um patch), e o parser XTB já levou várias rondas de correções (ver
+  histórico) — mexer outra vez sem tempo dedicado arrisca reintroduzir
+  bugs de parsing já resolvidos. Não fazer isto à pressa antes de um
+  lançamento.
+- **`npx expo-doctor`**: peer deps em falta corrigidas (`expo-constants`,
+  `expo-linking`, `react-native-worklets`). Avisos de schema
+  (`newArchEnabled`/`jsEngine` mal colocados, ícone não quadrado) e de
+  upgrade para SDK 57 (regressão conhecida do Hermes V1) ficaram só
+  reportados — nenhuma das duas é segura de mudar dias antes de um
+  lançamento.
+- Validação de inputs reforçada em `NovaComissaoModal.tsx`,
+  `LotsModal.tsx`, `ThresholdsModal.tsx` e `NovoAtivoModal.tsx`: limites
+  máximos em valores monetários/quantidades, 0-100% em tetos,
+  `maxLength` em texto livre, ticker sempre capado a 10 caracteres.

@@ -1,17 +1,41 @@
 import { createClient } from "npm:@supabase/supabase-js";
 
 const FINNHUB_KEY = Deno.env.get("FINNHUB_KEY") ?? "";
+
+// CORS restrito ao domínio de produção — só afeta chamadas feitas a partir
+// de um browser (a build Web em https://deskmint.app). Não afeta o app
+// nativo (iOS/Android): CORS é uma restrição do browser, não do servidor,
+// por isso pedidos nativos continuam a funcionar independentemente deste
+// valor. Nota: correr `expo start --web` localmente contra esta função em
+// produção vai falhar por CORS (origem localhost) — usar o emulador Supabase
+// local para testar a função nesse cenário.
+const ALLOWED_ORIGIN = "https://deskmint.app";
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+};
+
+const CACHE_TTL_MS   = 5 * 60 * 1000; // 5 minutos
+const RATE_LIMIT_MAX = 20;            // chamadas por utilizador
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hora
+const ENDPOINT_NAME  = "stock-fundamentals";
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS, ...SECURITY_HEADERS, "Content-Type": "application/json" },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS });
+    return new Response("ok", { headers: { ...CORS, ...SECURITY_HEADERS } });
   }
 
-  // Auth check
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -19,24 +43,53 @@ Deno.serve(async (req) => {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...CORS, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   const url    = new URL(req.url);
   const ticker = url.searchParams.get("ticker")?.toUpperCase();
   if (!ticker) {
-    return new Response(JSON.stringify({ error: "Missing ticker" }), {
-      status: 400, headers: { ...CORS, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Missing ticker" }, 400);
   }
+  // A Finnhub não usa o sufixo ".US" (símbolo dos EUA é sempre "nu" —
+  // "NVDA", nunca "NVDA.US") — sem isto, todas as chamadas devolviam nulls
+  // para qualquer ativo americano do portefólio. Mesma regra já usada em
+  // lib/yahooFinance.ts (toYahooSymbol). O ticker original (com sufixo)
+  // continua a ser a chave da cache/rate-limit, só o pedido à Finnhub muda.
+  const finnhubSymbol = ticker.endsWith(".US") ? ticker.slice(0, -3) : ticker;
 
   try {
+    // ── Cache: 5 min por utilizador+ticker — evita gastar chamadas Finnhub
+    //    (e a quota de rate limit abaixo) em pedidos repetidos.
+    const { data: cached } = await supabase
+      .from("dm_fundamentals_cache")
+      .select("response, created_at")
+      .eq("user_id", user.id)
+      .eq("ticker", ticker)
+      .maybeSingle();
+
+    if (cached && Date.now() - new Date(cached.created_at).getTime() < CACHE_TTL_MS) {
+      return jsonResponse(cached.response);
+    }
+
+    // ── Rate limit: máx. 20 chamadas/hora/utilizador (só conta pedidos que
+    //    realmente vão à Finnhub, não os que a cache já resolveu acima).
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+    const { count } = await supabase
+      .from("dm_rate_limits")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("endpoint", ENDPOINT_NAME)
+      .gte("created_at", windowStart);
+
+    if ((count ?? 0) >= RATE_LIMIT_MAX) {
+      return jsonResponse({ error: "Too many requests" }, 429);
+    }
+
     const [metricRes, profileRes, quoteRes] = await Promise.all([
-      fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${FINNHUB_KEY}`),
-      fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${ticker}&token=${FINNHUB_KEY}`),
-      fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${FINNHUB_KEY}`),
+      fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${finnhubSymbol}&metric=all&token=${FINNHUB_KEY}`),
+      fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`),
+      fetch(`https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`),
     ]);
 
     const [metricData, profileData, quoteData] = await Promise.all([
@@ -68,12 +121,23 @@ Deno.serve(async (req) => {
       revenuePerEmployee: m.revenuePerEmployeeTTM ?? m.revenuePerEmployeeAnnual ?? null,
     };
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...CORS, "Content-Type": "application/json" },
-    });
+    // Regista a chamada (conta para o rate limit) e atualiza a cache.
+    // Falhas aqui não devem impedir a resposta ao utilizador — só ficam logadas.
+    const [rlResult, cacheResult] = await Promise.all([
+      supabase.from("dm_rate_limits").insert({ user_id: user.id, endpoint: ENDPOINT_NAME }),
+      supabase.from("dm_fundamentals_cache").upsert(
+        { user_id: user.id, ticker, response: result, created_at: new Date().toISOString() },
+        { onConflict: "user_id,ticker" },
+      ),
+    ]);
+    if (rlResult.error)    console.error("rate_limits insert error:", rlResult.error);
+    if (cacheResult.error) console.error("cache upsert error:", cacheResult.error);
+
+    return jsonResponse(result);
   } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...CORS, "Content-Type": "application/json" },
-    });
+    // Nunca devolver String(err)/stack trace ao cliente — só mensagem genérica.
+    // O detalhe real fica só nos logs da função (Supabase Dashboard → Functions → Logs).
+    console.error("stock-fundamentals error:", err);
+    return jsonResponse({ error: "Internal error" }, 500);
   }
 });
