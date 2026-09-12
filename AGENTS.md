@@ -55,3 +55,52 @@ Foram copiadas manualmente (não movidas — os registos antigos em
 `dm_expenses` foram mantidos, apenas deixaram de ser lidos por qualquer
 ecrã atual). Se noutra conta as despesas fixas aparecerem a 0€ apesar de
 existirem em `dm_expenses`, é o mesmo problema de migração incompleta.
+
+## Dados de mercado: Finnhub vs Yahoo — o que cada uma dá e o que não dá
+
+Testado diretamente contra as APIs em 12 set 2026, antes de construir o
+`StockDetailModal` e o `TickerBar`. Não redescobrir isto a tentar — ir
+direto às conclusões abaixo.
+
+**Finnhub** (`EXPO_PUBLIC_FINNHUB_KEY`, plano grátis — já integrada em
+`useTickerSearch.ts`, `lib/newsApi.ts`, `stock-fundamentals` edge function):
+- `/quote` (preço atual + `dp` variação %) — funciona bem, CORS aberto
+  (`Access-Control-Allow-Origin: *`), por isso funciona também na build Web.
+- `/company-news` (notícias por símbolo) — funciona bem, é a fonte usada
+  pelo `StockDetailModal`. Por vezes o campo `source` devolvido é "Yahoo"
+  (a Finnhub agrega de várias origens) — não é um bug, não confundir com
+  usar a API da Yahoo diretamente.
+- `/stock/candle` (histórico OHLC) — **bloqueado no plano grátis**:
+  devolve `{"error":"You don't have access to this resource."}`. Sem
+  histórico não há sparkline nem gráfico por período. Isto é o motivo de
+  se ter ido buscar histórico à Yahoo (ver abaixo) em vez de ficar tudo
+  numa única fonte.
+
+**Yahoo Finance** (endpoints públicos não-oficiais, sem chave —
+`lib/yahooFinance.ts`, usado só para histórico/gráfico):
+- `/v8/finance/chart/{symbol}` — funciona sem autenticação, dá histórico
+  intraday e de longo prazo (`range`/`interval`), mais preço atual, volume,
+  bolsa e nome no bloco `meta` — mas sem Market Cap. É a única fonte de
+  histórico grátis encontrada.
+- Símbolos: usar o ticker tal como está em `dm_portfolio_assets.ticker`
+  (o sufixo ".DE" etc. já bate certo com a Yahoo) — **exceto ".US"**, que
+  a Yahoo não usa; tirar esse sufixo antes de pedir (`NVDA.US` falha,
+  `NVDA` funciona). `toYahooSymbol()` em `lib/yahooFinance.ts` já faz isto.
+- `/v7/finance/quote` e `/v10/finance/quoteSummary` (preço em tempo real
+  "oficial", Market Cap, fundamentais) — **deixaram de funcionar sem
+  sessão**: devolvem 401 "Invalid Crumb" / "Unauthorized" desde que a
+  Yahoo passou a exigir um crumb obtido por cookie de sessão. Não vale a
+  pena tentar sem implementar esse fluxo (frágil, pode voltar a mudar).
+  É por isto que o header do `StockDetailModal` não mostra Market Cap.
+- `/v1/finance/search?...&newsCount=N` também devolve um array `news[]`
+  funcional sem chave — não é usado (preferida a Finnhub, mais estável),
+  mas fica registado como alternativa se a Finnhub alguma vez for
+  descontinuada.
+- **Não tem cabeçalhos CORS.** Qualquer chamada a `query1.finance.yahoo.com`
+  funciona em iOS/Android mas falha sempre na build Web (bloqueio do
+  browser, não da rede). Se algum dia for preciso na Web, a solução é um
+  proxy — uma Supabase Edge Function como a `stock-fundamentals` já
+  existente — nunca chamar diretamente do browser.
+- É uma API não-documentada/não-suportada oficialmente — pode mudar ou
+  bloquear pedidos sem aviso. Tratar como best-effort, nunca como fonte
+  única para algo crítico.

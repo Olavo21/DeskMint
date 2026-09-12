@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ScrollView, View, Text, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native'
+import { ScrollView, View, Text, TouchableOpacity, Alert, ActivityIndicator, TextInput, Switch } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
@@ -12,6 +12,7 @@ import StepperInput from '../components/ui/StepperInput'
 import i18n, { changeAppLanguage } from '../lib/i18n'
 import { CURRENCIES, getSavedCurrency, saveUserCurrency, type SupportedCurrency } from '../lib/currencies'
 import { usePreferencesStore } from '../stores/preferencesStore'
+import { saveTickerBarEnabled } from '../lib/tickerBarPref'
 
 type InvestorType = 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE' | 'SPECULATIVE'
 type InvestGoal   = 'RETIREMENT' | 'WEALTH' | 'INCOME' | 'EDUCATION' | 'EMERGENCY' | 'OTHER'
@@ -79,7 +80,14 @@ export default function DefinicoesScreen() {
   const [currency,      setCurrencyLocal] = useState<SupportedCurrency>('EUR')
   const [country,       setCountry]       = useState('PT')
 
-  const setCurrencyStore = usePreferencesStore((s) => s.setCurrency)
+  const setCurrencyStore  = usePreferencesStore((s) => s.setCurrency)
+  const tickerBarEnabled  = usePreferencesStore((s) => s.tickerBarEnabled)
+  const setTickerBarStore = usePreferencesStore((s) => s.setTickerBarEnabled)
+
+  async function handleTickerBarToggle(v: boolean) {
+    setTickerBarStore(v)
+    await saveTickerBarEnabled(v)
+  }
 
   useEffect(() => {
     // Supabase profile é a fonte de verdade cross-device; AsyncStorage é o fallback offline
@@ -448,6 +456,28 @@ export default function DefinicoesScreen() {
                 </TouchableOpacity>
               )
             })}
+          </View>
+        </View>
+
+        {/* ── Ecrã ──────────────────────────────────────────────────── */}
+        <View style={{ backgroundColor: '#1e293b', borderRadius: 20, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' }}>
+          <Text style={{ color: '#475569', fontSize: 10, fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase', padding: 16, paddingBottom: 8 }}>
+            Ecrã
+          </Text>
+
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderTopWidth: 1, borderTopColor: '#0f172a' }}>
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>Ticker Bar</Text>
+              <Text style={{ color: '#475569', fontSize: 11, marginTop: 2 }}>
+                Faixa de cotações a deslizar no topo do Portfolio
+              </Text>
+            </View>
+            <Switch
+              value={tickerBarEnabled}
+              onValueChange={handleTickerBarToggle}
+              trackColor={{ false: '#334155', true: '#0d9488' }}
+              thumbColor="#f8fafc"
+            />
           </View>
         </View>
 
