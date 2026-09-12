@@ -17,9 +17,32 @@ interface Props {
 }
 
 const TODAY = new Date()
+const MAX_AMOUNT = 1_000_000
+const MAX_DESCRIPTION_LEN = 200
+const MAX_CLIENT_LEN = 100
+const MAX_NOTES_LEN = 500
 
 function fmt(d: Date) {
   return d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function fmtTime(d: Date) {
+  return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
+}
+
+// scheduled_time vem da BD como "HH:mm:ss" — usa a data de hoje só como
+// contentor, apenas as horas/minutos importam.
+function parseTime(s: string): Date {
+  const [h, m] = s.split(':').map(Number)
+  const d = new Date()
+  d.setHours(h, m, 0, 0)
+  return d
+}
+
+function timeToDbString(d: Date): string {
+  const h = String(d.getHours()).padStart(2, '0')
+  const m = String(d.getMinutes()).padStart(2, '0')
+  return `${h}:${m}`
 }
 
 function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
@@ -45,12 +68,14 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
   const [earnedAt, setEarnedAt]       = useState(TODAY)
   const [expectedAt, setExpectedAt]   = useState<Date | null>(null)
   const [serviceDate, setServiceDate] = useState(TODAY)
+  const [scheduledTime, setScheduledTime] = useState<Date | null>(null)
   const [errors, setErrors]           = useState<Record<string, string>>({})
 
   // controlo de date pickers (Android abre um dialog, iOS usa inline)
   const [showEarned, setShowEarned]     = useState(false)
   const [showExpected, setShowExpected] = useState(false)
   const [showService, setShowService]   = useState(false)
+  const [showTime, setShowTime]         = useState(false)
 
   // Pré-preenche os campos só quando o modal abre em modo edição —
   // nunca enquanto o utilizador escreve, para um refetch não apagar o que está a escrever.
@@ -64,14 +89,17 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
       setEarnedAt(new Date(editing.earned_at))
       setExpectedAt(editing.expected_at ? new Date(editing.expected_at) : null)
       setServiceDate(editing.service_date ? new Date(editing.service_date) : TODAY)
+      setScheduledTime(editing.scheduled_time ? parseTime(editing.scheduled_time) : null)
     }
   }, [visible, editing])
 
   function validate() {
     const e: Record<string, string> = {}
     if (!description.trim())        e.description = 'Descrição obrigatória'
-    if (!amount || isNaN(Number(amount.replace(',', '.'))) || Number(amount.replace(',', '.')) <= 0)
+    const amt = Number(amount.replace(',', '.'))
+    if (!amount || isNaN(amt) || amt <= 0)
                                     e.amount = 'Valor inválido'
+    else if (amt > MAX_AMOUNT)     e.amount = `Valor máximo ${MAX_AMOUNT.toLocaleString('pt-PT')}€`
     return e
   }
 
@@ -89,6 +117,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
         earnedAt:    earnedAt.toISOString(),
         expectedAt:  expectedAt?.toISOString() ?? null,
         serviceDate: serviceDate.toISOString(),
+        scheduledTime: scheduledTime ? timeToDbString(scheduledTime) : null,
         notes:       notes.trim() || null,
         typeId,
       })
@@ -101,6 +130,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
         earned_at:    earnedAt.toISOString(),
         expected_at:  expectedAt?.toISOString() ?? null,
         service_date: serviceDate.toISOString(),
+        scheduled_time: scheduledTime ? timeToDbString(scheduledTime) : null,
         notes:        notes.trim() || null,
         type_id:      typeId,
       })
@@ -110,7 +140,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
 
   function handleClose() {
     setTypeId(null); setDescription(''); setClient(''); setAmount(''); setNotes('')
-    setEarnedAt(TODAY); setExpectedAt(null); setServiceDate(TODAY); setErrors({})
+    setEarnedAt(TODAY); setExpectedAt(null); setServiceDate(TODAY); setScheduledTime(null); setErrors({})
     onClose()
   }
 
@@ -170,6 +200,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
               placeholderTextColor="#475569"
               value={description}
               onChangeText={setDescription}
+              maxLength={MAX_DESCRIPTION_LEN}
             />
           </Field>
 
@@ -182,6 +213,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
               placeholderTextColor="#475569"
               value={client}
               onChangeText={setClient}
+              maxLength={MAX_CLIENT_LEN}
             />
           </Field>
 
@@ -198,16 +230,40 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
             />
           </Field>
 
-          {/* Data do serviço */}
-          <Field label="Data do Serviço *">
-            <Pressable
-              className="bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
-              onPress={() => setShowService(true)}
-            >
-              <Text className="text-base" style={{ color: '#0f172a' }}>{fmt(serviceDate)}</Text>
-              <Ionicons name="calendar-outline" size={16} color="#475569" />
-            </Pressable>
-          </Field>
+          {/* Data do serviço + hora (opcional) */}
+          <View className="flex-row gap-3 mb-4">
+            <View className="flex-1">
+              <Text className="text-dark-300 text-xs mb-1.5 ml-1">Data do Serviço *</Text>
+              <Pressable
+                className="bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
+                onPress={() => setShowService(true)}
+              >
+                <Text className="text-base" style={{ color: '#0f172a' }}>{fmt(serviceDate)}</Text>
+                <Ionicons name="calendar-outline" size={16} color="#475569" />
+              </Pressable>
+            </View>
+            <View className="flex-1">
+              <Text className="text-dark-300 text-xs mb-1.5 ml-1">Hora</Text>
+              <Pressable
+                className="bg-dark-800 rounded-xl px-4 py-3.5 border border-dark-700 flex-row items-center justify-between"
+                onPress={() => setShowTime(true)}
+              >
+                <Text
+                  className={scheduledTime ? 'text-base' : 'text-dark-300 text-base'}
+                  style={scheduledTime ? { color: '#0f172a' } : undefined}
+                >
+                  {scheduledTime ? fmtTime(scheduledTime) : 'Opcional'}
+                </Text>
+                {scheduledTime ? (
+                  <TouchableOpacity onPress={() => setScheduledTime(null)} hitSlop={8}>
+                    <Ionicons name="close-circle" size={16} color="#475569" />
+                  </TouchableOpacity>
+                ) : (
+                  <Ionicons name="time-outline" size={16} color="#475569" />
+                )}
+              </Pressable>
+            </View>
+          </View>
 
           {/* Datas */}
           <View className="flex-row gap-3 mb-4">
@@ -267,6 +323,16 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
               locale="pt-PT"
             />
           )}
+          {showTime && (
+            <DateTimePicker
+              value={scheduledTime ?? TODAY}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(_, d) => { setShowTime(Platform.OS === 'ios'); if (d) setScheduledTime(d) }}
+              locale="pt-PT"
+              is24Hour
+            />
+          )}
 
           {/* Notas */}
           <Field label="Notas">
@@ -276,6 +342,7 @@ export default function NovaComissaoModal({ visible, onClose, editing = null }: 
               placeholderTextColor="#475569"
               value={notes}
               onChangeText={setNotes}
+              maxLength={MAX_NOTES_LEN}
               multiline
               numberOfLines={3}
               textAlignVertical="top"

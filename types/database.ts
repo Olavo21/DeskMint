@@ -148,6 +148,7 @@ export type Database = {
           user_id: string
           type_id: string | null
           service_date: string | null
+          scheduled_time: string | null
           quantity: number
           unit_value: number | null
         }
@@ -166,6 +167,7 @@ export type Database = {
           user_id: string
           type_id?: string | null
           service_date?: string | null
+          scheduled_time?: string | null
           quantity?: number
           unit_value?: number | null
         }
@@ -184,6 +186,7 @@ export type Database = {
           user_id?: string
           type_id?: string | null
           service_date?: string | null
+          scheduled_time?: string | null
           quantity?: number
           unit_value?: number | null
         }

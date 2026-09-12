@@ -14,6 +14,7 @@ type Status = DmCommission['status']
 const fmt = (n: number) => n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
 const fmtDate = (s: string | null) =>
   s ? new Date(s).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '—'
+const fmtTime = (s: string) => s.slice(0, 5) // "HH:mm:ss" -> "HH:mm"
 
 // ─── Config dos 3 blocos principais ─────────────────────────────────────────
 const BLOCOS = [
@@ -90,6 +91,11 @@ function CommissionCard({
             <Text className="text-xs" style={{ color: '#94a3b8' }}>
               {fmtDate(c.earned_at)}
             </Text>
+            {c.service_date && (
+              <Text className="text-xs" style={{ color: '#94a3b8' }}>
+                · Serviço {fmtDate(c.service_date)}{c.scheduled_time ? ` · ${fmtTime(c.scheduled_time)}` : ''}
+              </Text>
+            )}
             {c.expected_at && (
               <Text className="text-xs" style={{ color: isOverdue ? '#ef4444' : '#94a3b8' }}>
                 {isOverdue ? '⚠ Atrasada' : `Prevista ${fmtDate(c.expected_at)}`}
