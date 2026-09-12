@@ -172,6 +172,27 @@ assumir que chega.
   @sentry/wizard -i reactNative -p android` interativo), escrever
   `sentry.properties` ou passar essas opções a `withSentryConfig`, testar
   um build de produção completo antes de assumir que está resolvido.
+- **Segundo problema, mesma causa raiz, sítio diferente: `sentry.gradle`
+  (13 set 2026).** Corrigir o Metro só resolveu o primeiro crash. O build
+  seguinte (`b16104d4...`) passou o bundling e chegou à fase `RUN_GRADLEW`,
+  mas falhou lá: o plugin nativo Android do Sentry (injetado sozinho pelo
+  config plugin `@sentry/react-native` do `app.json` no `android/app/
+  build.gradle` gerado no prebuild — este projeto é managed/CNG, `android/`
+  não está commitado, ver `.gitignore`) corre uma task separada
+  (`createBundleReleaseJsAndAssets_SentryUpload...`) que também tenta subir
+  source maps via `sentry-cli`, e falha com `error: An organization ID or
+  slug is required (provide with --org)` — o mesmo problema de
+  organization/project em falta, mas apanhado pelo Gradle em vez do Metro.
+  **Correção:** `eas env:set production --name SENTRY_DISABLE_AUTO_UPLOAD
+  --value true --visibility plaintext --non-interactive` — variável lida
+  diretamente pelo `sentry.gradle` (`System.getenv('SENTRY_DISABLE_AUTO_UPLOAD')
+  != 'true'` controla `shouldSentryAutoUploadGeneral()`), não precisa de
+  prefixo `EXPO_PUBLIC_` porque só é lida em tempo de build pelo Gradle,
+  nunca pelo JS em runtime. Continua a não afetar a captura de erros em
+  runtime — só a task de upload de source maps é saltada. Quando a
+  configuração `organization`/`project` for feita a sério (ver ponto
+  acima), reverter isto (apagar a env var ou pôr a `false`) para os
+  source maps voltarem a subir automaticamente.
 
 ## Auditoria de segurança pré-lançamento (12 set 2026)
 
