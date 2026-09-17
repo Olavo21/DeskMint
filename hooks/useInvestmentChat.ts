@@ -9,15 +9,23 @@ const ENDPOINT = `${SUPABASE_URL}/functions/v1/investment-chat`
 // `pendingActions` (ver proposeUpdateAssetValue/proposeAddTransaction) —
 // e o que se reenvia tal-e-qual em `confirmAction` quando o utilizador
 // confirma no ecrã. Nunca construir este payload à mão no cliente.
+// `actionId` nasce no servidor (não aqui) — é a chave de idempotência
+// que impede a mesma proposta ser aplicada duas vezes (duplo-toque,
+// retry de rede, histórico reaberto); ver confirm_update_asset_value/
+// confirm_add_transaction na BD. payload.new_value (não uma percentagem)
+// porque a percentagem já foi resolvida num valor absoluto no momento
+// da proposta — reaplicar o mesmo valor duas vezes nunca compõe.
 export type PendingAction =
   | {
+      actionId: string
       kind: 'update_asset_value'
-      payload: { asset_id: string; modification_type: 'percentage_change' | 'fixed_value'; value: number }
+      payload: { asset_id: string; new_value: number }
       ativo: string
       valorAtual: number
       novoValor: number
     }
   | {
+      actionId: string
       kind: 'add_transaction'
       payload: { asset_id: string; amount_invested_eur: number; units_bought?: number | null }
       ativo: string
@@ -116,9 +124,25 @@ export function useInvestmentChat() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ confirmAction: { kind: action.kind, payload: action.payload } }),
+        body: JSON.stringify({
+          confirmAction: { kind: action.kind, actionId: action.actionId, payload: action.payload },
+        }),
       })
       const json = await res.json()
+
+      // 409 = actionId já consumido (duplo-toque, retry, histórico reaberto).
+      // Não é um erro real — a escrita original já aconteceu — só não se
+      // repete. Refrescar as queries na mesma, caso a UI esteja desatualizada.
+      if (res.status === 409) {
+        qc.invalidateQueries({ queryKey: ['portfolio'] })
+        qc.invalidateQueries({ queryKey: ['dashboard'] })
+        setMessages((prev) => [
+          ...prev,
+          { id: `${Date.now()}-confirm-dup`, role: 'assistant', text: 'Esta ação já tinha sido aplicada — não foi repetida.' },
+        ])
+        return
+      }
+
       if (!res.ok) throw new Error(json.error ?? 'Erro ao aplicar a ação')
 
       qc.invalidateQueries({ queryKey: ['portfolio'] })

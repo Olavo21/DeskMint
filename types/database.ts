@@ -9,6 +9,29 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      dm_confirmed_actions: {
+        Row: {
+          action_id: string
+          user_id: string
+          tipo: string
+          payload: Json
+          consumed_at: string
+        }
+        Insert: {
+          action_id: string
+          user_id: string
+          tipo: string
+          payload: Json
+          consumed_at?: string
+        }
+        Update: {
+          action_id?: string
+          user_id?: string
+          tipo?: string
+          payload?: Json
+          consumed_at?: string
+        }
+      }
       dm_rate_limits: {
         Row: {
           created_at: string

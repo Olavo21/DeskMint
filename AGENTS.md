@@ -194,6 +194,96 @@ assumir que chega.
   acima), reverter isto (apagar a env var ou pôr a `false`) para os
   source maps voltarem a subir automaticamente.
 
+## Idempotência das escritas do investment-chat (18 set 2026)
+
+Depois do incidente do VWCE (secção seguinte), ficou claro que faltava
+proteção contra a mesma escrita ser aplicada duas vezes — duplo-toque,
+retry de rede, ou um histórico antigo reaberto com o cartão ainda
+visível. Desenho final (não o primeiro tentado — ver porquês abaixo):
+
+- **`actionId` nasce no servidor**, dentro de `proposeUpdateAssetValue`/
+  `proposeAddTransaction` (`crypto.randomUUID()`), viaja no cartão até
+  ao cliente e volta tal-e-qual em `confirmAction`. Nascer no cliente
+  não protegia nada — um replay simplesmente gerava outra chave.
+- **`dm_confirmed_actions`** (`action_id uuid PRIMARY KEY, user_id,
+  tipo, payload jsonb, consumed_at`) + duas funções Postgres
+  (`confirm_update_asset_value`, `confirm_add_transaction`) que fazem o
+  `INSERT` do `action_id` **e** a escrita real em `dm_portfolio_assets`
+  na mesma transação. Uma chave repetida rebenta a `UNIQUE` constraint
+  do `INSERT`, o que aborta a transação inteira (incluindo a escrita
+  que viria a seguir) — zero janela de corrida entre dois pedidos
+  simultâneos, ao contrário de um desenho "lê, vê se existe, escreve"
+  em três passos separados (que foi a primeira versão implementada e
+  corrigida antes de chegar a produção).
+- **Ambas as funções só são executáveis pelo `service_role`**
+  (`REVOKE ALL ... FROM PUBLIC, anon, authenticated`) — sem isto, o
+  Supabase expõe automaticamente qualquer função pública em
+  `/rest/v1/rpc/<nome>`, e como `p_user_id` é um parâmetro explícito
+  (não vem de `auth.uid()`, que seria sempre `null` numa ligação
+  service_role), um utilizador autenticado podia chamar a função
+  diretamente com o `user_id` de outra pessoa. Confirmado com
+  `information_schema.role_routine_grants` que só `postgres`/
+  `service_role` têm `EXECUTE`.
+- **`update_asset_value` resolve a percentagem num valor absoluto no
+  momento da proposta**, não no momento da confirmação — o payload de
+  `confirmAction` passou a ser `{ asset_id, new_value }`, nunca
+  `{ modification_type, value }`. Reaplicar a mesma proposta duas vezes
+  define o mesmo valor absoluto (idempotente por construção); reaplicar
+  "+2%" duas vezes teria composto sobre um valor já alterado pela
+  primeira chamada. `add_transaction` continua sem este truque — somar
+  duas vezes nunca é idempotente por construção — por isso depende
+  inteiramente do `actionId`.
+- **Armadilha descoberta a testar**: `dm_portfolio_assets.id` é
+  `text` na BD real, não `uuid` (gerado pela app, não pelo Postgres,
+  apesar de os valores serem UUIDs formatados). As funções foram
+  escritas a assumir `p_asset_id uuid` e falhavam com `operator does
+  not exist: text = uuid` em qualquer chamada — só apareceu ao testar
+  a sério contra a BD, não no `deno check` (que não valida SQL dentro
+  de uma string `.rpc()`). Corrigido para `p_asset_id text`. Se outra
+  function/RPC vier a comparar `dm_portfolio_assets.id` com um
+  parâmetro tipado, confirmar sempre o tipo real da coluna primeiro
+  (`information_schema.columns`), não assumir `uuid` só porque o valor
+  parece um.
+- **Testado ao vivo** (18 set 2026) contra `tester@deskmint.app`
+  (utilizador de teste já existente, portefólio fictício com 1 posição
+  AAPL — nunca contra a conta real do dono, ver regra seguinte):
+  chamada 1 com `actionId` novo aplicou 180€→190€; chamada 2 com o
+  **mesmo** `actionId` mas valor diferente (999,99€) falhou com
+  `23505` e o valor ficou em 190€ (não 999,99€ nem qualquer estado
+  intermédio — a transação reverteu tudo); chamada 3 com `actionId`
+  novo aplicou normalmente. Prova direta contra a função Postgres,
+  sem depender da UI/emulador (que já se mostrou instável para este
+  tipo de teste — ver secção de reposição do chat).
+
+## Regra: nunca testar escritas do agente contra a conta real do dono (17 set 2026)
+
+Durante os testes do `confirmAction` do `investment-chat` (ver secção
+seguinte), o teste do caminho positivo ("proposta + Confirmar") foi
+feito por iniciativa própria do agente Claude, sem pedido explícito do
+utilizador, e escreveu de facto na carteira real de produção
+(`VWCE.DE` alterado de 1970,11€ para 2009,51€ — depois confirmado
+como resultado correto de `1970,11 × 1,02`, não um bug, mas mesmo
+assim uma escrita real não autorizada). Isto não devia ter acontecido
+por dois motivos independentes:
+
+1. Testar o caminho de escrita não devia envolver decidir sozinho
+   fazer uma escrita real sem pedir — o mesmo princípio de "nunca
+   escrever sem confirmação explícita" que a própria feature impõe ao
+   utilizador final devia ter sido aplicado ao próprio processo de
+   teste.
+2. Mesmo com autorização, testar escritas (`confirmAction`,
+   `update_asset_value`, `add_transaction`) contra os dados reais do
+   dono da conta é a forma errada de testar — corrompe dados de
+   produção reais e obriga a reposição manual depois.
+
+**Regra daqui para a frente**: escritas do agente nunca são testadas
+contra a conta real do dono. Criar (ou usar, se já existir) um
+utilizador de teste no Supabase com uma carteira fictícia — o RLS já
+garante isolamento entre contas, por isso basta mudar de sessão/login
+no dev build antes de testar qualquer fluxo que escreva dados. Ler
+dados reais para diagnóstico é aceitável; escrever neles para testar
+não é.
+
 ## Duas decisões da reescrita do investment-chat (17 set 2026) — porquês
 
 **Porque é que update_asset_value/add_transaction ficaram com
