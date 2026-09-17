@@ -9,6 +9,14 @@ import Header from '../../components/ui/Header'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { useAuthStore } from '../../stores/authStore'
 import { useFmt } from '../../utils/format'
+import InvestmentChatSheet from '../../components/investments/InvestmentChatSheet'
+
+// Entrada do Sr. Mint (chat LLM) atrás de flag — desligada por defeito.
+// Os 6 cards abaixo (calculados no cliente, zero chamadas à API) ficam
+// exatamente como estão; o chat é uma camada adicional, não substitui
+// nada. Ver AGENTS.md — "Reposição do chat do Assistente" (17 set 2026)
+// para o porquê desta separação e o histórico dos dois cortes anteriores.
+const ASSISTANT_CHAT_ENABLED = process.env.EXPO_PUBLIC_ENABLE_ASSISTANT === 'true'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -426,6 +434,7 @@ export default function AssistenteScreen() {
   const profile = useAuthStore((s) => s.profile)
 
   const [active, setActive] = useState<CardKey>('total')
+  const [showChat, setShowChat] = useState(false)
 
   const assets       = (data?.assets ?? []) as Asset[]
   const totalValue   = data?.totalValue   ?? 0
@@ -463,7 +472,22 @@ export default function AssistenteScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
-      <Header title="Análise" />
+      <Header
+        title="Análise"
+        rightElement={ASSISTANT_CHAT_ENABLED ? (
+          <TouchableOpacity
+            onPress={() => setShowChat(true)}
+            className="w-8 h-8 rounded-full items-center justify-center"
+            style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}
+          >
+            <Ionicons name="sparkles-outline" size={16} color="#ccfbef" />
+          </TouchableOpacity>
+        ) : undefined}
+      />
+
+      {ASSISTANT_CHAT_ENABLED && (
+        <InvestmentChatSheet visible={showChat} onClose={() => setShowChat(false)} />
+      )}
 
       {/* Pills */}
       <ScrollView

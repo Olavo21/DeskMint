@@ -194,6 +194,57 @@ assumir que chega.
   acima), reverter isto (apagar a env var ou pôr a `false`) para os
   source maps voltarem a subir automaticamente.
 
+## Reposição do chat do Assistente (17 set 2026)
+
+O chat LLM do portefólio (`InvestmentChatSheet`/`useInvestmentChat`/
+`investment-chat`) tinha sido cortado da UI **duas vezes** antes de hoje,
+e ninguém tinha percebido isto ao pedir a reescrita da function — o
+trabalho de hoje quase ficou "pronto mas inacessível" por engano. Histórico
+completo, reconstruído do git log (as mensagens de commit não dizem
+"porquê", só "o quê" — o raciocínio abaixo é inferência a partir do que
+mudou, não uma certeza):
+
+1. **12 jun** (`0a15220`): `InvestmentChatSheet` nasce como FAB
+   (`sparkles-outline`) em `investimentos.tsx`, a chamar `investment-chat`.
+2. **27 jul** (`eda2110`, "AI assistant overhaul"): o FAB e o
+   `InvestmentChatSheet` saem de `investimentos.tsx`; o chat muda-se para
+   `assistente.tsx`, mas a chamar uma function **diferente**,
+   `investment-agent` (a mesma que foi apagada nesta sessão como código
+   morto — ou seja, chegou a estar viva uns 40 dias).
+3. **1 ago** (`0178188`, "substituir chat LLM por 6 cards analíticos"):
+   `assistente.tsx` perde o chat outra vez, agora substituído pelos 6
+   cards estáticos atuais (Total/Tops/Alocação/Projeção/Imposto/Objetivo,
+   calculados no cliente). A mensagem do commit destaca explicitamente
+   "**zero chamadas à API**" como característica do redesign — o sinal
+   mais próximo de motivo que existe no histórico. Aponta para
+   custo/fiabilidade da API, não para qualidade das respostas, mas isto
+   é leitura do commit, não confirmação do autor. `InvestmentChatSheet.tsx`
+   não foi mutilado neste commit (só um refactor cosmético de formatação
+   de moeda) — ficou intacto, só órfão.
+
+**Decisão de hoje**: repor o chat, mas não como antes — como camada
+adicional sobre os 6 cards, nunca como substituto, e atrás de uma flag:
+
+- `EXPO_PUBLIC_ENABLE_ASSISTANT` (lida em `app/(tabs)/assistente.tsx`),
+  **desligada por defeito**. Sem a flag a `true`, o ecrã Assistente fica
+  bit-a-bit igual ao que está em produção hoje — nem o botão aparece, nem
+  `InvestmentChatSheet` chega a montar (não só o botão fica escondido; o
+  componente inteiro só é renderizado condicionalmente, para não correr
+  `useInvestmentChat` de todo em quem não tem a flag).
+- Entrada posta em `assistente.tsx` (ícone `sparkles-outline` no
+  `rightElement` do `Header`), **não em `investimentos.tsx`** — ali havia
+  outro bug ativo no momento desta decisão (crash do `react-native-
+  worklets`/`reanimated`, ver secção acima) que teria bloqueado
+  precisamente o ecrã onde a porta de entrada ficaria, impedindo testar
+  o chat mesmo depois de o repor. `investimentos.tsx` já não tem ligação
+  nenhuma ao chat desde 27 jul; manter assim.
+- Não copiar `EXPO_PUBLIC_ENABLE_ASSISTANT=true` para as env vars de
+  produção no EAS sem decisão explícita — primeiro corre com a flag
+  ligada só em builds internos/dev, mede o custo real por sessão em
+  `dm_agent_usage`, e só depois decide expor ao público. É exactamente
+  o motivo de a flag existir em vez de repor o botão visível a todos de
+  imediato.
+
 ## Dependências com código nativo — sempre versão exata, nunca `^`/`~` (17 set 2026)
 
 **Regra**: `react-native-reanimated`, `react-native-worklets`,
