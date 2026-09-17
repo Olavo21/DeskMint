@@ -12,7 +12,10 @@ import Constants from 'expo-constants'
 // nenhuma associada, tornando impossível distinguir "isto é da 1.6.0 ou
 // da próxima" (exatamente o que se precisa para validar o fix do
 // worklets). Formato igual ao que o sentry-cli usava
-// (`com.deskmint.app@1.6.0+11`, dist `11`) para continuidade se o
+// (`com.deskmint.app@<version>+<versionCode>`, dist `<versionCode>`,
+// lidos dinamicamente de app.json em runtime — não hardcoded aqui, por
+// isso este comentário não fixa um número de exemplo que ficaria
+// desatualizado a cada bump de versionCode) para continuidade se o
 // upload automático for reativado no futuro.
 const appConfig    = Constants.expoConfig
 const bundleId     = appConfig?.android?.package ?? 'com.deskmint.app'

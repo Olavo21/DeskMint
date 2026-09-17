@@ -193,6 +193,21 @@ assumir que chega.
   configuração `organization`/`project` for feita a sério (ver ponto
   acima), reverter isto (apagar a env var ou pôr a `false`) para os
   source maps voltarem a subir automaticamente.
+- **Consequência descoberta mais tarde (18 set 2026)**: desligar o
+  `sentry-cli` também parou o registo automático do `release` nos
+  eventos — sem isso, chegavam órfãos, sem versão associada (corrigido
+  manualmente em `lib/sentry.ts`, ver `release`/`dist` lidos de
+  `Constants.expoConfig`). O outro lado que fica por resolver: **sem
+  `sentry-cli` também não há upload de source maps**, por isso os stack
+  traces de produção chegam minificados (`index.android.bundle:1:2847`
+  em vez do ficheiro/linha reais). Não é urgente enquanto não houver um
+  erro real para investigar, mas a correção não precisa de reativar o
+  auto-upload (que continua a rebentar sem `organization`/`project`
+  configurados) — dá para fazer manualmente depois de cada build, já
+  com `release`/`dist` corretos:
+  `npx sentry-cli sourcemaps upload --release <releaseName> --dist
+  <versionCode> <caminho-do-source-map>`. Fica registado para quando
+  for preciso, não fazer antes disso.
 
 ## Idempotência das escritas do investment-chat (18 set 2026)
 
