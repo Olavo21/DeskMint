@@ -5,6 +5,69 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased] — sessão 2026-09-17
+
+### Added
+- **Assistente de Portefólio (Sr. Mint)**: reescrita completa do
+  `investment-chat` — 6 tools (`get_portfolio` com lotes+365 dias,
+  `get_market_data`, `get_news`, `calculate_metrics`,
+  `update_asset_value`, `add_transaction`), CORS restrito, rate limit
+  30/hora, `cache_control` ephemeral (confirmado a funcionar ao vivo:
+  cache hit real na 2ª/3ª mensagem da mesma conversa), `dm_agent_usage`
+  para custo/observabilidade.
+- **Confirmação obrigatória para escrita**: `update_asset_value` e
+  `add_transaction` nunca escrevem durante o loop do modelo — só
+  propõem. A escrita real só acontece quando o utilizador toca
+  Confirmar no ecrã (`confirmAction`, validado server-side
+  independentemente do modelo). Ver AGENTS.md para o porquê.
+- Entrada do chat reposta no ecrã Assistente (ícone `sparkles`,
+  camada adicional sobre os 6 cards existentes — não os substitui),
+  atrás de `EXPO_PUBLIC_ENABLE_ASSISTANT` (desligada por defeito).
+
+### Fixed
+- `react-native-reanimated` sem versão fixa (`^4.3.1`) permitia deriva
+  de `node_modules` local para 4.6.0, incompatível com o `worklets`
+  0.8.3 instalado — crashava o ecrã Investimentos. Produção nunca foi
+  afetada (o `package-lock.json` dos builds 1.6.0 sempre teve o par
+  correto); fixada a versão para não voltar a acontecer.
+- `deno check` nas Edge Functions estava inutilizável (falsos positivos
+  por versão não fixada do `@supabase/supabase-js` e falta do generic
+  `Database` em `createClient`) — corrigido no `investment-chat`,
+  expondo também um gap real em `types/database.ts` (faltavam
+  `dm_rate_limits`/`dm_agent_usage`).
+- `investment-agent` e `ai-assistant` (código morto, zero chamadas no
+  cliente, uma delas ainda deployada com `SUPABASE_SERVICE_ROLE_KEY` e
+  CORS wildcard) removidas do repositório e do projeto Supabase.
+
+### Testado ao vivo (17 set 2026, emulador + BD real)
+- Versão antiga do `investment-chat` respondeu corretamente após
+  definir `ANTHROPIC_API_KEY` (secret em falta desde sempre — mesma
+  classe de bug do `FINNHUB_KEY`, ver auditoria de 12 set).
+- Proposta + Cancelar: confirmado na BD que nada foi escrito.
+- Frase ambígua ("meti mais uns trocos na Tesla", ativo inexistente):
+  o modelo chamou `get_portfolio`, não encontrou o ativo, não propôs
+  nenhuma escrita — pediu os dados em falta. Nenhuma tentativa de
+  escrita indevida.
+- Proposta + Confirmar: BD atualizada exatamente para o valor proposto
+  (`VWCE.DE` 1970,11€ → 2009,51€), resumo do portefólio no chat
+  atualizado em tempo real via invalidação de queries.
+- `dm_agent_usage`: 3 linhas, uma por mensagem real, `tool_calls` e
+  tokens consistentes com o esperado.
+- Sentry (servidor): não testável nesta ronda — `SENTRY_DSN` ainda não
+  definido como secret da function. Sentry (cliente): não testável em
+  dev local por desenho (só ativa em build de produção).
+
+### Known issues
+- Valor de teste do `VWCE.DE` (2009,51€) ficou por repor na BD real —
+  tentativa de correção direta via SQL bloqueada pelo classificador de
+  modo automático (corretamente cauteloso com escrita direta em BD
+  partilhada); tentativa via o próprio chat falhou por instabilidade
+  reprodutível do `adb input text` no emulador (dispara atalhos de
+  reload do dev-mode a meio da escrita). Repor manualmente ou autorizar
+  explicitamente a correção SQL.
+
+---
+
 ## [1.6.0] — 2026-09-12 · versionCode 11
 
 ### Added

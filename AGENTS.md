@@ -194,6 +194,43 @@ assumir que chega.
   acima), reverter isto (apagar a env var ou pôr a `false`) para os
   source maps voltarem a subir automaticamente.
 
+## Duas decisões da reescrita do investment-chat (17 set 2026) — porquês
+
+**Porque é que update_asset_value/add_transaction ficaram com
+confirmação obrigatória, em vez de escrever direto como antes:**
+a partir do momento em que o `confirmAction` passou a existir como
+caminho separado do loop do modelo (decisão técnica boa — determinístico,
+mais barato, sem depender do modelo "decidir" corretamente todas as
+vezes), o payload de escrita passou a poder vir diretamente do cliente,
+contornando o modelo por completo. Isso só é seguro se nada for escrito
+sem o utilizador ver exatamente o que vai mudar e confirmar — caso
+contrário o cliente podia, por bug ou má-fé, mandar qualquer `asset_id`/
+valor direto para `executeUpdateAssetValue` sem o modelo alguma vez ter
+proposto aquilo. A confirmação no ecrã não é sobre desconfiar do
+modelo — é sobre o facto de o modelo deixar de ser o único a decidir
+o que se escreve, o que exige uma fronteira de confiança nova. Sem
+isto, a validação server-side (ownership, formato, limites) continuaria
+a proteger de escrita noutra conta, mas não de o próprio utilizador
+disparar sem querer uma escrita errada através de um payload manipulado
+ou de um bug de UI.
+
+**Porque é que a investment-agent foi eliminada em vez de mantida em
+paralelo:** a spec original pedia para implementar num ficheiro chamado
+`investment-agent`. Descobriu-se a meio que esse ficheiro já existia
+(órfão, zero chamadas no cliente) e que a função realmente em produção
+era outra (`investment-chat`, ligada a `useInvestmentChat`). Manter as
+duas — aplicar a spec nova à `investment-agent` e deixar a
+`investment-chat` como estava — criaria dois sistemas de IA paralelos
+a fazerem a mesma coisa, um deles sem UI nenhuma a apontar-lhe, exatamente
+o género de duplicação que já tinha acontecido duas vezes antes
+nesta app (ver secção seguinte: o chat já mudou de function 2 vezes —
+`investment-chat` original em jun, `investment-agent` em jul, de volta
+a zero em ago). Cada vez que isso aconteceu, ficou código morto para
+trás. Decisão: só deve existir *uma* function de chat de investimentos
+de cada vez — aplicar a spec à que está realmente em uso, apagar a
+outra por completo (ficheiro local e deploy no Supabase), nunca deixar
+as duas vivas "por precaução".
+
 ## Reposição do chat do Assistente (17 set 2026)
 
 O chat LLM do portefólio (`InvestmentChatSheet`/`useInvestmentChat`/
