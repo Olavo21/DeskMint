@@ -194,6 +194,49 @@ assumir que chega.
   acima), reverter isto (apagar a env var ou pôr a `false`) para os
   source maps voltarem a subir automaticamente.
 
+## Dependências com código nativo — sempre versão exata, nunca `^`/`~` (17 set 2026)
+
+**Regra**: `react-native-reanimated`, `react-native-worklets`,
+`react-native-gesture-handler`, `react-native-svg`, `react-native-screens`
+e `react-native-safe-area-context` (e qualquer outro pacote com módulo
+nativo compilado, não só JS puro) ficam sempre pinados a uma versão
+exata no `package.json` — nunca `^4.3.1`, sempre `4.3.1`. Estes pacotes
+vêm aos pares/grupos com compatibilidade estrita entre si (ex:
+reanimated 4.x exige worklets 0.12.x+, mas 4.3.x ainda aceita 0.8.x —
+a tabela exata está no `compatibility.json` do próprio pacote
+reanimated); um `npm install` de outra coisa qualquer, mais tarde, pode
+resolver o `^4.3.1` para `4.6.0` sem tocar em mais nada visível,
+partindo o par sem qualquer alteração intencional.
+
+**Como isto foi descoberto** (17 set 2026): a meio dos testes do
+`investment-chat`, o ecrã Investimentos começou a dar "Uncaught Error"
+ao abrir — `[Reanimated] Your installed version of Worklets (0.8.3) is
+not compatible with installed version of Reanimated (4.6.0)`. O
+`package.json` desta app tinha `"react-native-reanimated": "^4.3.1"`
+(com caret) e `"react-native-worklets": "0.8.3"` (exato) — o
+`node_modules` local tinha resolvido para 4.6.0 sem que o
+`package-lock.json` commitado alguma vez tivesse essa versão. Verificado
+directamente: `git show <commit-do-build-1.6.0>:package-lock.json` tinha
+`reanimated 4.3.1` tanto no build do versionCode 11 como do 12 — ou
+seja, **os builds de produção saíram com o par correto**; o `4.6.0` era
+deriva exclusiva desta máquina de desenvolvimento (`node_modules`
+dessincronizado do lockfile commitado, provavelmente de um `npm
+install` anterior nesta sessão que não regenerou tudo). Corrigido
+removendo o caret (`"react-native-reanimated": "4.3.1"`) e correndo
+`npm install` para realinhar — diff de 2 linhas em `package.json` e
+`package-lock.json`, sem efeitos em cascata. Não foi preciso subir a
+versão do worklets (evitou-se exactamente o erro de "corrigir subindo
+para 0.12.x", que teria sido uma mudança nativa a precisar de rebuild
+do dev client — o par 4.3.1/0.8.3 já era compatível, só precisava de
+deixar de poder derivar).
+
+**Lição**: nunca assumir que um crash de dependência visto localmente
+significa que a produção está partida — comparar sempre o
+`package-lock.json` do commit que gerou o build real antes de tratar
+isto como incidente. E nunca "corrigir" uma incompatibilidade nativa
+subindo a versão maior sem antes verificar se o par já esperado
+(mais baixo, já instalado) não estava só a derivar localmente.
+
 ## `deno check` nas Edge Functions — fixar a versão do supabase-js (17 set 2026)
 
 Todas as edge functions desta app importam `npm:@supabase/supabase-js`
