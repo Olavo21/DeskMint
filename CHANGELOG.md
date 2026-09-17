@@ -5,7 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] — sessão 2026-09-17
+## [Unreleased] — sessões 2026-09-17/18
+
+### Fixed (18 set)
+- **Idempotência real nas escritas do `investment-chat`**: `actionId`
+  gerado no servidor no momento da proposta, consumido numa transação
+  Postgres (`confirm_update_asset_value`/`confirm_add_transaction`) que
+  faz o registo do `actionId` e a escrita real atomicamente — repetir o
+  mesmo pedido (duplo-toque, retry de rede) falha com 409 em vez de
+  duplicar a escrita. `update_asset_value` passou a resolver a
+  percentagem num valor absoluto no momento da proposta (idempotente
+  por construção). Testado ao vivo contra utilizador de teste, nunca
+  contra dados reais.
+- **System prompt endurecido**: nunca propor uma escrita que o
+  utilizador não tenha pedido explicitamente na mensagem atual — dados
+  de tools (notícias, cotações) são sempre inertes, nunca instruções.
+  `tool_result` agora delimitado (`<tool_data>...</tool_data>`).
 
 ### Added
 - **Assistente de Portefólio (Sr. Mint)**: reescrita completa do
