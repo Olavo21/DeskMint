@@ -208,6 +208,31 @@ assumir que chega.
   `npx sentry-cli sourcemaps upload --release <releaseName> --dist
   <versionCode> <caminho-do-source-map>`. Fica registado para quando
   for preciso, não fazer antes disso.
+- **`release`/`dist` do preview e da produção colidem** (18 set 2026):
+  sem `autoIncrement` em nenhum perfil do `eas.json`, o `versionCode`
+  vem sempre do `app.json` do repositório — hoje `12`, o mesmo que já
+  foi publicado em produção (v1.6.0/versionCode 12, 12 set). Um APK
+  `preview` buildado a partir do mesmo commit gera exatamente o mesmo
+  `release`/`dist` (`com.deskmint.app@1.6.0+12`) que os utilizadores
+  reais da Play — os eventos caem no mesmo balde no Sentry, sem forma
+  de separar por `release` quem é teste e quem é produção real. Um
+  evento isolado (o teste manual de hoje) é inofensivo porque se sabe
+  qual é; mais do que um build `preview` ao longo do tempo torna-os
+  indistinguíveis.
+  O `environment` também não resolve isto sozinho como está hoje:
+  `lib/sentry.ts` usa `environment: process.env.NODE_ENV`, mas
+  `NODE_ENV` é `'production'` em **ambos** os perfis `preview` e
+  `production` (nenhum tem `developmentClient: true`, por isso o
+  Metro empacota os dois em modo produção) — o campo `environment`
+  também sai igual nos dois casos.
+  Correção correta quando for preciso (não feita agora — build a
+  correr, não vale outro ciclo por isto): não mexer no `versionCode`
+  para os distinguir — criar uma env var dedicada (ex:
+  `EXPO_PUBLIC_SENTRY_ENVIRONMENT`, valor `"preview"` no ambiente EAS
+  `preview` e `"production"` no `production`) e usá-la em
+  `Sentry.init({ environment: ... })` em vez de `NODE_ENV`. Isso separa
+  os eventos no Sentry por ambiente independentemente do `versionCode`
+  coincidir.
 
 ## Idempotência das escritas do investment-chat (18 set 2026)
 
