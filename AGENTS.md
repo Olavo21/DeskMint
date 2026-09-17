@@ -194,6 +194,51 @@ assumir que chega.
   acima), reverter isto (apagar a env var ou pôr a `false`) para os
   source maps voltarem a subir automaticamente.
 
+## `deno check` nas Edge Functions — fixar a versão do supabase-js (17 set 2026)
+
+Todas as edge functions desta app importam `npm:@supabase/supabase-js`
+**sem versão fixa** (`stock-fundamentals`, `sync-trading212`, e o
+`investment-chat` antes desta data). Isto tem um efeito prático: o
+`deno check` local resolve sempre "latest" no momento em que corre, e a
+versão atual do pacote (2.116.0) tem uma inconsistência interna entre o
+tipo devolvido por `createClient()` e o que `.from()/.update()` esperam
+internamente — qualquer função que passe o cliente Supabase por
+fronteira de função (`async function algo(sb: ReturnType<typeof
+createClient>, ...)`, o padrão usado em `investment-chat` desde sempre)
+dá erros de tipo `SupabaseClient<...> não atribuível a
+SupabaseClient<...>` mesmo com o código correto. Confirmado ao testar o
+`investment-chat` **antigo, já deployado e a funcionar em produção
+desde junho** — dá exatamente a mesma classe de erro, o que prova que
+não é uma regressão de código, é o ambiente de checking a ficar
+inutilizável à medida que o npm publica novas versões por baixo dos pés.
+
+Adicionalmente, sem um generic `Database` em `createClient()`, `.update()`
+e `.insert()` colapsam para aceitar `never` nesta mesma versão 2.116.0 —
+outra fonte de falsos "erros" (ou pior: perda silenciosa de verificação
+real, já que sem o generic o TypeScript não apanha nomes de coluna
+errados).
+
+**Correção aplicada no `investment-chat`** (a replicar nas outras
+functions se/quando for preciso confiar no `deno check` delas):
+- `import { createClient } from "npm:@supabase/supabase-js@2.45.0"` —
+  versão fixa, testada, sem a inconsistência acima.
+- `import type { Database } from "../../../types/database.ts"` +
+  `createClient<Database>(...)` — usa o schema real do projeto.
+- `type SB = ReturnType<typeof createClient<Database>>` (não
+  `ReturnType<typeof createClient>` sozinho — sem o generic, o alias
+  captura a instanciação por defeito e volta a não bater certo com o
+  valor real).
+- `types/database.ts` estava incompleto: não tinha `dm_rate_limits` nem
+  `dm_agent_usage` (tabelas já usadas por `stock-fundamentals`/
+  `investment-chat`) — adicionadas. Ainda falta `dm_fundamentals_cache`
+  (usada só pelo `stock-fundamentals`) — não corrigido agora, fora do
+  âmbito desta alteração, mas é o mesmo tipo de gap.
+
+Com isto, `deno check supabase/functions/investment-chat/index.ts`
+(com `--node-modules-dir=auto` neste repo, por ter `package.json` na
+raiz) corre a **zero erros** de forma reprodutível — deixou de ser
+"provavelmente bem" para ser verificado.
+
 ## Auditoria de segurança pré-lançamento (12 set 2026)
 
 - **Rate limiting em `stock-fundamentals`**: duas tabelas novas,

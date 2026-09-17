@@ -1,5 +1,19 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
-import { createClient } from "npm:@supabase/supabase-js";
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import type { Database } from "../../../types/database.ts";
+
+// NOTA (17 set 2026): versão do @supabase/supabase-js fixada em 2.45.0 —
+// não deixar sem pin. Com "npm:@supabase/supabase-js" em aberto (o que
+// esta função e todas as outras tinham antes), o Deno resolve "latest" a
+// cada deploy/check, e a versão atual (2.116.0) introduziu uma
+// inconsistência entre o tipo devolvido por createClient() e o que
+// .from()/.update() esperam internamente — gera falsos positivos de tipo
+// em qualquer função que passe o cliente Supabase por fronteira de função
+// (confirmado: o investment-chat antigo, já deployado, dá o mesmo erro
+// sob esta versão). 2.45.0 é a última versão testada sem essa
+// inconsistência. Isto não é um bug de runtime (o Deno remove tipos antes
+// de executar) mas sem o pin o `deno check` fica permanentemente
+// inutilizável como rede de segurança — ver AGENTS.md.
 
 // ─────────────────────────────────────────────────────────────────────────
 // investment-chat — assistente de investimentos + comissões da DeskMint.
@@ -338,7 +352,7 @@ function stripSuffix(ticker: string): string {
 
 // ─── Tool implementations (leitura) ──────────────────────────────────────
 
-type SB = ReturnType<typeof createClient>;
+type SB = ReturnType<typeof createClient<Database>>;
 
 async function getPortfolio(sb: SB, uid: string) {
   const [assetsRes, lotsRes] = await Promise.all([
@@ -705,7 +719,7 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return jsonResponse({ error: "Sem autorização" }, 401);
 
-  const sb = createClient(
+  const sb = createClient<Database>(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
