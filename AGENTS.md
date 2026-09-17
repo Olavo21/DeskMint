@@ -254,6 +254,28 @@ visível. Desenho final (não o primeiro tentado — ver porquês abaixo):
   novo aplicou normalmente. Prova direta contra a função Postgres,
   sem depender da UI/emulador (que já se mostrou instável para este
   tipo de teste — ver secção de reposição do chat).
+- **Ownership confirmado mesmo com service_role** (18 set 2026,
+  revisão pós-implementação): `investment-chat` liga-se com
+  `SUPABASE_SERVICE_ROLE_KEY` (RLS não protege nada nessa ligação), mas
+  `user.id` vem sempre de `sb.auth.getUser(authHeader)` — verificação
+  criptográfica da assinatura do JWT enviado pelo cliente, nunca lido
+  do corpo do pedido — e é esse `user.id` verificado que entra como
+  `p_user_id` nas duas funções. Dentro delas, todo o `SELECT`/`UPDATE`
+  (2 ocorrências em cada função) filtra por `user_id = p_user_id`. É
+  exactamente o padrão que faltava na `investment-agent` eliminada
+  nesta sessão — service_role sem esta verificação era o problema, não
+  o service_role em si.
+- **`dm_confirmed_actions` cresce sem limite** — uma linha por escrita
+  confirmada, para sempre, sem TTL nem purga automática. Não é urgente
+  (o volume esperado é baixo), mas fica registado: se um dia se decidir
+  limpar linhas antigas, o corte tem de ser **maior que qualquer tempo
+  de vida possível de um cartão pendente no cliente** — hoje isso não
+  tem limite formal (o histórico da conversa não é persistido entre
+  sessões da app, mas nada impede tecnicamente um cliente manter um
+  `pendingAction` em memória por muito tempo antes de o utilizador
+  tocar Confirmar). Apagar uma linha de `dm_confirmed_actions` cedo
+  demais reabre a janela que esta tabela existe para fechar — um
+  cartão "antigo" voltaria a poder ser aplicado.
 
 ## Regra: nunca testar escritas do agente contra a conta real do dono (17 set 2026)
 
