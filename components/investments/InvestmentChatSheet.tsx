@@ -6,7 +6,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { useInvestmentChat, type InvestMessage } from '../../hooks/useInvestmentChat'
+import { useInvestmentChat, type InvestMessage, type PendingAction } from '../../hooks/useInvestmentChat'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { useFmt } from '../../utils/format'
 
@@ -24,7 +24,7 @@ interface Props {
 
 export default function InvestmentChatSheet({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets()
-  const { messages, isLoading, send, clearChat } = useInvestmentChat()
+  const { messages, isLoading, send, clearChat, confirmAction, rejectAction, confirmingId } = useInvestmentChat()
   const { data: portfolio } = usePortfolio()
   const [input, setInput] = useState('')
   const scrollRef = useRef<ScrollView>(null)
@@ -182,7 +182,13 @@ export default function InvestmentChatSheet({ visible, onClose }: Props) {
 
               {/* Message bubbles */}
               {messages.map((m) => (
-                <Bubble key={m.id} message={m} />
+                <Bubble
+                  key={m.id}
+                  message={m}
+                  onConfirm={(action) => confirmAction(m.id, action)}
+                  onReject={() => rejectAction(m.id)}
+                  isConfirming={confirmingId === m.id}
+                />
               ))}
 
               {/* Loading indicator */}
@@ -252,8 +258,17 @@ export default function InvestmentChatSheet({ visible, onClose }: Props) {
 
 // ── Message bubble ──────────────────────────────────────────────────────────
 
-function Bubble({ message }: { message: InvestMessage }) {
+function Bubble({
+  message, onConfirm, onReject, isConfirming,
+}: {
+  message: InvestMessage
+  onConfirm: (action: PendingAction) => void
+  onReject: () => void
+  isConfirming: boolean
+}) {
   const isUser = message.role === 'user'
+  const hasPending = (message.pendingActions?.length ?? 0) > 0 && !message.actionsResolved
+
   return (
     <View style={{
       marginBottom: 10,
@@ -288,6 +303,82 @@ function Bubble({ message }: { message: InvestMessage }) {
         }}>
           {message.text}
         </Text>
+      </View>
+
+      {hasPending && message.pendingActions!.map((action, i) => (
+        <PendingActionCard
+          key={i}
+          action={action}
+          isConfirming={isConfirming}
+          onConfirm={() => onConfirm(action)}
+          onReject={onReject}
+        />
+      ))}
+    </View>
+  )
+}
+
+// ── Cartão de confirmação — nada foi escrito até o utilizador tocar aqui ────
+
+function PendingActionCard({
+  action, onConfirm, onReject, isConfirming,
+}: {
+  action: PendingAction
+  onConfirm: () => void
+  onReject: () => void
+  isConfirming: boolean
+}) {
+  const fmt = useFmt()
+
+  const summary = action.kind === 'update_asset_value'
+    ? `${action.ativo}: ${fmt(action.valorAtual)} → ${fmt(action.novoValor)}`
+    : `Aporte ${fmt(action.payload.amount_invested_eur)} em ${action.ativo}` +
+      (action.unidadesCompradas ? ` (+${action.unidadesCompradas} unid.)` : '')
+
+  return (
+    <View style={{
+      marginTop: 8,
+      backgroundColor: '#0d2137',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#f9731640',
+      padding: 11,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <Ionicons name="alert-circle-outline" size={13} color="#f97316" />
+        <Text style={{ color: '#f97316', fontSize: 10, fontWeight: '700' }}>
+          POR CONFIRMAR
+        </Text>
+      </View>
+      <Text style={{ color: '#e2e8f0', fontSize: 13, marginBottom: 10 }}>
+        {summary}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <TouchableOpacity
+          onPress={onReject}
+          disabled={isConfirming}
+          style={{
+            flex: 1, paddingVertical: 8, borderRadius: 10,
+            alignItems: 'center', backgroundColor: '#1e293b',
+            borderWidth: 1, borderColor: '#334155',
+            opacity: isConfirming ? 0.5 : 1,
+          }}
+        >
+          <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '600' }}>Cancelar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onConfirm}
+          disabled={isConfirming}
+          style={{
+            flex: 1, paddingVertical: 8, borderRadius: 10,
+            alignItems: 'center', backgroundColor: '#14b8a6',
+            opacity: isConfirming ? 0.7 : 1,
+          }}
+        >
+          {isConfirming
+            ? <ActivityIndicator size="small" color="#ffffff" />
+            : <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Confirmar</Text>}
+        </TouchableOpacity>
       </View>
     </View>
   )
