@@ -62,6 +62,27 @@ Testado diretamente contra as APIs em 12 set 2026, antes de construir o
 `StockDetailModal` e o `TickerBar`. Não redescobrir isto a tentar — ir
 direto às conclusões abaixo.
 
+**Regra descoberta em 18 set 2026, ao analisar o APK do build `preview`:**
+`hooks/useTickerBarQuotes.ts`, `lib/newsApi.ts` e `hooks/useTickerSearch.ts`
+chamam a Finnhub diretamente do cliente com `EXPO_PUBLIC_FINNHUB_KEY` —
+uma variável `EXPO_PUBLIC_*` é compilada para texto literal no bundle
+JS e fica **sempre extraível de qualquer APK publicado** (confirmado:
+extraída em segundos). Isto por si só seria só "chave gratuita
+exposta" — mas o `FINNHUB_KEY` do servidor (`stock-fundamentals`,
+`investment-chat`) foi definido a 12 set com **o mesmo valor**, o que
+transforma isto num ponto único de falha: quem abusar da chave
+extraída do APK esgota a quota da Finnhub para a chave que também
+protege a análise fundamental e o assistente de investimentos — para
+todos os utilizadores reais, não só para quem a extraiu.
+**Regra daqui para a frente**: a chave de servidor (`Deno.env`/secret
+do Supabase) nunca pode ter o mesmo valor que uma variável
+`EXPO_PUBLIC_*` do cliente. Uma variável `EXPO_PUBLIC_*` é pública por
+definição — tratar sempre como tal, nunca como segredo partilhável com
+o servidor. Se uma mesma API externa precisar de ser chamada tanto do
+cliente como do servidor, usar sempre duas chaves distintas (uma
+pública, capada nos limites do provedor se possível; uma privada, só
+em `Deno.env`), nunca a mesma.
+
 **Finnhub** (`EXPO_PUBLIC_FINNHUB_KEY`, plano grátis — já integrada em
 `useTickerSearch.ts`, `lib/newsApi.ts`, `stock-fundamentals` edge function):
 - `/quote` (preço atual + `dp` variação %) — funciona bem, CORS aberto
