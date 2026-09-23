@@ -74,14 +74,47 @@ transforma isto num ponto único de falha: quem abusar da chave
 extraída do APK esgota a quota da Finnhub para a chave que também
 protege a análise fundamental e o assistente de investimentos — para
 todos os utilizadores reais, não só para quem a extraiu.
-**Regra daqui para a frente**: a chave de servidor (`Deno.env`/secret
-do Supabase) nunca pode ter o mesmo valor que uma variável
-`EXPO_PUBLIC_*` do cliente. Uma variável `EXPO_PUBLIC_*` é pública por
-definição — tratar sempre como tal, nunca como segredo partilhável com
-o servidor. Se uma mesma API externa precisar de ser chamada tanto do
-cliente como do servidor, usar sempre duas chaves distintas (uma
-pública, capada nos limites do provedor se possível; uma privada, só
-em `Deno.env`), nunca a mesma.
+**Correção a esta regra (23 set 2026), depois de ver o dashboard real
+da Finnhub:** a solução óbvia — "duas chaves distintas, uma pública
+para o cliente e uma privada para o servidor" — **não é aplicável a
+este provedor**. O plano gratuito da Finnhub dá **uma única chave por
+conta**: no dashboard existe só um botão **Regenerate** (que invalida
+a antiga no instante em que cria a nova), não há forma de criar uma
+segunda chave em paralelo, não há estatísticas de uso (nem pedidos/
+hora, nem histórico — não dá para detetar abuso pelo painel) e não há
+restrição por IP ou domínio. Confirmado diretamente no dashboard, não
+inferido da documentação.
+
+**Regra daqui para a frente, para a Finnhub**: zero chaves da Finnhub
+no cliente. Como não pode haver uma chave pública separada, a única
+configuração segura é a chave existir **só** em `Deno.env` e todas as
+chamadas do cliente passarem por um proxy no servidor (edge function,
+com cache por endpoint). Enquanto os 3 pontos de chamada do cliente
+(`hooks/useTickerBarQuotes.ts`, `lib/newsApi.ts`,
+`hooks/useTickerSearch.ts`) não estiverem migrados, a chave continua
+exposta em qualquer APK publicado e não há nada a fazer quanto a isso.
+
+**Regra geral, essa mantém-se**: uma variável `EXPO_PUBLIC_*` é pública
+por definição — nunca pode ter o mesmo valor que um secret de servidor.
+Quando o provedor permitir duas chaves, usar duas (uma pública, capada
+nos limites do provedor; uma privada, só em `Deno.env`). Quando não
+permitir — como a Finnhub — a alternativa não é "partilhar a mesma", é
+tirar a chave do cliente por completo.
+
+**Ordem da rotação (decidida em 23 set 2026, ainda por executar):**
+regenerar a chave é **atómico e total** — parte ao mesmo tempo os 5
+pontos de chamada (3 no cliente, 2 no servidor), e os do cliente leem
+a chave compilada no APK, por isso qualquer versão já instalada perde
+ticker bar, notícias e pesquisa de tickers até o utilizador atualizar.
+Por isso a regeneração fica para o **fim** da migração do proxy, nunca
+antes: primeiro migram-se os 3 pontos do cliente, publica-se essa
+release, **espera-se alguns dias** para os utilizadores instalarem, e
+só depois se carrega em Regenerate. Regenerar no mesmo instante em que
+a release sai deixaria de fora toda a gente que ainda não atualizou —
+exatamente o mesmo estrago que se está a tentar evitar. Regenerar
+antes da migração seria pior ainda: partiria a app publicada para
+depois a voltar a partir na migração, e a chave nova voltaria a ficar
+embebida no APK seguinte, sem ganho nenhum.
 
 **Finnhub** (`EXPO_PUBLIC_FINNHUB_KEY`, plano grátis — já integrada em
 `useTickerSearch.ts`, `lib/newsApi.ts`, `stock-fundamentals` edge function):
@@ -125,6 +158,51 @@ em `Deno.env`), nunca a mesma.
 - É uma API não-documentada/não-suportada oficialmente — pode mudar ou
   bloquear pedidos sem aviso. Tratar como best-effort, nunca como fonte
   única para algo crítico.
+
+## Achados sobre as chamadas Finnhub do servidor (23 set 2026) — por corrigir
+
+Levantados ao verificar se um 429 sustentado da Finnhub seria detetável
+(o dashboard da Finnhub não dá estatísticas de uso — ver secção acima).
+Registados como achados; **sem plano de correção associado** — fica por
+decidir se entram isoladamente ou só na sessão do proxy.
+
+**1. `stock-fundamentals` não verifica `res.ok` e cacheia o resultado
+nulo.** As três chamadas (`stock/metric`, `profile2`, `quote`) vão
+direto a `.json()` sem olhar ao status. Num 429 — ou timeout, ou
+qualquer hiccup de rede — a Finnhub devolve um corpo JSON de erro,
+`metricData.metric` fica `undefined`, `m = {}`, e todos os campos caem
+nos `?? null`. A função devolve **HTTP 200 com um resultado inteiramente
+a `null`**, e a seguir grava-o em `dm_fundamentals_cache`. O caminho de
+leitura da cache serve `cached.response` tal como está durante o TTL,
+sem validar nada (confirmado: só compara `created_at` contra
+`CACHE_TTL_MS`) — por isso uma falha transitória de um segundo fica
+presa **5 minutos garantidos** por user+ticker, e as tentativas nesse
+intervalo nem chegam a ir à Finnhub. Para o utilizador, o ecrã vazio é
+indistinguível de "este ticker não tem cobertura" — olha para a análise
+fundamental em branco e conclui que a app não suporta o ativo dele.
+**Isto acontece hoje, na v1.6.0 publicada, sem precisar de ninguém
+abusar da chave — basta a Finnhub ter um mau minuto.**
+
+**2. `getMarketData` (investment-chat) colapsa 429 e "sem cobertura" no
+mesmo `{ disponivel: false }`.** São estados diferentes com a mesma
+representação, e o `{ disponivel: false }` é o estado *normal e
+esperado* dos ETFs `.DE` no plano gratuito — está escrito na descrição
+da própria tool. O modelo não tem como distinguir "não consigo
+consultar agora" de "não tenho este ativo", que são conselhos
+diferentes para quem está a decidir uma compra. É a mesma ambiguidade
+que custou tempo no incidente do VWCE: quando o valor apareceu errado,
+não havia forma de saber se a tool tinha devolvido alguma coisa.
+
+**3. Nenhum dos 5 caminhos Finnhub reporta ao Sentry.** `stock-
+fundamentals` não tem integração Sentry nenhuma. Na `investment-chat`,
+o `reportToSentry` existe mas está ligado só a três sítios —
+`confirmAction`, `initial_call` e `loop` — todos caminhos de exceção da
+API da Anthropic; nenhum caminho Finnhub lhe toca. O único sítio onde o
+status sobrevive é o `getNews`, que devolve `{ erro: "Erro Finnhub:
+<status>" }` — mas isso vai para o modelo como `tool_result`, não para
+o Sentry, e só é visível nos logs da função no dashboard do Supabase.
+Sem stats do lado da Finnhub e sem isto, um 429 sustentado não tem
+sinal nenhum.
 
 ## Sentry (12 set 2026)
 
