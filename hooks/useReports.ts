@@ -1,9 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
-import type { DmCommission, DmCommissionType } from '../types/database'
-
-type CommissionWithType = DmCommission & { dm_commission_types: DmCommissionType | null }
+import { groupByType, type CommissionWithType } from '../lib/commissions'
 
 function weekBounds() {
   const now = new Date()
@@ -44,7 +42,7 @@ export function useMonthlyReport(month: number, year: number) {
     queryFn: async () => {
       const uid = session!.user.id
 
-      const [comRes, incRes, budRes, portRes, catRes] = await Promise.all([
+      const [comRes, incRes, portRes, catRes] = await Promise.all([
         supabase
           .from('dm_commissions')
           .select('*, dm_commission_types(id, name, icon, color)')
@@ -53,7 +51,6 @@ export function useMonthlyReport(month: number, year: number) {
           .lt('earned_at',  new Date(year, month, 1).toISOString())
           .order('earned_at', { ascending: false }),
         supabase.from('dm_income').select('*').eq('user_id', uid).eq('month', month).eq('year', year).maybeSingle(),
-        supabase.from('dm_budget_rules').select('*').eq('user_id', uid).eq('month', month).eq('year', year).maybeSingle(),
         supabase.from('dm_portfolio_assets').select('*').eq('user_id', uid),
         supabase
           .from('dm_expenses')
@@ -63,19 +60,8 @@ export function useMonthlyReport(month: number, year: number) {
 
       const commissions = (comRes.data ?? []) as CommissionWithType[]
       const income = incRes.data
-      const budget = budRes.data
       const portfolio = portRes.data ?? []
       const expenses = catRes.data ?? []
-
-      // Comissões por tipo
-      const byType = commissions.reduce<Record<string, { type: DmCommissionType | null; paid: number; pending: number; count: number }>>((acc, c) => {
-        const key = c.type_id ?? 'sem-tipo'
-        if (!acc[key]) acc[key] = { type: c.dm_commission_types, paid: 0, pending: 0, count: 0 }
-        acc[key].count++
-        if (c.status === 'PAID')    acc[key].paid    += c.amount
-        if (c.status === 'PENDING') acc[key].pending += c.amount
-        return acc
-      }, {})
 
       // Top 5 despesas
       const topExpenses = [...expenses]
@@ -88,10 +74,10 @@ export function useMonthlyReport(month: number, year: number) {
       return {
         commissions,
         totalCommPaid:    commissions.filter((c) => c.status === 'PAID').reduce((s, c) => s + c.amount, 0),
+        totalCommToPay:   commissions.filter((c) => c.status === 'TO_PAY').reduce((s, c) => s + c.amount, 0),
         totalCommPending: commissions.filter((c) => c.status === 'PENDING').reduce((s, c) => s + c.amount, 0),
-        commissionsByType: Object.values(byType),
+        commissionsByType: groupByType(commissions),
         income,
-        budget,
         topExpenses,
         portfolio: { totalValue: totalPortfolio, totalPL: totalPortfolio - totalCapital },
       }
@@ -106,24 +92,29 @@ export function usePendingByType() {
     queryKey: ['pending-by-type', session?.user.id],
     enabled: !!session,
     queryFn: async () => {
+      // TO_PAY é dinheiro já validado à espera de transferência — é a parte
+      // mais certa de entrar, e estava a ser omitida daqui.
       const { data, error } = await supabase
         .from('dm_commissions')
         .select('*, dm_commission_types(id, name, icon, color)')
         .eq('user_id', session!.user.id)
-        .eq('status', 'PENDING')
+        .in('status', ['PENDING', 'TO_PAY'])
         .order('expected_at', { ascending: true, nullsFirst: false })
       if (error) throw error
 
       const all = (data ?? []) as CommissionWithType[]
-      const byType = all.reduce<Record<string, { type: DmCommissionType | null; items: CommissionWithType[]; total: number }>>((acc, c) => {
-        const key = c.type_id ?? 'sem-tipo'
-        if (!acc[key]) acc[key] = { type: c.dm_commission_types, items: [], total: 0 }
-        acc[key].items.push(c)
-        acc[key].total += c.amount
-        return acc
-      }, {})
+      const toPay   = all.filter((c) => c.status === 'TO_PAY').reduce((s, c) => s + c.amount, 0)
+      const pending = all.filter((c) => c.status === 'PENDING').reduce((s, c) => s + c.amount, 0)
 
-      return { all, byType: Object.values(byType), totalPending: all.reduce((s, c) => s + c.amount, 0) }
+      return {
+        all,
+        byType: groupByType(all),
+        total: toPay + pending,
+        toPay,
+        toPayCount:   all.filter((c) => c.status === 'TO_PAY').length,
+        pending,
+        pendingCount: all.filter((c) => c.status === 'PENDING').length,
+      }
     },
     refetchInterval: 60_000, // refetch a cada minuto
   })

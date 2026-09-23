@@ -204,6 +204,67 @@ o Sentry, e só é visível nos logs da função no dashboard do Supabase.
 Sem stats do lado da Finnhub e sem isto, um 429 sustentado não tem
 sinal nenhum.
 
+## Estados das comissões: migração do TO_PAY que ficou a meio (23 set 2026)
+
+`dm_commission_status` tem **quatro** valores. A ordem real do enum no
+Postgres conta a história: `PENDING, PAID, CANCELLED, TO_PAY` — o
+`TO_PAY` foi acrescentado por `ALTER TYPE` depois dos outros três, e os
+hooks de relatórios ficaram a raciocinar num mundo de dois estados.
+
+Significado, tal como a UI de `comissoes.tsx` o define: `PENDING` é
+serviço efetuado à espera de validação do pagador; `TO_PAY` é validado,
+à espera da transferência. **`TO_PAY` é dinheiro a receber**, e mais
+certo de entrar do que `PENDING`.
+
+Bugs que isto causou, todos corrigidos nesta data em `useReports.ts` /
+`relatorios.tsx`:
+- `usePendingByType` filtrava só `PENDING`. Com a base real (9 `PAID`,
+  1 `TO_PAY`, 0 `PENDING`) o ecrã mostrava "🎉 Nenhuma comissão
+  pendente — Tudo pago e em dia!" com 12 € por receber. Não era um
+  número desviado, era uma conclusão errada.
+- O card "Comissões por Serviço" só somava `PAID` e `PENDING`: uma
+  comissão `TO_PAY` entrava no `count` do grupo sem aparecer em nenhuma
+  coluna de dinheiro.
+- A aba Semana tinha o mesmo buraco nos dois cartões, e rotulava
+  qualquer não-`PAID` como "⏳ Pendente".
+
+A correção central é `lib/commissions.ts` → `groupByType()`, partilhada
+pelos dois hooks, com os quatro estados tratados explicitamente.
+**Invariante a manter**: nenhuma comissão pode entrar no `count` de um
+grupo sem aparecer no dinheiro desse grupo.
+
+### `CANCELLED`: estado inatingível com consumidor já escrito
+
+- **Zero linhas desde sempre** (confirmado por `SELECT` à BD de
+  produção, 23 set 2026). Nunca foi usado.
+- **Não há nenhuma transição para lá na UI.** `comissoes.tsx` só
+  oferece `PENDING → TO_PAY → PAID` (e `TO_PAY → PENDING`). O tipo de
+  `updateStatus` em `useCommissions.ts` aceita `'CANCELLED'`, mas nada
+  o chama com esse valor.
+- **Mas já existe UI a lê-lo**: `CommissionsCalendar.tsx` marca os dias
+  com comissões canceladas e tem legenda "Cancelada". Código morto de
+  facto, com aparência de funcionalidade.
+- Duas hipóteses não resolvidas: ou a transição existiu e desapareceu
+  numa reescrita, ou o calendário foi escrito em antecipação e a
+  transição nunca chegou. **Decisão adiada**: implementar a transição
+  (plausível — um serviço que o cliente desmarca) ou remover a leitura.
+  A infraestrutura de leitura já lá está se for para avançar.
+
+### Três definições do enum, duas estavam desatualizadas
+
+`dm_commission_status` estava declarado em três sítios independentes e
+só o gerado do Supabase estava certo. Alinhados a 23 set 2026:
+- `types/database.ts` — já tinha os quatro (fonte gerada, correta).
+- `prisma/schema.prisma` — tinha três, faltava `TO_PAY`. O Prisma não
+  está no caminho de execução da app (fala-se com o Supabase via
+  `supabase-js`), por isso não partia nada, mas era fonte de verdade
+  divergente.
+- `types/index.ts` — tinha três. É usada só pela interface `Commission`
+  do mesmo ficheiro, que não é importada em lado nenhum (tipo morto).
+
+Se um quarto estado voltar a ser acrescentado, são estes três ficheiros
+a atualizar, mais `lib/commissions.ts`.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/

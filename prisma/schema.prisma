@@ -95,10 +95,13 @@ model Commission {
   updatedAt    DateTime         @updatedAt
 }
 
+// Ordem igual à do enum real no Postgres (dm_commission_status): TO_PAY foi
+// acrescentado por ALTER TYPE depois dos outros três.
 enum CommissionStatus {
-  PENDING    // registada, aguarda pagamento
+  PENDING    // serviço efetuado, aguarda validação do pagador
   PAID       // paga e confirmada
   CANCELLED  // cancelada / não vai ser paga
+  TO_PAY     // validada, aguarda transferência
 }
 
 // ─────────────────────────────────────────────

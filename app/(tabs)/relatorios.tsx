@@ -4,9 +4,22 @@ import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useWeeklyReport, useMonthlyReport, usePendingByType } from '../../hooks/useReports'
-import type { DmCommissionType } from '../../types/database'
+import type { DmCommission, DmCommissionType } from '../../types/database'
 
 type Tab = 'pendentes' | 'semanal' | 'mensal'
+
+const STATUS_LABEL: Record<DmCommission['status'], string> = {
+  PENDING:   '⏳ Por validar',
+  TO_PAY:    '📋 Validada',
+  PAID:      '✓ Pago',
+  CANCELLED: '✕ Cancelada',
+}
+const STATUS_COLOR: Record<DmCommission['status'], string> = {
+  PENDING:   '#f59e0b',
+  TO_PAY:    '#6366f1',
+  PAID:      '#14b8a6',
+  CANCELLED: '#94a3b8',
+}
 
 function fmt(n: number) { return n.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' }) }
 function fmtDate(s: string | null) {
@@ -29,11 +42,13 @@ function PendentesTab() {
   const { data, isLoading } = usePendingByType()
 
   if (isLoading) return <ActivityIndicator color="#14b8a6" className="mt-20" />
-  if (!data || data.all.length === 0) {
+  // "Tudo pago e em dia" só pode aparecer com PENDING e TO_PAY ambos a zero —
+  // antes ignorava TO_PAY e anunciava tudo em dia com dinheiro por receber.
+  if (!data || (data.pendingCount === 0 && data.toPayCount === 0)) {
     return (
       <View className="items-center mt-20">
         <Text className="text-4xl mb-3">🎉</Text>
-        <Text className="text-dark-50 font-semibold text-base">Nenhuma comissão pendente</Text>
+        <Text className="text-dark-50 font-semibold text-base">Nada por receber</Text>
         <Text className="text-dark-400 text-sm mt-1">Tudo pago e em dia!</Text>
       </View>
     )
@@ -42,9 +57,16 @@ function PendentesTab() {
   return (
     <View>
       <View className="bg-dark-800 border border-dark-600 rounded-2xl p-4 mb-4">
-        <Text className="text-dark-400 text-xs mb-1">Total a receber</Text>
-        <Text className="text-dark-50 text-3xl font-bold">{fmt(data.totalPending)}</Text>
-        <Text className="text-xs mt-1" style={{ color: '#f59e0b' }}>{data.all.length} comissão(ões) pendente(s)</Text>
+        <Text className="text-dark-400 text-xs mb-1">Total a receber · desde sempre</Text>
+        <Text className="text-dark-50 text-3xl font-bold">{fmt(data.total)}</Text>
+        <View className="flex-row flex-wrap gap-x-3 mt-1">
+          <Text className="text-xs" style={{ color: '#6366f1' }}>
+            {fmt(data.toPay)} validadas ({data.toPayCount})
+          </Text>
+          <Text className="text-xs" style={{ color: '#f59e0b' }}>
+            {fmt(data.pending)} por validar ({data.pendingCount})
+          </Text>
+        </View>
       </View>
 
       {data.byType.map((group, i) => {
@@ -62,13 +84,17 @@ function PendentesTab() {
               <Text style={{ color }} className="font-bold text-base">{fmt(group.total)}</Text>
             </View>
             {group.items.map((c) => {
-              const isOverdue = c.expected_at && new Date(c.expected_at) < new Date() && c.status === 'PENDING'
+              const isOverdue = c.expected_at && new Date(c.expected_at) < new Date() && c.status !== 'PAID'
+              const isToPay   = c.status === 'TO_PAY'
               return (
                 <View key={c.id} className="flex-row justify-between items-start px-4 py-3 border-t border-dark-600">
                   <View className="flex-1 mr-3">
                     <Text className="text-dark-50 text-sm font-medium">{c.description}</Text>
                     {c.client && <Text className="text-dark-400 text-xs mt-0.5">{c.client}</Text>}
-                    <View className="flex-row items-center gap-2 mt-1">
+                    <View className="flex-row items-center gap-2 mt-1 flex-wrap">
+                      <Text className="text-xs font-medium" style={{ color: isToPay ? '#6366f1' : '#f59e0b' }}>
+                        {isToPay ? 'Validada' : 'Por validar'}
+                      </Text>
                       <Text className="text-dark-400 text-xs">Gerada {fmtDate(c.earned_at)}</Text>
                       {c.expected_at && (
                         <Text className="text-xs" style={{ color: isOverdue ? '#ef4444' : '#94a3b8' }}>
@@ -101,10 +127,12 @@ function SemanalTab() {
 
   if (isLoading) return <ActivityIndicator color="#14b8a6" className="mt-20" />
 
-  const paid    = commissions?.filter((c) => c.status === 'PAID')    ?? []
-  const pending = commissions?.filter((c) => c.status === 'PENDING') ?? []
-  const totalPaid    = paid.reduce((s, c) => s + c.amount, 0)
-  const totalPending = pending.reduce((s, c) => s + c.amount, 0)
+  const paid       = commissions?.filter((c) => c.status === 'PAID') ?? []
+  // TO_PAY e PENDING são ambos dinheiro por entrar — separá-los aqui deixava
+  // as comissões validadas fora dos dois cartões.
+  const toReceive  = commissions?.filter((c) => c.status === 'TO_PAY' || c.status === 'PENDING') ?? []
+  const totalPaid      = paid.reduce((s, c) => s + c.amount, 0)
+  const totalToReceive = toReceive.reduce((s, c) => s + c.amount, 0)
 
   return (
     <View>
@@ -116,9 +144,9 @@ function SemanalTab() {
           <Text className="text-dark-400 text-xs mt-1">{paid.length} comissão(ões)</Text>
         </View>
         <View className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl p-4">
-          <Text className="text-dark-400 text-xs mb-1">Pendente</Text>
-          <Text className="font-bold text-xl" style={{ color: '#f59e0b' }}>{fmt(totalPending)}</Text>
-          <Text className="text-dark-400 text-xs mt-1">{pending.length} comissão(ões)</Text>
+          <Text className="text-dark-400 text-xs mb-1">Por receber</Text>
+          <Text className="font-bold text-xl" style={{ color: '#f59e0b' }}>{fmt(totalToReceive)}</Text>
+          <Text className="text-dark-400 text-xs mt-1">{toReceive.length} comissão(ões)</Text>
         </View>
       </View>
       {commissions?.length === 0 ? (
@@ -139,8 +167,8 @@ function SemanalTab() {
               </View>
               <View className="items-end">
                 <Text className="text-dark-50 font-bold">{fmt(c.amount)}</Text>
-                <Text className="text-xs mt-1" style={{ color: c.status === 'PAID' ? '#14b8a6' : '#f59e0b' }}>
-                  {c.status === 'PAID' ? '✓ Pago' : '⏳ Pendente'}
+                <Text className="text-xs mt-1" style={{ color: STATUS_COLOR[c.status] }}>
+                  {STATUS_LABEL[c.status]}
                 </Text>
               </View>
             </View>
@@ -165,32 +193,6 @@ function KpiCard({ label, value, color, icon }: {
       </View>
       <Text className="text-dark-400 text-xs text-center mb-0.5">{label}</Text>
       <Text className="font-bold text-sm text-center" style={{ color }}>{value}</Text>
-    </View>
-  )
-}
-
-// ─── BARRA DE PROGRESSO ───────────────────────────────────────────────────────
-function BudgetBar({ label, pct, ideal, amount, good }: {
-  label: string; pct: number; ideal: number; amount: number; good: boolean
-}) {
-  return (
-    <View className="mb-3">
-      <View className="flex-row justify-between items-center mb-1">
-        <View className="flex-row items-center gap-1.5">
-          <Text style={{ color: good ? '#14b8a6' : '#f59e0b', fontSize: 12 }}>{good ? '✓' : '!'}</Text>
-          <Text className="text-dark-50 text-sm font-medium">{label}</Text>
-        </View>
-        <View className="items-end">
-          <Text className="text-dark-50 text-sm font-semibold">{fmt(amount)}</Text>
-          <Text className="text-dark-400 text-xs">{(pct * 100).toFixed(0)}% · ideal {(ideal * 100).toFixed(0)}%</Text>
-        </View>
-      </View>
-      <View className="h-1.5 bg-dark-700 rounded-full overflow-hidden">
-        <View
-          className="h-full rounded-full"
-          style={{ width: `${Math.min(pct / ideal, 1.5) * 100}%`, backgroundColor: good ? '#14b8a6' : '#f59e0b' }}
-        />
-      </View>
     </View>
   )
 }
@@ -289,14 +291,14 @@ function MensalTab() {
       {/* KPIs rápidos — 2×2 */}
       <View className="flex-row gap-2 mb-2">
         <KpiCard
-          label="Comissões pagas"
+          label="Pagas neste mês"
           value={fmt(data?.totalCommPaid ?? 0)}
           color="#14b8a6"
           icon="cash-outline"
         />
         <KpiCard
-          label="Tens a receber"
-          value={fmt(data?.totalCommPending ?? 0)}
+          label="A receber deste mês"
+          value={fmt((data?.totalCommToPay ?? 0) + (data?.totalCommPending ?? 0))}
           color="#f59e0b"
           icon="time-outline"
         />
@@ -316,49 +318,33 @@ function MensalTab() {
         />
       </View>
 
-      {/* Orçamento 50/30/20 */}
-      {data?.budget && (
-        <View className="bg-dark-800 border border-dark-600 rounded-2xl p-4 mb-4">
-          <Text className="text-dark-400 text-xs uppercase tracking-widest mb-3">Orçamento</Text>
-          <BudgetBar
-            label="Necessidades"
-            pct={data.budget.needs_pct}
-            ideal={0.5}
-            amount={data.budget.needs_amt}
-            good={data.budget.needs_pct <= 0.5}
-          />
-          <BudgetBar
-            label="Desejos"
-            pct={data.budget.wants_pct}
-            ideal={0.3}
-            amount={data.budget.wants_amt}
-            good={data.budget.wants_pct <= 0.3}
-          />
-          <BudgetBar
-            label="Poupança"
-            pct={data.budget.savings_pct}
-            ideal={0.2}
-            amount={data.budget.savings_amt}
-            good={data.budget.savings_pct >= 0.2}
-          />
-        </View>
-      )}
-
       {/* Comissões por tipo */}
       {(data?.commissionsByType?.length ?? 0) > 0 && (
         <View className="bg-dark-800 border border-dark-600 rounded-2xl p-4 mb-4">
           <Text className="text-dark-400 text-xs uppercase tracking-widest mb-3">Comissões por Serviço</Text>
           {data!.commissionsByType.map((g, i) => (
             <View key={i} className="flex-row justify-between items-center py-2 border-t border-dark-600">
-              <TypeBadge type={g.type} />
+              <View className="flex-1 mr-3">
+                <TypeBadge type={g.type} />
+              </View>
+              {/* Os três estados aparecem sempre que têm valor: uma comissão que
+                  entra no count tem de aparecer no dinheiro. */}
               <View className="flex-row gap-3 items-center">
                 {g.pending > 0 && (
                   <Text className="text-xs font-medium" style={{ color: '#f59e0b' }}>{fmt(g.pending)}</Text>
+                )}
+                {g.toPay > 0 && (
+                  <Text className="text-xs font-medium" style={{ color: '#6366f1' }}>{fmt(g.toPay)}</Text>
                 )}
                 <Text className="text-sm font-semibold" style={{ color: '#14b8a6' }}>{fmt(g.paid)}</Text>
               </View>
             </View>
           ))}
+          <View className="flex-row gap-3 justify-end mt-2 pt-2 border-t border-dark-600">
+            <Text className="text-[10px]" style={{ color: '#f59e0b' }}>Por validar</Text>
+            <Text className="text-[10px]" style={{ color: '#6366f1' }}>Validadas</Text>
+            <Text className="text-[10px]" style={{ color: '#14b8a6' }}>Pagas</Text>
+          </View>
         </View>
       )}
 

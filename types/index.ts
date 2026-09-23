@@ -1,7 +1,7 @@
 // ─── Espelha os modelos do schema Prisma para uso no cliente ───────────────
 
 export type Plan = 'FREE' | 'PRO' | 'FOUNDER'
-export type CommissionStatus = 'PENDING' | 'PAID' | 'CANCELLED'
+export type CommissionStatus = 'PENDING' | 'PAID' | 'CANCELLED' | 'TO_PAY'
 export type BudgetType = 'NEEDS' | 'WANTS' | 'SAVINGS'
 export type AssetType = 'ETF' | 'STOCK' | 'CRYPTO' | 'BOND' | 'OTHER'
 export type AssetKind = 'VEHICLE' | 'REAL_ESTATE' | 'BANK_ACCOUNT' | 'SAVINGS' | 'OTHER'
