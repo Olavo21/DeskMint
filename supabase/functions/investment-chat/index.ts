@@ -215,7 +215,7 @@ const TOOLS: ToolDef[] = [
   {
     name: "get_market_data",
     description:
-      "Cotações atuais via Finnhub para uma lista de tickers. Tickers sem cobertura no plano gratuito (ex: ETFs .DE) vêm marcados como indisponíveis em vez de dar erro.",
+      "Cotações atuais via Finnhub para uma lista de tickers. Um ticker indisponível vem com disponivel:false e um motivo — 'sem_cobertura' significa que a Finnhub não cobre aquele ativo no plano gratuito (ex: ETFs .DE) e nunca vai cobrir; 'erro_api' ou 'erro_rede' significam falha temporária da consulta. São diferentes: com 'sem_cobertura' diz que não tens esse ativo; com erro, diz que não consegues consultar agora e não tires conclusões sobre o preço.",
     input_schema: {
       type: "object",
       properties: {
@@ -452,9 +452,12 @@ async function getMarketData(tickers: string[]) {
     const symbol = stripSuffix(String(original).toUpperCase());
     try {
       const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_KEY}`);
-      if (!res.ok) return { ticker: original, disponivel: false };
+      // "Não tenho este ativo" e "não consigo consultar agora" são estados
+      // diferentes e davam os dois { disponivel: false }. Colapsados, o modelo
+      // aconselhava "sem cobertura" a quem estava só a apanhar um 429.
+      if (!res.ok) return { ticker: original, disponivel: false, motivo: "erro_api", status: res.status };
       const q = await res.json();
-      if (q.c == null || q.c === 0) return { ticker: original, disponivel: false };
+      if (q.c == null || q.c === 0) return { ticker: original, disponivel: false, motivo: "sem_cobertura" };
       return {
         ticker: original,
         disponivel: true,
@@ -466,7 +469,7 @@ async function getMarketData(tickers: string[]) {
         fechoAnterior: q.pc,
       };
     } catch {
-      return { ticker: original, disponivel: false };
+      return { ticker: original, disponivel: false, motivo: "erro_rede" };
     }
   }));
 
