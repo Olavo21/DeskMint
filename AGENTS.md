@@ -287,6 +287,42 @@ em `dm_agent_usage` ou `dm_confirmed_actions`: as tabelas nasceram
 depois do quarto estado e estão certas, mas quem escrever a query de
 agregação pode não saber que existem quatro estados e não três.
 
+## Regra: a `dm_fundamentals_cache` nunca guarda falhas (23 set 2026)
+
+Ao corrigir o `stock-fundamentals` para verificar `res.ok` antes do
+`.json()`, surgiu a objeção óbvia: sem cachear a falha, o cliente pode
+voltar a tentar de imediato e queimar o limite de 20 chamadas/hora.
+Chegou a ser considerado cachear a falha com um TTL muito curto (~30s)
+para travar isso.
+
+**Rejeitado, e a razão vale para qualquer cache futura desta app:** a
+`dm_fundamentals_cache` guarda o payload de resposta, e o caminho de
+leitura serve `cached.response` tal como está durante o TTL, sem
+validar nada. Meter lá um marcador de falha obriga a inventar uma forma
+de o marcar, a ensinar o leitor a distingui-lo de dados reais, e a
+manter dois TTLs — ou seja, volta a pôr **não-dados dentro da estrutura
+que existe para guardar dados**, que é exatamente a classe de bug que a
+correção elimina, só que com um rastilho mais curto. Se a distinção no
+leitor alguma vez falhar, volta-se a servir erros como se fossem dados,
+agora com um caminho de código a mais a esconder o problema.
+
+**Solução adotada, que é menos código e não mais:** chamadas falhadas
+não contam para o rate limit. O `insert` em `dm_rate_limits` e o
+`upsert` da cache acontecem ambos só depois de as três respostas da
+Finnhub virem `ok`. O argumento de que "a quota da Finnhub foi
+consumida, logo deve contar" não se sustenta: num 429 a quota
+partilhada já está esgotada e contar mais uma não protege nada; num 5xx
+ou falha de rede não se consumiu valor nenhum. O único efeito real de
+contar seria tirar o orçamento ao utilizador por causa de uma avaria
+que não é dele.
+
+O que se perde: durante uma avaria prolongada não há travão nenhum às
+tentativas. Aceite porque o `handleFetch` do `FundamentalsModal` está
+ligado **só** ao `onPress` do botão — não há `useEffect`, retry
+automático nem polling. Esgotar 20 chamadas exige vinte toques manuais
+numa app visivelmente a dar erro. Se algum dia esse fetch passar a ser
+automático, esta decisão tem de ser reavaliada.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/

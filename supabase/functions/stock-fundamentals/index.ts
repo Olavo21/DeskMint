@@ -92,13 +92,6 @@ Deno.serve(async (req) => {
       fetch(`https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`),
     ]);
 
-    // Registar a chamada mesmo que a Finnhub falhe: o pedido saiu e consumiu
-    // quota deles, por isso conta para o rate limit local na mesma.
-    const rlResult = await supabase
-      .from("dm_rate_limits")
-      .insert({ user_id: user.id, endpoint: ENDPOINT_NAME });
-    if (rlResult.error) console.error("rate_limits insert error:", rlResult.error);
-
     // Falhar em aberto, nunca cachear o vazio. Sem esta verificação, um 429
     // (ou 5xx, ou hiccup de rede) devolvia um corpo JSON de erro, `metric`
     // ficava undefined e todos os campos caíam nos `?? null` — a função
@@ -148,13 +141,18 @@ Deno.serve(async (req) => {
       revenuePerEmployee: m.revenuePerEmployeeTTM ?? m.revenuePerEmployeeAnnual ?? null,
     };
 
-    // Só se chega aqui com as três respostas ok — a cache nunca guarda o
-    // resultado de uma chamada falhada. Falhas do upsert não devem impedir a
-    // resposta ao utilizador: ficam só logadas.
-    const cacheResult = await supabase.from("dm_fundamentals_cache").upsert(
-      { user_id: user.id, ticker, response: result, created_at: new Date().toISOString() },
-      { onConflict: "user_id,ticker" },
-    );
+    // Ambos só acontecem com as três respostas ok: a cache nunca guarda o
+    // resultado de uma chamada falhada, e uma chamada falhada não gasta o
+    // orçamento de 20/hora do utilizador — a avaria não é dele. Falhas aqui
+    // não devem impedir a resposta ao utilizador: ficam só logadas.
+    const [rlResult, cacheResult] = await Promise.all([
+      supabase.from("dm_rate_limits").insert({ user_id: user.id, endpoint: ENDPOINT_NAME }),
+      supabase.from("dm_fundamentals_cache").upsert(
+        { user_id: user.id, ticker, response: result, created_at: new Date().toISOString() },
+        { onConflict: "user_id,ticker" },
+      ),
+    ]);
+    if (rlResult.error)    console.error("rate_limits insert error:", rlResult.error);
     if (cacheResult.error) console.error("cache upsert error:", cacheResult.error);
 
     return jsonResponse(result);
