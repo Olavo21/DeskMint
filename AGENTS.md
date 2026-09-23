@@ -265,6 +265,28 @@ só o gerado do Supabase estava certo. Alinhados a 23 set 2026:
 Se um quarto estado voltar a ser acrescentado, são estes três ficheiros
 a atualizar, mais `lib/commissions.ts`.
 
+### Aviso para quem der uma tool de comissões ao assistente
+
+Verificado a 23 set 2026: **nada no lado do servidor lê `dm_commissions`**
+— nem as edge functions, nem os 6 cards do ecrã Assistente. Só
+`hooks/useReports.ts` e `hooks/useCommissions.ts`. O system prompt do
+`investment-chat` diz explicitamente ao modelo que não tem ferramenta de
+comissões e que deve recusar estimar em vez de inventar.
+
+Quando essa tool for criada — e é plausível que seja — **usar
+`groupByType()` de `lib/commissions.ts`, nunca somas ad-hoc**. Um
+`.eq('status', 'PAID')` ou um `filter(c => c.status === 'PENDING')`
+escrito de raiz reintroduz exatamente o buraco do `TO_PAY` descrito
+acima, e numa camada onde é bastante pior: o prompt endurecido protege
+contra o modelo *inventar* dados, mas não protege contra a tool lhe
+*entregar* somas erradas. O modelo apresentaria o número errado com toda
+a confiança, e o utilizador não tem como o auditar.
+
+O mesmo raciocínio vale para qualquer agregação futura sobre comissões
+em `dm_agent_usage` ou `dm_confirmed_actions`: as tabelas nasceram
+depois do quarto estado e estão certas, mas quem escrever a query de
+agregação pode não saber que existem quatro estados e não três.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/
