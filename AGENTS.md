@@ -332,10 +332,17 @@ está definido em `.env.local` e como env var `production` no EAS
 (`eas env:set production --name EXPO_PUBLIC_SENTRY_DSN --visibility
 sensitive`). `lib/sentry.ts` só ativa (`enabled: true`) quando há DSN **e**
 a build é de produção (`NODE_ENV === 'production'`) — continua sempre
-desligado em `expo start` local, mesmo com o DSN preenchido. Ainda não
-testado contra o dashboard real (precisa de build de produção — ver nota
-sobre o LogBox mais abaixo); confirmar lá o primeiro evento antes de
-assumir que chega.
+desligado em `expo start` local, mesmo com o DSN preenchido.
+
+**Confirmado ao vivo em produção a 30 set 2026** (build 13, canal de
+teste interno da Play, Android 14). Deixou de ser suposição: o evento
+chegou ao projeto DeskMint com `dist` **13**, `release` **1.6.0 (13)**,
+`environment` **production** e `is_embedded_launch: true` (bundle
+embebido, não uma atualização OTA). Isto valida de uma vez a captura de
+erros em produção **e** a correção manual de `release`/`dist` feita a 18
+set em `lib/sentry.ts` — a colisão em que tudo caía indistinguível no
+balde `+12` fica resolvida deste build em diante, porque um evento passa
+a identificar sem ambiguidade de que build veio.
 
 - `npx expo install @sentry/react-native` já adicionou sozinho o config
   plugin a `app.json` (`"plugins": [..., "@sentry/react-native"]`) — não
@@ -451,6 +458,39 @@ assumir que chega.
   `Sentry.init({ environment: ... })` em vez de `NODE_ENV`. Isso separa
   os eventos no Sentry por ambiente independentemente do `versionCode`
   coincidir.
+
+### O `ErrorBoundary` continua por testar — e porque é que a tentativa falhou (30 set 2026)
+
+O gatilho de teste (commit `3c29bcd`, já revertido) fazia `throw` dentro
+de um `onLongPress` no rodapé das Definições. **Nunca podia funcionar**, e
+é importante perceber porquê antes de alguém repetir o mesmo:
+
+**Um `throw` dentro de um event handler (`onPress`, `onLongPress`, etc.)
+nunca chega ao `ErrorBoundary` do React.** Os error boundaries só apanham
+erros de *render*, de métodos de ciclo de vida e de construtores — o
+handler corre fora do ciclo de render, por isso o erro passa ao lado do
+boundary e sobe direto ao handler global do JavaScript.
+
+Confirmado pelos dados do evento no Sentry, não por dedução:
+`mechanism: onerror`, `handled: false`, `level: fatal`. Na prática a app
+morreu e reiniciou (visível nos breadcrumbs: `Start Time` treze segundos
+antes da exceção) em vez de mostrar o ecrã "Algo correu mal". O ecrã
+escuro que se vê nesse momento é a app a morrer, não o fallback — e são
+quase da mesma cor, o que torna o engano fácil.
+
+**Efeito lateral positivo: ficou provado que o handler global está ativo
+e funcional.** É a rede por baixo do boundary — mesmo o que o
+`ErrorBoundary` não apanha chega ao Sentry, com `release`/`dist`
+corretos. Isso não era garantido e agora é.
+
+**Como testar o boundary a sério, quando se retomar o pendente:** é
+preciso um gatilho que rebente **durante o render** — tipicamente um
+estado que o toque liga (`setState(true)`) e um `if (flag) throw new
+Error(...)` no corpo do componente, que dispara na renderização
+seguinte. E deve ser feito num build **`preview`**, não em produção: o
+perfil `preview` também é release e também tem `NODE_ENV=production`,
+logo o LogBox está desligado e o boundary comporta-se exatamente como em
+produção — mas é APK, instala-se direto e não gasta um ciclo da Play.
 
 ## Idempotência das escritas do investment-chat (18 set 2026)
 
