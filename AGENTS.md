@@ -596,6 +596,27 @@ por dois motivos independentes:
    dono da conta é a forma errada de testar — corrompe dados de
    produção reais e obriga a reposição manual depois.
 
+**Segundo motivo, independente do risco (1 out 2026).** A regra acima
+está justificada por risco — corromper dados reais. Isso é verdade mas é
+frágil: assim que o risco parecer baixo, a regra cede. "É só uma comissão
+de 99 € na minha própria conta, e apago-a a seguir" é um argumento
+razoável contra a versão só-de-risco.
+
+O segundo motivo não tem essa fraqueza, porque **vale mesmo quando o
+risco é zero**: escrever direto na base de dados **salta exatamente o
+código que está sob teste**. Um `INSERT` numa tabela não exercita o hook
+que lê, a query com os filtros certos, a função que agrega, nem a
+renderização do card. Um teste que contorna o caminho sob teste não é um
+teste — é uma verificação de que o Postgres aceita linhas.
+
+Corolário prático: quando for preciso exercitar um fluxo de escrita, o
+agente prepara os passos e **o utilizador percorre-os pela UI normal da
+app**. Não é uma cerimónia de segurança; é a única forma de o resultado
+significar alguma coisa. (Exemplo real: validar a correção do `TO_PAY`
+exigia criar uma comissão e avançá-la de estado pela app — feito pelo
+dono, não pelo agente, precisamente porque o valor do teste está no
+caminho percorrido.)
+
 **Regra daqui para a frente**: escritas do agente nunca são testadas
 contra a conta real do dono. Criar (ou usar, se já existir) um
 utilizador de teste no Supabase com uma carteira fictícia — o RLS já
