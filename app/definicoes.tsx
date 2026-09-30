@@ -510,20 +510,9 @@ export default function DefinicoesScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* GATILHO TEMPORÁRIO — teste do ErrorBoundary/Sentry (23 set 2026).
-            Toque longo no rodapé, sem elemento visível novo. Reverter depois
-            do teste — não deixar em produção passado este build. */}
-        <TouchableOpacity
-          activeOpacity={1}
-          onLongPress={() => {
-            throw new Error('[TESTE MANUAL] ErrorBoundary/Sentry — disparado de propósito em definicoes.tsx, reverter depois de confirmar')
-          }}
-          delayLongPress={1500}
-        >
-          <Text style={{ color: '#334155', fontSize: 10, textAlign: 'center', lineHeight: 15 }}>
-            DeskMint · Finanças pessoais
-          </Text>
-        </TouchableOpacity>
+        <Text style={{ color: '#334155', fontSize: 10, textAlign: 'center', lineHeight: 15 }}>
+          DeskMint · Finanças pessoais
+        </Text>
 
       </ScrollView>
     </SafeAreaView>
