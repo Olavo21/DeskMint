@@ -287,6 +287,46 @@ em `dm_agent_usage` ou `dm_confirmed_actions`: as tabelas nasceram
 depois do quarto estado e estão certas, mas quem escrever a query de
 agregação pode não saber que existem quatro estados e não três.
 
+## Invalidação em falta nos mutadores de comissões (1 out 2026) — por corrigir
+
+**Os quatro mutadores de `hooks/useCommissions.ts` (`create`, `update`,
+`updateStatus`, `remove`) invalidam apenas `['commissions']` e
+`['dashboard']`.** Nenhum toca nas três queries dos Relatórios:
+`['pending-by-type']`, `['monthly-report']` e `['weekly-report']`.
+
+Dois agravantes que tornam o sintoma confuso:
+
+- **`staleTime` global de 5 minutos** (`lib/queryClient.ts`). Sair do ecrã
+  e voltar **não** refaz a query — o React Query serve a cache porque os
+  dados ainda são considerados frescos. O sintoma não é "preciso de sair
+  e voltar", é "não atualiza de todo".
+- **`usePendingByType` tem `refetchInterval: 60_000`**, que dispara
+  independentemente do `staleTime`. Essa aba **cura-se sozinha ao fim de
+  um minuto**, o que faz a falha parecer intermitente e leva a desconfiar
+  do código errado. (O `refetchInterval` só corre enquanto a query tem
+  observadores — fora do ecrã, não conta tempo.)
+
+**Confirmado ao vivo no build 14** (1 out 2026): criada uma comissão de
+99 € e avançada para `TO_PAY` pela UI; os três ecrãs concordaram
+(Relatórios/Pendentes, Relatórios/Semana e Comissões, todos 99 €).
+Apagada a seguir pela UI, **os 99 € permaneceram em todos os campos dos
+Relatórios**, enquanto o `SELECT` à base de dados confirmava zero linhas
+e o ecrã de Comissões voltava a 0 € de imediato. Ou seja: o `DELETE` é
+real (não há soft-delete — a tabela não tem `deleted_at` e o único
+trigger é de `UPDATE`), o que ficou para trás foi exclusivamente cache.
+
+**Correção a fazer: um helper partilhado, não repetir as chaves nos
+quatro `onSuccess`.** Esta falha nasceu precisamente de haver quatro
+sítios — quando o `useReports` foi criado, era preciso lembrar-se de ir
+a quatro `onSuccess` noutro ficheiro, e ninguém se lembrou. Repetir as
+chaves corrige o sintoma e deixa a causa intacta: o próximo hook que
+dependa de comissões falha da mesma maneira. A lista completa do que
+hoje depende de `dm_commissions`, para o helper nascer certo:
+`commissions`, `dashboard`, `pending-by-type`, `monthly-report`,
+`weekly-report` — cinco chaves, um sítio.
+
+Bug pré-existente, não introduzido pelas correções do `TO_PAY`.
+
 ## Regra: a `dm_fundamentals_cache` nunca guarda falhas (23 set 2026)
 
 Ao corrigir o `stock-fundamentals` para verificar `res.ok` antes do
