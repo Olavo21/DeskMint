@@ -1,37 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
-import { groupByType, type CommissionWithType } from '../lib/commissions'
-
-function weekBounds() {
-  const now = new Date()
-  const day = now.getDay()
-  const diffToMon = day === 0 ? -6 : 1 - day
-  const mon = new Date(now); mon.setDate(now.getDate() + diffToMon); mon.setHours(0, 0, 0, 0)
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23, 59, 59, 999)
-  return { start: mon.toISOString(), end: sun.toISOString() }
-}
-
-export function useWeeklyReport() {
-  const session = useAuthStore((s) => s.session)
-  const { start, end } = weekBounds()
-
-  return useQuery({
-    queryKey: ['weekly-report', session?.user.id, start],
-    enabled: !!session,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('dm_commissions')
-        .select('*, dm_commission_types(id, name, icon, color)')
-        .eq('user_id', session!.user.id)
-        .gte('earned_at', start)
-        .lte('earned_at', end)
-        .order('earned_at', { ascending: false })
-      if (error) throw error
-      return (data ?? []) as CommissionWithType[]
-    },
-  })
-}
+import { groupByType, type CommissionWithType, type CommissionLike } from '../lib/commissions'
 
 export function useMonthlyReport(month: number, year: number) {
   const session = useAuthStore((s) => s.session)
@@ -85,37 +55,21 @@ export function useMonthlyReport(month: number, year: number) {
   })
 }
 
-export function usePendingByType() {
+export function useAllTimeReport() {
   const session = useAuthStore((s) => s.session)
 
   return useQuery({
-    queryKey: ['pending-by-type', session?.user.id],
+    queryKey: ['all-time-report', session?.user.id],
     enabled: !!session,
     queryFn: async () => {
-      // TO_PAY é dinheiro já validado à espera de transferência — é a parte
-      // mais certa de entrar, e estava a ser omitida daqui.
       const { data, error } = await supabase
         .from('dm_commissions')
-        .select('*, dm_commission_types(id, name, icon, color)')
+        .select('*')
         .eq('user_id', session!.user.id)
-        .in('status', ['PENDING', 'TO_PAY'])
-        .order('expected_at', { ascending: true, nullsFirst: false })
       if (error) throw error
-
-      const all = (data ?? []) as CommissionWithType[]
-      const toPay   = all.filter((c) => c.status === 'TO_PAY').reduce((s, c) => s + c.amount, 0)
-      const pending = all.filter((c) => c.status === 'PENDING').reduce((s, c) => s + c.amount, 0)
-
-      return {
-        all,
-        byType: groupByType(all),
-        total: toPay + pending,
-        toPay,
-        toPayCount:   all.filter((c) => c.status === 'TO_PAY').length,
-        pending,
-        pendingCount: all.filter((c) => c.status === 'PENDING').length,
-      }
+      // groupByType já tira CANCELLED do total — não somar à mão (ver AGENTS.md).
+      const groups = groupByType((data ?? []) as CommissionLike[])
+      return { total: groups.reduce((s, g) => s + g.total, 0) }
     },
-    refetchInterval: 60_000, // refetch a cada minuto
   })
 }

@@ -327,6 +327,11 @@ hoje depende de `dm_commissions`, para o helper nascer certo:
 
 Bug pré-existente, não introduzido pelas correções do `TO_PAY`.
 
+**Nota de 2 out, mais tarde no mesmo dia:** com a reestruturação dos
+Relatórios (secção seguinte), `pending-by-type` e `weekly-report` deixaram
+de existir e entrou `all-time-report`. A lista ficou com quatro chaves:
+`commissions`, `dashboard`, `monthly-report`, `all-time-report`.
+
 **Corrigido a 2 out 2026** com `invalidateCommissionQueries(qc)` e a lista
 `COMMISSION_DEPENDENT_QUERY_KEYS` em `lib/commissions.ts`. Os quatro
 `onSuccess` de `useCommissions` chamam agora só o helper. A
@@ -342,6 +347,46 @@ como tal para a lista não afirmar uma dependência que não existe.
 **Ainda não validado num binário.** O teste é o mesmo que provou a falha:
 criar uma comissão pela UI, avançá-la para `TO_PAY`, apagá-la, e ver os
 Relatórios voltarem a zero **sem** esperar 60 s nem fechar a app.
+
+## Relatórios: Mês + Desde sempre (2 out 2026)
+
+As abas **Pendentes** e **Semana** foram removidas. O que a Pendentes
+mostrava (por validar / validadas) já existe nos totalizadores do ecrã
+Comissões; a Semana não tinha equivalente, mas a decisão foi reduzir.
+Com elas saíram `usePendingByType` e `useWeeklyReport` do
+`useReports.ts`.
+
+**"Desde sempre" é um único número, por decisão:** o total de comissões
+**faturadas** — pagas, validadas e por validar, excluindo só
+`CANCELLED`. Não o total recebido, porque esse já existe: é exatamente o
+totalizador "Pagas" do ecrã Comissões, e ficaria duplicado. Calculado
+com `groupByType()`, não com uma soma à mão, para o `CANCELLED` sair pelo
+mesmo sítio que sai em todo o lado.
+
+Duas escolhas de pormenor:
+- O rótulo diz **"Comissões faturadas"** e não "Total faturado", porque o
+  herói da aba Mês ("Este mês já faturaste") **inclui o salário**. Sem a
+  palavra "comissões", os dois números pareceriam medir a mesma coisa.
+- Em erro **não mostra 0,00 €**. Um zero por falha de rede seria uma
+  conclusão errada — a mesma classe do "tudo pago e em dia".
+
+Foram consideradas e **adiadas** outras vistas de período longo, com os
+dados reais a 2 out (10 comissões em 4 meses): *tendência* (ruído a este
+volume — um Tour de 40 € faz um mês parecer crescimento), *sazonalidade*
+(precisa de pelo menos dois anos), *composição por valor* (sinal real: um
+Tour vale 3,4 Táxis em média) e *velocidade de pagamento* (sinal mais
+forte: comissões de junho levaram 31–42 dias a pagar, desde julho nunca
+mais de 9). Ficam como ideias para quando houver volume.
+
+### Pendente: "Média dias a receber" mede o intervalo errado
+
+O KPI da aba Mês calcula `earned_at → paid_at`. Mas o `earned_at` **não é
+a data do serviço — é a data em que a comissão foi inserida na app**.
+Prova nos dados: o Tour de 40 € foi pago a 10 set e registado a 12 set,
+dando **−2 dias**. O KPI mede "tempo a registar + tempo a pagar" e pode
+sair negativo. A base certa é `service_date`, com recurso ao
+`earned_at` só quando está vazio (as duas comissões mais antigas não o
+têm). Com `service_date` os valores são todos ≥ 0.
 
 ## Regra: a `dm_fundamentals_cache` nunca guarda falhas (23 set 2026)
 

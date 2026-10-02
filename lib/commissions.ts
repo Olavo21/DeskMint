@@ -70,9 +70,8 @@ export function groupByType<T extends CommissionLike>(commissions: T[]): Commiss
 export const COMMISSION_DEPENDENT_QUERY_KEYS = [
   'commissions',
   'dashboard', // não lê comissões hoje; mantido por já ser invalidado antes
-  'pending-by-type',
   'monthly-report',
-  'weekly-report',
+  'all-time-report',
 ] as const
 
 export function invalidateCommissionQueries(qc: QueryClient) {
