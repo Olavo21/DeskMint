@@ -91,16 +91,18 @@ export default function LoginScreen() {
       >
         {/* Logo */}
         <View className="mb-12 items-center">
+          {/* Fundo escuro, não branco: o lettering "Desk" do logo.png é branco
+              (luminância média 245/255), por isso numa caixa branca dava 1,05:1
+              de contraste e desaparecia. #0f172a é a cor para que a marca já foi
+              desenhada — é o mesmo adaptiveIcon.backgroundColor do app.json. */}
           <View style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: '#0f172a',
             borderRadius: 24,
             padding: 20,
             shadowColor: '#0d9488',
-            shadowOpacity: 0.12,
+            shadowOpacity: 0.18,
             shadowRadius: 18,
             elevation: 6,
-            borderWidth: 1,
-            borderColor: '#d1fae5',
           }}>
             <Image
               source={logoSource}

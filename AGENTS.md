@@ -363,6 +363,48 @@ automático nem polling. Esgotar 20 chamadas exige vinte toques manuais
 numa app visivelmente a dar erro. Se algum dia esse fetch passar a ser
 automático, esta decisão tem de ser reavaliada.
 
+## Recuperação de password (2 out 2026) — por implementar
+
+Investigado antes de implementar. **Não é "adicionar uma funcionalidade"**
+— obriga a mexer no ponto de decisão único do routing da app. Merece uma
+sessão limpa.
+
+**1. Não existe deep link handling nenhum.** O `scheme: "deskmint"` está
+no `app.json` e `expo-linking`/`expo-router` são dependências, mas um
+grep a todo o repo devolve **zero** `Linking.addEventListener`,
+`getInitialURL` ou `useURL`. O `lib/supabase.ts` tinha um comentário a
+dizer que "deep links são tratados separadamente" — era falso, e foi
+corrigido nesta data. Hoje, um link de email abre a app no estado inicial
+e o token é ignorado.
+
+**2. O obstáculo real é o `onAuthStateChange`.** Em `app/_layout.tsx`, o
+handler **ignora o tipo de evento** (`_event`) e, sempre que aparece uma
+sessão, chama `fetchProfile`, que termina em
+`router.replace('/(tabs)')` ou `'/(auth)/onboarding'`.
+
+Um link de recuperação do Supabase **cria uma sessão**. Logo, mesmo com o
+deep link a funcionar e o ecrã novo construído, o utilizador seria
+atirado para a Dashboard antes de ver o campo da nova password. O
+Supabase emite o evento `PASSWORD_RECOVERY` exatamente para este caso, e
+esse parâmetro está a ser deitado fora. **Ramificar ali é a parte
+arriscada**: é o sítio por onde passam todos os logins da app.
+
+**3. O Site URL não resolve.** O fluxo de recuperação do Supabase precisa
+de um Site URL e de Redirect URLs válidos. Hoje: o `deskmint.app` está
+por confirmar, e o deployment da Vercel está desatualizado (10 ago, 36
+commits atrás) **e protegido por SSO**, logo não serve de destino
+público. Se o fluxo depender de um URL web que resolva, isso é peça a
+tratar **antes**, não durante.
+
+**Por confirmar no dashboard do Supabase** (não é visível a partir do
+repo): se o template de email de recuperação está configurado, qual é o
+Site URL e quais os Redirect URLs permitidos.
+
+**O que é preciso construir:** handling do deep link, um ecrã novo
+(`app/(auth)/nova-password.tsx`) e a ramificação do routing acima.
+**Estimativa: uma sessão inteira**, com teste que não se faz no emulador
+— precisa de build real, email recebido no telemóvel e link tocado.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/
