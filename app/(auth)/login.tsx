@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../../lib/supabase'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -22,6 +23,7 @@ export default function LoginScreen() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
   const cooldownTimer           = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastAttempt             = useRef(0)
 
@@ -137,16 +139,27 @@ export default function LoginScreen() {
 
           <View>
             <Text className="text-dark-400 text-xs mb-1.5 ml-1">Password</Text>
-            <TextInput
-              className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
-              style={{ color: '#1e293b' }}
-              placeholder="Palavra-passe"
-              placeholderTextColor="#94a3b8"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="password"
-            />
+            <View style={{ justifyContent: 'center' }}>
+              <TextInput
+                className="bg-dark-800 rounded-xl px-4 py-3.5 text-base border border-dark-700"
+                style={{ color: '#1e293b', paddingRight: 48 }}
+                placeholder="Palavra-passe"
+                placeholderTextColor="#94a3b8"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoComplete="password"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={{ position: 'absolute', right: 10, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {error && (
