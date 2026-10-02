@@ -287,7 +287,7 @@ em `dm_agent_usage` ou `dm_confirmed_actions`: as tabelas nasceram
 depois do quarto estado e estão certas, mas quem escrever a query de
 agregação pode não saber que existem quatro estados e não três.
 
-## Invalidação em falta nos mutadores de comissões (1 out 2026) — por corrigir
+## Invalidação em falta nos mutadores de comissões (1 out 2026) — corrigida no código (2 out), por validar em build
 
 **Os quatro mutadores de `hooks/useCommissions.ts` (`create`, `update`,
 `updateStatus`, `remove`) invalidam apenas `['commissions']` e
@@ -326,6 +326,22 @@ hoje depende de `dm_commissions`, para o helper nascer certo:
 `weekly-report` — cinco chaves, um sítio.
 
 Bug pré-existente, não introduzido pelas correções do `TO_PAY`.
+
+**Corrigido a 2 out 2026** com `invalidateCommissionQueries(qc)` e a lista
+`COMMISSION_DEPENDENT_QUERY_KEYS` em `lib/commissions.ts`. Os quatro
+`onSuccess` de `useCommissions` chamam agora só o helper. A
+`invalidateQueries` faz correspondência por prefixo, por isso
+`['monthly-report']` apanha `['monthly-report', mês, ano, uid]`.
+
+Achado ao fazer a lista: **a Dashboard não lê comissões** — nem o
+`useDashboard` nem o `index.tsx` lhes tocam; os únicos leitores de
+`dm_commissions` são `useCommissions` e `useReports`. A chave
+`dashboard` fica na lista porque já era invalidada antes, e está anotada
+como tal para a lista não afirmar uma dependência que não existe.
+
+**Ainda não validado num binário.** O teste é o mesmo que provou a falha:
+criar uma comissão pela UI, avançá-la para `TO_PAY`, apagá-la, e ver os
+Relatórios voltarem a zero **sem** esperar 60 s nem fechar a app.
 
 ## Regra: a `dm_fundamentals_cache` nunca guarda falhas (23 set 2026)
 

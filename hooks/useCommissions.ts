@@ -3,6 +3,7 @@ import { Alert } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import type { DmCommission, TablesInsert } from '../types/database'
+import { invalidateCommissionQueries } from '../lib/commissions'
 
 export function useCommissions() {
   const session = useAuthStore((s) => s.session)
@@ -30,8 +31,7 @@ export function useCommissions() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['commissions'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommissionQueries(qc)
     },
   })
 
@@ -45,8 +45,7 @@ export function useCommissions() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['commissions'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommissionQueries(qc)
     },
   })
 
@@ -78,8 +77,7 @@ export function useCommissions() {
       if (error) throw error
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['commissions'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommissionQueries(qc)
     },
   })
 
@@ -95,8 +93,7 @@ export function useCommissions() {
       if (!count) throw new Error('Comissão não encontrada ou sem permissão')
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['commissions'] })
-      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      invalidateCommissionQueries(qc)
     },
     onError: (err: Error) => {
       Alert.alert('Erro ao eliminar', err.message)

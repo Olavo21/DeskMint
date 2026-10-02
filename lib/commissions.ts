@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query'
 import type { DmCommission, DmCommissionType } from '../types/database'
 
 export type CommissionWithType = DmCommission & { dm_commission_types: DmCommissionType | null }
@@ -62,4 +63,20 @@ export function groupByType<T extends CommissionLike>(commissions: T[]): Commiss
   }
 
   return [...groups.values()]
+}
+
+// Queries que dependem de dm_commissions. Query nova que leia comissões entra aqui,
+// nunca nos onSuccess — a falha de 1 out nasceu de esta lista estar em quatro sítios.
+export const COMMISSION_DEPENDENT_QUERY_KEYS = [
+  'commissions',
+  'dashboard', // não lê comissões hoje; mantido por já ser invalidado antes
+  'pending-by-type',
+  'monthly-report',
+  'weekly-report',
+] as const
+
+export function invalidateCommissionQueries(qc: QueryClient) {
+  for (const key of COMMISSION_DEPENDENT_QUERY_KEYS) {
+    qc.invalidateQueries({ queryKey: [key] })
+  }
 }
