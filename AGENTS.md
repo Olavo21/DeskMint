@@ -617,6 +617,49 @@ chave estável (`kind: 'savings'`).
 Cada barra tem um marcador na posição da meta, na mesma escala da barra
 (100% = rendimento), e o texto "meta X%" por baixo.
 
+## Escritas no Supabase: duas armadilhas que o `tsc` não apanha (3 out 2026)
+
+**1. Uma escrita sem `await` nem `.then()` não envia nada.** O query
+builder do `supabase-js` é preguiçoso: o pedido só parte quando alguém
+consome a promessa. `supabase.from('x').update({...}).eq(...)` numa linha
+solta constrói o pedido e deita-o fora. É exatamente o bug que fazia a
+língua e a moeda escolhidas nas Definições nunca chegarem à BD (perfil
+preso em `language = 'pt'`), e que o `_layout` depois reaplicava a cada
+arranque. O `tsc` não vê nada de errado, porque o código é válido.
+
+**2. O `supabase-js` não rejeita em erros da BD: devolve `{ error }`.** Um
+`try/catch` ou um `.catch()` à volta de uma escrita não apanha uma
+falha de RLS, de constraint ou de coluna. É preciso olhar para o
+`error` do resultado. Um `.then(() => ...)` que ignora o argumento
+engole a falha.
+
+**Numa edge function há uma terceira:** trabalho deixado pendente antes
+do `return` da resposta não tem garantia de terminar. Os registos de
+`dm_agent_usage` e `dm_rate_limits` da `investment-chat` eram
+fire-and-forget e passaram a ter `await` (em paralelo, com o `error`
+verificado e enviado ao Sentry), porque são os dados de custo por sessão
+e o contador do rate limit.
+
+**Pesquisa feita a 3 out 2026**, com o compilador de TypeScript e não com
+grep, porque as cadeias ocupam várias linhas: **61 escritas** (`insert`/
+`update`/`upsert`/`delete`) em `app`, `hooks`, `components`, `lib`,
+`stores` e nas edge functions. 56 com `await`, 2 dentro de um `await
+Promise.all`, 3 fire-and-forget deliberados com `.then()` e **0
+soltas** depois da correção. O detetor foi validado contra a versão
+anterior à correção do `definicoes.tsx`, onde apanha exatamente as duas
+linhas com o bug. Dos 3 fire-and-forget, os 2 da `investment-chat`
+passaram a `await` e o terceiro (o snapshot mensal do património na
+Dashboard) continua fire-and-forget de propósito, mas passou a verificar
+o `error`.
+
+**Em backlog: ESLint com `@typescript-eslint/no-floating-promises`.** O
+projeto não tem ESLint de todo. A regra apanharia o bug 1 no editor
+(trata as cadeias do Supabase como promessas), mas precisa de lint com
+informação de tipos (`typescript-eslint` com o `tsconfig`), custa meia
+sessão e vai marcar muito código existente. Adiado porque hoje há zero
+casos e o detetor acima está provado. A razão para um dia o fazer: **este
+bug passa no `tsc`**, e só aparece quando alguém testa a persistência.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/
