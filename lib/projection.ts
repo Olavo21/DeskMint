@@ -1,5 +1,9 @@
+// Inflação anual assumida para trazer o valor final a euros de hoje. 2% é a meta
+// do BCE para a zona euro — um pressuposto, não uma previsão.
+export const INFLATION_RATE = 0.02
+
 export type ProjectionInput = {
-  currentNetWorth: number
+  startingCapital: number
   monthlyInvest:   number
   annualRate:      number
   years:           number
@@ -9,11 +13,12 @@ export type ProjectionResult = {
   finalValue:      number
   totalInvested:   number
   interestGained:  number
+  realFinalValue:  number  // finalValue em euros de hoje
 }
 
 export function computeProjection(input: ProjectionInput): ProjectionResult {
-  const { currentNetWorth, monthlyInvest, annualRate, years } = input
-  const P   = Math.max(currentNetWorth, 0)
+  const { startingCapital, monthlyInvest, annualRate, years } = input
+  const P   = Math.max(startingCapital, 0)
   const PMT = Math.max(monthlyInvest,   0)
   const n   = 12
   const nt  = n * years
@@ -29,7 +34,8 @@ export function computeProjection(input: ProjectionInput): ProjectionResult {
   const finalValue     = principalGrown + pmtGrown
   const totalInvested  = P + PMT * 12 * years
   const interestGained = Math.max(0, finalValue - totalInvested)
-  return { finalValue, totalInvested, interestGained }
+  const realFinalValue = finalValue / Math.pow(1 + INFLATION_RATE, years)
+  return { finalValue, totalInvested, interestGained, realFinalValue }
 }
 
 export const RATE_BY_INVESTOR_TYPE: Record<string, number> = {

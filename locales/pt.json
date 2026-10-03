@@ -55,6 +55,8 @@
     "projectionEmpty": "Completa o teu perfil de investidor para veres a projeção personalizada.",
     "completeProfile": "Completar perfil",
     "inYears": "Em {{years}} anos terás:",
+    "inYearsReal": "Em {{years}} anos terás, em euros de hoje:",
+    "nominalValue": "Valor nominal {{value}} · inflação de {{rate}}% ao ano",
     "interestEarned": "Juros Ganhos",
     "portfolioLabel": "Portefólio",
     "emergencyFund": "Fundo de Emergência",

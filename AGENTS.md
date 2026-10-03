@@ -572,6 +572,25 @@ crédito ligado. Essa dívida entra no total, mas não aparece na linha
 Passivos, por isso a soma a olho deixaria de bater. Hoje nenhum bem do
 dono está nesse caso.
 
+## Projeção de longo prazo: capital investido e euros de hoje (3 out 2026)
+
+A projeção da Dashboard partia do `netWorth` inteiro, com o carro (e
+qualquer casa) a render 10% ao ano durante 30 anos. E mostrava o valor
+nominal como número principal. Com os dados do dono: **1 854 134 €**.
+
+Passou a partir só de **portfólio + fundo de emergência** (6 109 € a 3
+out). O número principal passa a ser o valor em **euros de hoje**:
+**821 913 €**, com o nominal (1 488 781 €) numa linha por baixo. Das duas
+mudanças, a inflação é a que pesa mais.
+
+- **Inflação: 2% ao ano**, a meta do BCE. Está em `INFLATION_RATE` em
+  `lib/projection.ts`. É um pressuposto e não uma previsão, e é o mesmo
+  para todos os perfis.
+- O "valor real" é o nominal final descontado: `final / 1,02^anos`.
+- **Por resolver:** os dois mini-KPIs por baixo ("Total investido" e
+  "Juros ganhos") continuam em valores nominais, ao lado de um número
+  principal em euros de hoje. São unidades diferentes no mesmo cartão.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/

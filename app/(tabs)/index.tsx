@@ -19,7 +19,7 @@ import Header from '../../components/ui/Header'
 import QuickAddFab from '../../components/budget/QuickAddFab'
 import QuickstartChecklist from '../../components/quickstart/QuickstartChecklist'
 import type { DmAsset, DmCredit, DmProfile } from '../../types/database'
-import { computeProjection, RATE_BY_INVESTOR_TYPE, YEARS_BY_HORIZON, GOAL_PHRASE } from '../../lib/projection'
+import { computeProjection, RATE_BY_INVESTOR_TYPE, YEARS_BY_HORIZON, GOAL_PHRASE, INFLATION_RATE } from '../../lib/projection'
 import { useTranslation } from 'react-i18next'
 
 const REAL_TODAY = new Date()
@@ -343,7 +343,7 @@ const GOAL_EMOJI: Record<string, string> = {
   EDUCATION:  '🎓', EMERGENCY: '🛡️', OTHER: '✨',
 }
 
-function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmProfile | null }) {
+function ProjectionCard({ startingCapital, profile }: { startingCapital: number; profile: DmProfile | null }) {
   const fmt   = useFmt()
   const { t } = useTranslation()
   const rate  = profile?.investor_type ? RATE_BY_INVESTOR_TYPE[profile.investor_type] ?? null : null
@@ -383,7 +383,7 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
   }
 
   // ── Cálculo ───────────────────────────────────────────────────────────────
-  const result = computeProjection({ currentNetWorth: netWorth, monthlyInvest: pmt, annualRate: rate, years })
+  const result = computeProjection({ startingCapital, monthlyInvest: pmt, annualRate: rate, years })
   const investorLabel = t(INVESTOR_TYPE_KEYS[profile!.investor_type!] ?? 'investorTypes.moderate')
   const rateLabel     = `${(rate * 100).toFixed(0)}% ao ano`
   const yearsLabel    = `${years} anos`
@@ -411,11 +411,16 @@ function ProjectionCard({ netWorth, profile }: { netWorth: number; profile: DmPr
 
       {/* Valor final */}
       <Text style={{ color: '#64748b', fontSize: 12, marginBottom: 2 }}>
-        {t('dashboard.inYears', { years })}
+        {t('dashboard.inYearsReal', { years })}
       </Text>
+      {/* Número principal em euros de hoje: é o que fica na cabeça, e o nominal a
+          30 anos faz parecer muito o que a inflação come pelo caminho. */}
       <Text style={{ color: '#0f172a', fontSize: 32, fontWeight: '800',
-                     letterSpacing: -0.5, marginBottom: 16 }}>
-        {fmt(result.finalValue)}
+                     letterSpacing: -0.5, marginBottom: 2 }}>
+        {fmt(result.realFinalValue)}
+      </Text>
+      <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 16 }}>
+        {t('dashboard.nominalValue', { value: fmt(result.finalValue), rate: (INFLATION_RATE * 100).toFixed(0) })}
       </Text>
 
       {/* Separador */}
@@ -774,7 +779,9 @@ export default function DashboardScreen() {
             )}
 
             {/* Projeção de Longo Prazo (secundária) */}
-            <ProjectionCard netWorth={data?.netWorth ?? 0} profile={profile} />
+            {/* Só o que está de facto investido. Carro e casa a render 10% ao ano durante
+                30 anos inflacionavam o número grande. */}
+            <ProjectionCard startingCapital={(data?.portfolioValue ?? 0) + (data?.emergencyFund ?? 0)} profile={profile} />
           </>
         )}
       </ScrollView>

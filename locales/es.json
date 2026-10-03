@@ -55,6 +55,8 @@
     "projectionEmpty": "Completa tu perfil de inversor para ver tu proyección personalizada.",
     "completeProfile": "Completar perfil",
     "inYears": "En {{years}} años tendrás:",
+    "inYearsReal": "En {{years}} años tendrás, en euros de hoy:",
+    "nominalValue": "Valor nominal {{value}} · inflación del {{rate}}% anual",
     "interestEarned": "Intereses Ganados",
     "portfolioLabel": "Cartera",
     "emergencyFund": "Fondo de Emergencia",
