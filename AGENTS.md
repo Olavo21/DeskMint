@@ -348,7 +348,16 @@ como tal para a lista não afirmar uma dependência que não existe.
 criar uma comissão pela UI, avançá-la para `TO_PAY`, apagá-la, e ver os
 Relatórios voltarem a zero **sem** esperar 60 s nem fechar a app.
 
-## Relatórios: Mês + Desde sempre (2 out 2026)
+## Relatórios: abas reduzidas, e "Desde sempre" é um placeholder (2 out 2026)
+
+**Ler isto primeiro: a questão do "Desde sempre" NÃO ficou resolvida —
+foi adiada com uma casca à volta.** A aba existe, mas hoje mostra um único
+total que o ecrã de Comissões já permitia obter (é a soma dos três
+totalizadores de lá; enquanto tudo estiver pago, é literalmente o número
+de "Pagas"). **Nenhuma das quatro vistas de período longo discutidas —
+tendência, composição, sazonalidade, velocidade de pagamento — está
+implementada.** Ficam à espera de volume de dados (detalhe mais abaixo).
+Não descrever isto como "Relatórios reestruturados".
 
 As abas **Pendentes** e **Semana** foram removidas. O que a Pendentes
 mostrava (por validar / validadas) já existe nos totalizadores do ecrã
@@ -362,6 +371,19 @@ Com elas saíram `usePendingByType` e `useWeeklyReport` do
 totalizador "Pagas" do ecrã Comissões, e ficaria duplicado. Calculado
 com `groupByType()`, não com uma soma à mão, para o `CANCELLED` sair pelo
 mesmo sítio que sai em todo o lado.
+
+**O que se perdeu com as abas removidas** (o código está no commit
+`584467e`, se for preciso recuperá-lo):
+- **Semana**: totais semanais (Recebido / Por receber) e a lista de
+  comissões individuais da semana. **Nenhum dos dois existe noutro sítio**
+  — o calendário das Comissões filtra por um dia, não por semana. Era a
+  vista útil para quem trabalha ao dia. Atenção se voltar: filtrava por
+  `earned_at` (data de registo), pelo que uma comissão registada dias
+  depois do serviço caía na semana errada. Tem de filtrar por
+  `service_date`.
+- **Pendentes**: perdeu-se só o agrupamento do dinheiro por receber por
+  tipo de serviço. O resto (validadas / por validar, marca "Atrasada")
+  existe no ecrã de Comissões.
 
 Duas escolhas de pormenor:
 - O rótulo diz **"Comissões faturadas"** e não "Total faturado", porque o
@@ -378,7 +400,7 @@ Tour vale 3,4 Táxis em média) e *velocidade de pagamento* (sinal mais
 forte: comissões de junho levaram 31–42 dias a pagar, desde julho nunca
 mais de 9). Ficam como ideias para quando houver volume.
 
-### Pendente: "Média dias a receber" mede o intervalo errado
+### "Média dias a receber" media o intervalo errado — corrigido a 3 out 2026
 
 O KPI da aba Mês calcula `earned_at → paid_at`. Mas o `earned_at` **não é
 a data do serviço — é a data em que a comissão foi inserida na app**.
@@ -387,6 +409,12 @@ dando **−2 dias**. O KPI mede "tempo a registar + tempo a pagar" e pode
 sair negativo. A base certa é `service_date`, com recurso ao
 `earned_at` só quando está vazio (as duas comissões mais antigas não o
 têm). Com `service_date` os valores são todos ≥ 0.
+
+Corrigido a 3 out: `service_date ?? earned_at`, em **dias de calendário**
+(não em milissegundos entre um `date` e um `timestamptz`, que dava
+desvios de uma hora com o fuso de Lisboa). O `service_date` vem como
+`'AAAA-MM-DD'` e é lido como data local — `new Date('AAAA-MM-DD')` sem
+hora seria lido como UTC.
 
 ## Regra: a `dm_fundamentals_cache` nunca guarda falhas (23 set 2026)
 

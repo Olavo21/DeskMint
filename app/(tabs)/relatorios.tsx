@@ -89,14 +89,16 @@ function MensalTab() {
   const portfolioPL = data?.portfolio.totalPL ?? 0
   const plPositive  = portfolioPL >= 0
 
-  // Média de dias para receber (earned_at → paid_at) das comissões PAID do mês
+  // Dias do serviço ao pagamento, em dias de calendário. service_date e não earned_at:
+  // earned_at é a data de registo e chegou a ser posterior ao pagamento (−2 dias).
   const avgDays = (() => {
-    const paid = (data?.commissions ?? []).filter((c) => c.status === 'PAID' && c.paid_at && c.earned_at)
+    const paid = (data?.commissions ?? []).filter((c) => c.status === 'PAID' && c.paid_at)
     if (paid.length === 0) return null
-    const sum = paid.reduce((s, c) => {
-      const diff = new Date(c.paid_at!).getTime() - new Date(c.earned_at).getTime()
-      return s + diff / (1000 * 60 * 60 * 24)
-    }, 0)
+    const dayOf = (v: string) => {
+      const d = new Date(v.length === 10 ? v + 'T00:00:00' : v) // 'AAAA-MM-DD' como data local
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+    }
+    const sum = paid.reduce((s, c) => s + (dayOf(c.paid_at!) - dayOf(c.service_date ?? c.earned_at)) / 86_400_000, 0)
     return Math.round(sum / paid.length)
   })()
 
@@ -153,7 +155,7 @@ function MensalTab() {
         />
         <KpiCard
           label="Média dias a receber"
-          value={avgDays !== null ? `${avgDays} dias` : '—'}
+          value={avgDays !== null ? `${avgDays} ${avgDays === 1 ? 'dia' : 'dias'}` : '—'}
           color="#6366f1"
           icon="hourglass-outline"
         />
