@@ -494,6 +494,30 @@ Site URL e quais os Redirect URLs permitidos.
 **Estimativa: uma sessão inteira**, com teste que não se faz no emulador
 — precisa de build real, email recebido no telemóvel e link tocado.
 
+## Disparar builds EAS a partir desta máquina (3 out 2026)
+
+**O exit 127 do comando de build não diz se o build foi criado.**
+Aconteceu duas vezes com significados opostos:
+
+- **Build 13 (23 set):** o processo saiu com 127 *depois* de "Computed
+  project fingerprint" — **o build tinha sido criado** no EAS e compilou
+  normalmente.
+- **Build 15 (3 out):** saiu com 127 **imediatamente, com output vazio** —
+  o processo em segundo plano não encontrou o `npx` no `PATH` e **nada
+  chegou ao EAS**. Nenhum erro visível; o build simplesmente não aparece.
+
+**Regra:** depois de disparar, confirmar sempre com
+`eas build:list --platform android --limit 2` — nunca pelo código de
+saída. E em processos de fundo usar o caminho absoluto:
+`"/c/Program Files/nodejs/npx" eas-cli@latest build ...` (em primeiro
+plano o `npx` resolve normalmente; o problema é só do ambiente de fundo).
+
+**Tempo de fila, para não alarmar à toa:** a norma desta conta são
+**5 segundos**. Há dois casos registados de fila longa — ~1h56m no
+versionCode 7 e 1h10m no 13 — e ambos acabaram por compilar sem
+problema. Uma fila longa sozinha não é sinal de falha; acima de duas
+horas, ver o estado do serviço do EAS.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/
