@@ -3,7 +3,7 @@
 // de app/_layout.tsx), antes de qualquer ecrã montar. Um erro no primeiro
 // render só é capturado se o init já tiver corrido nessa altura.
 import * as Sentry from '@sentry/react-native'
-import { releaseName, versionCode } from './appInfo'
+import { releaseName, versionCode, buildChannel } from './appInfo'
 
 // release/dist manuais (18 set 2026): com withSentryConfig removido do
 // metro.config.js e SENTRY_DISABLE_AUTO_UPLOAD=true no Gradle (ver
@@ -23,7 +23,10 @@ Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN && process.env.NODE_ENV === 'production',
   tracesSampleRate: 0.2,
-  environment: process.env.NODE_ENV,
+  // Canal do build e não NODE_ENV, que é 'production' tanto no preview como no
+  // production. É o mesmo valor que o rodapé das Definições mostra: se o evento e
+  // o rodapé divergirem, alguém deixou de usar o lib/appInfo.ts.
+  environment: buildChannel,
   release: releaseName,
   dist: versionCode != null ? String(versionCode) : undefined,
   ignoreErrors: [

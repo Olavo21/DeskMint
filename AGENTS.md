@@ -806,6 +806,15 @@ a identificar sem ambiguidade de que build veio.
   `Sentry.init({ environment: ... })` em vez de `NODE_ENV`. Isso separa
   os eventos no Sentry por ambiente independentemente do `versionCode`
   coincidir.
+  **Resolvido a 3 out 2026, sem env var nova** (entra no build 17, por
+  validar): o `environment` passou a vir de `buildChannel` em
+  `lib/appInfo.ts`, que lê `Updates.channel`. O EAS escreve o `channel`
+  do perfil (`preview` ou `production`, distintos no `eas.json`) na
+  configuração nativa da app, e o valor existe mesmo sem nenhuma
+  atualização OTA (o evento do build 13 trazia `channel: production` com
+  `is_embedded_launch: true`). O rodapé das Definições mostra o mesmo
+  valor. **Teste do 17:** o `environment` do primeiro evento no Sentry tem
+  de ser igual ao que o rodapé mostra.
 
 ### O `ErrorBoundary` continua por testar — e porque é que a tentativa falhou (30 set 2026)
 
