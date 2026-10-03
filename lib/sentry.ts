@@ -3,7 +3,7 @@
 // de app/_layout.tsx), antes de qualquer ecrã montar. Um erro no primeiro
 // render só é capturado se o init já tiver corrido nessa altura.
 import * as Sentry from '@sentry/react-native'
-import Constants from 'expo-constants'
+import { releaseName, versionCode } from './appInfo'
 
 // release/dist manuais (18 set 2026): com withSentryConfig removido do
 // metro.config.js e SENTRY_DISABLE_AUTO_UPLOAD=true no Gradle (ver
@@ -16,12 +16,8 @@ import Constants from 'expo-constants'
 // lidos dinamicamente de app.json em runtime — não hardcoded aqui, por
 // isso este comentário não fixa um número de exemplo que ficaria
 // desatualizado a cada bump de versionCode) para continuidade se o
-// upload automático for reativado no futuro.
-const appConfig    = Constants.expoConfig
-const bundleId     = appConfig?.android?.package ?? 'com.deskmint.app'
-const appVersion   = appConfig?.version ?? 'unknown'
-const versionCode  = appConfig?.android?.versionCode
-const releaseName  = `${bundleId}@${appVersion}+${versionCode ?? 'unknown'}`
+// upload automático for reativado no futuro. A leitura vive em lib/appInfo.ts,
+// partilhada com o rodapé das Definições.
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,

@@ -6,6 +6,7 @@ import { router } from 'expo-router'
 let _AsyncStorage: { getItem: (k: string) => Promise<string | null>; setItem: (k: string, v: string) => Promise<void> } | null = null
 try { _AsyncStorage = require('@react-native-async-storage/async-storage').default } catch {}
 import { useAuthStore } from '../stores/authStore'
+import { appVersion, versionCode, buildChannel } from '../lib/appInfo'
 import { usePlan, PLAN_NAMES, PLAN_COLORS } from '../hooks/usePlan'
 import { supabase } from '../lib/supabase'
 import StepperInput from '../components/ui/StepperInput'
@@ -521,6 +522,11 @@ export default function DefinicoesScreen() {
 
         <Text style={{ color: '#334155', fontSize: 10, textAlign: 'center', lineHeight: 15 }}>
           DeskMint · Finanças pessoais
+        </Text>
+        {/* Identifica o binário instalado: já se testou o build errado sem dar por isso
+            (13 contra 14, 15 contra 16), e o APK preview contra o da Play. */}
+        <Text style={{ color: '#94a3b8', fontSize: 10, textAlign: 'center', lineHeight: 15 }}>
+          {appVersion} ({versionCode ?? '?'}) · {buildChannel}
         </Text>
 
       </ScrollView>
