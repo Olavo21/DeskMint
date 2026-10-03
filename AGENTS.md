@@ -587,9 +587,12 @@ mudanças, a inflação é a que pesa mais.
   `lib/projection.ts`. É um pressuposto e não uma previsão, e é o mesmo
   para todos os perfis.
 - O "valor real" é o nominal final descontado: `final / 1,02^anos`.
-- **Por resolver:** os dois mini-KPIs por baixo ("Total investido" e
-  "Juros ganhos") continuam em valores nominais, ao lado de um número
-  principal em euros de hoje. São unidades diferentes no mesmo cartão.
+- Os mini-KPIs "Total investido" e "Juros ganhos" também estão em euros
+  de hoje (corrigido a 3 out, mais tarde no mesmo dia), para os três
+  números do cartão estarem na mesma unidade e somarem: 169 105 € +
+  652 808 € = 821 913 €. Cada contribuição mensal é descontada pela
+  inflação até ao mês em que entra. O capital inicial não é descontado,
+  porque já está em euros de hoje.
 
 ## Regra Necessidades/Lazer/Poupança: o que a barra do Lazer mede (3 out 2026)
 

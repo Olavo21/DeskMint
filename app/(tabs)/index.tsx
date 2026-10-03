@@ -468,7 +468,7 @@ function ProjectionCard({ startingCapital, profile }: { startingCapital: number;
             {t('dashboard.totalInvested')}
           </Text>
           <Text style={{ color: '#334155', fontSize: 15, fontWeight: '700' }}>
-            {fmt(result.totalInvested)}
+            {fmt(result.realTotalInvested)}
           </Text>
         </View>
         <View style={{ width: 1, backgroundColor: '#f1f5f9' }} />
@@ -478,7 +478,7 @@ function ProjectionCard({ startingCapital, profile }: { startingCapital: number;
             {t('dashboard.interestEarned')}
           </Text>
           <Text style={{ color: '#0d9488', fontSize: 15, fontWeight: '700' }}>
-            {fmt(result.interestGained)}
+            {fmt(result.realInterestGained)}
           </Text>
         </View>
       </View>

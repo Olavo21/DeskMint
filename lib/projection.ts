@@ -14,6 +14,8 @@ export type ProjectionResult = {
   totalInvested:   number
   interestGained:  number
   realFinalValue:  number  // finalValue em euros de hoje
+  realTotalInvested:  number  // capital inicial + contribuições, em euros de hoje
+  realInterestGained: number  // realFinalValue − realTotalInvested
 }
 
 export function computeProjection(input: ProjectionInput): ProjectionResult {
@@ -35,7 +37,18 @@ export function computeProjection(input: ProjectionInput): ProjectionResult {
   const totalInvested  = P + PMT * 12 * years
   const interestGained = Math.max(0, finalValue - totalInvested)
   const realFinalValue = finalValue / Math.pow(1 + INFLATION_RATE, years)
-  return { finalValue, totalInvested, interestGained, realFinalValue }
+
+  // Cada contribuição é descontada pela inflação até ao mês em que entra (início
+  // de cada mês, como na anuidade antecipada acima). O capital inicial já está em
+  // euros de hoje. Assim os três números do cartão ficam na mesma unidade.
+  const d = Math.pow(1 + INFLATION_RATE, 1 / n)
+  const realContrib = INFLATION_RATE > 0
+    ? PMT * (1 - Math.pow(d, -nt)) / (1 - 1 / d)
+    : PMT * nt
+  const realTotalInvested  = P + realContrib
+  const realInterestGained = Math.max(0, realFinalValue - realTotalInvested)
+
+  return { finalValue, totalInvested, interestGained, realFinalValue, realTotalInvested, realInterestGained }
 }
 
 export const RATE_BY_INVESTOR_TYPE: Record<string, number> = {
