@@ -537,7 +537,12 @@ export default function DashboardScreen() {
         },
         { onConflict: 'user_id,year,month' },
       )
-      .then(() => qc.invalidateQueries({ queryKey: ['net_worth_history'] }))
+      // O supabase-js não rejeita em erros da BD: devolve { error }. Sem esta
+      // verificação, uma falha a gravar o mês deixava um buraco na série em silêncio.
+      .then(({ error }) => {
+        if (error) { console.error('snapshot do património falhou', error); return }
+        qc.invalidateQueries({ queryKey: ['net_worth_history'] })
+      })
   }, [data?.netWorth])
 
   const [assetsEditMode, setAssetsEditMode] = useState(false)
