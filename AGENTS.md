@@ -640,6 +640,17 @@ fire-and-forget e passaram a ter `await` (em paralelo, com o `error`
 verificado e enviado ao Sentry), porque são os dados de custo por sessão
 e o contador do rate limit.
 
+**Deployado a 3 out 2026 e confirmado** (versão descarregada de produção
+igual ao `HEAD` `ab5cadc`), **mas ainda não verificado a escrever.** Com
+a flag `EXPO_PUBLIC_ENABLE_ASSISTANT` desligada em `production`, nenhum
+build da Play chama esta função, e o APK `preview` (que a tem ligada)
+entra em conflito de assinatura com a instalação pela Play. A única
+verificação possível hoje é negativa: o deploy não partiu nada. **Quando
+a flag for ligada num build, o primeiro uso do Assistente tem de ser
+seguido de um `SELECT` a `dm_agent_usage` e `dm_rate_limits`, filtrado
+pelo utilizador, a confirmar uma linha nova em cada.** É a única prova de
+que o `await` está mesmo a escrever.
+
 **Pesquisa feita a 3 out 2026**, com o compilador de TypeScript e não com
 grep, porque as cadeias ocupam várias linhas: **61 escritas** (`insert`/
 `update`/`upsert`/`delete`) em `app`, `hooks`, `components`, `lib`,
