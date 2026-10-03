@@ -940,20 +940,35 @@ Deno.serve(async (req) => {
   const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === "text");
   const incomplete = iterations >= MAX_TOOL_ITERATIONS && response.stop_reason === "tool_use";
 
-  // ── Regista uso e consumo de rate limit — nunca bloqueia a resposta ──
-  sb.from("dm_agent_usage").insert({
-    user_id: user.id,
-    model: MODEL,
-    input_tokens: usage.input_tokens,
-    output_tokens: usage.output_tokens,
-    cache_creation_input_tokens: usage.cache_creation_input_tokens,
-    cache_read_input_tokens: usage.cache_read_input_tokens,
-    tool_calls: toolCallCount,
-    latency_ms: Date.now() - startedAt,
-  }).then(({ error }) => { if (error) console.error("dm_agent_usage insert error:", error); });
-
-  sb.from("dm_rate_limits").insert({ user_id: user.id, endpoint: ENDPOINT_NAME })
-    .then(({ error }) => { if (error) console.error("dm_rate_limits insert error:", error); });
+  // ── Regista uso e consumo de rate limit ANTES de responder ──
+  // Com await e não fire-and-forget: numa edge function, trabalho pendente depois
+  // do return não tem garantia de terminar, e estes registos são o custo por
+  // sessão (de que depende abrir o Assistente) e o contador do rate limit. Em
+  // paralelo, para custar uma ida à BD e não duas. Uma falha aqui é registada e
+  // engolida — nunca parte a resposta ao utilizador. O supabase-js não rejeita
+  // em erros da BD (devolve { error }); o allSettled cobre também uma rejeição
+  // de rede.
+  const writes = await Promise.allSettled([
+    sb.from("dm_agent_usage").insert({
+      user_id: user.id,
+      model: MODEL,
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+      cache_creation_input_tokens: usage.cache_creation_input_tokens,
+      cache_read_input_tokens: usage.cache_read_input_tokens,
+      tool_calls: toolCallCount,
+      latency_ms: Date.now() - startedAt,
+    }),
+    sb.from("dm_rate_limits").insert({ user_id: user.id, endpoint: ENDPOINT_NAME }),
+  ]);
+  const writeNames = ["dm_agent_usage", "dm_rate_limits"];
+  for (const [i, w] of writes.entries()) {
+    const err = w.status === "rejected" ? w.reason : w.value.error;
+    if (err) {
+      console.error(`${writeNames[i]} insert error:`, err);
+      await reportToSentry(err, user.id, { phase: "usage_log", table: writeNames[i] });
+    }
+  }
 
   return jsonResponse({
     reply: textBlock?.text ?? (incomplete ? "Não consegui terminar esta análise — tenta reformular ou dividir o pedido." : "Feito."),
