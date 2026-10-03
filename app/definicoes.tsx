@@ -109,11 +109,17 @@ export default function DefinicoesScreen() {
     _AsyncStorage?.getItem(COUNTRY_KEY).then((c) => { if (c) setCountry(c) })
   }, [])
 
+  // O perfil é a fonte de verdade: o _layout e este ecrã reaplicam profile.language
+  // a cada arranque, a cada evento de auth e ao abrir as Definições. Se o update não
+  // chegar à BD, a língua volta ao valor antigo. (Antes o update não tinha await
+  // nem .then() e o supabase-js nunca o enviava — a escolha voltava sempre a 'pt'.)
   async function handleLangChange(lang: 'pt' | 'en' | 'es') {
     await changeAppLanguage(lang)
     setCurrentLang(lang)
     if (profile) {
-      supabase.from('dm_profiles').update({ language: lang }).eq('id', profile.id)
+      const { error } = await supabase.from('dm_profiles').update({ language: lang }).eq('id', profile.id)
+      if (error) console.error('guardar língua no perfil falhou', error)
+      else setProfile({ ...profile, language: lang } as typeof profile)
     }
   }
 
@@ -122,7 +128,10 @@ export default function DefinicoesScreen() {
     setCurrencyLocal(c)
     setCurrencyStore(c)
     if (profile) {
-      supabase.from('dm_profiles').update({ currency: c }).eq('id', profile.id)
+      // Mesmo problema da língua: sem await, o update nunca saía.
+      const { error } = await supabase.from('dm_profiles').update({ currency: c }).eq('id', profile.id)
+      if (error) console.error('guardar moeda no perfil falhou', error)
+      else setProfile({ ...profile, currency: c } as typeof profile)
     }
   }
 

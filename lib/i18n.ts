@@ -44,12 +44,18 @@ getInitialLanguage().then((lang) => {
   if (i18n.language !== lang) i18n.changeLanguage(lang)
 })
 
+// Trocar primeiro, guardar depois, em try separados: com os dois no mesmo try,
+// uma falha a gravar no AsyncStorage impedia a própria troca de língua.
 export const changeAppLanguage = async (language: 'pt' | 'en' | 'es') => {
   try {
-    if (_AsyncStorage) await _AsyncStorage.setItem(LANGUAGE_KEY, language)
     await i18n.changeLanguage(language)
   } catch (e) {
     console.error('changeAppLanguage error', e)
+  }
+  try {
+    if (_AsyncStorage) await _AsyncStorage.setItem(LANGUAGE_KEY, language)
+  } catch (e) {
+    console.error('changeAppLanguage: guardar no AsyncStorage falhou', e)
   }
 }
 
