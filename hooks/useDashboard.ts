@@ -85,6 +85,13 @@ export function useDashboard(month: number, year: number) {
         return { ...a, effectiveDebt, linkedCredit }
       })
       const assetsValue = assetsWithLiveDebt.reduce((s, a) => s + (a.value - a.effectiveDebt), 0)
+      // Um crédito ligado a um bem já está descontado no effectiveDebt desse bem.
+      // Subtraí-lo outra vez no total dava a dívida duas vezes (24 526 € em vez de
+      // 25 434 € a 3 out 2026). Só os créditos sem bem ligado saem à parte.
+      const linkedCreditIds  = new Set(assets.map((a) => a.credit_id).filter(Boolean))
+      const unlinkedCreditDebt = credits
+        .filter((c) => !linkedCreditIds.has(c.id))
+        .reduce((s, c) => s + getCreditOutstandingBalance(c).balance, 0)
 
       // Sempre calcular de dm_expenses quando há dados (fonte da verdade).
       // dm_budget_rules só é usado como fallback antes de qualquer registo real
@@ -116,7 +123,7 @@ export function useDashboard(month: number, year: number) {
         lazerAmt,
         lazerPct,
         availableBalance: income - totalExpenses,
-        netWorth:    assetsValue + portfolioValue + emergencyFund - totalCreditDebt,
+        netWorth:    assetsValue + portfolioValue + emergencyFund - unlinkedCreditDebt,
         portfolioValue,
         portfolioPL: portfolioValue - portfolioCapital,
         emergencyFund,

@@ -542,6 +542,36 @@ versionCode 7 e 1h10m no 13 — e ambos acabaram por compilar sem
 problema. Uma fila longa sozinha não é sinal de falha; acima de duas
 horas, ver o estado do serviço do EAS.
 
+## Património líquido: dívida subtraída duas vezes (corrigido a 3 out 2026)
+
+O `netWorth` do `useDashboard` era `assetsValue + portfolio + fundo −
+totalCreditDebt`. Mas `assetsValue` já desconta o `effectiveDebt` de cada
+bem, e num bem ligado a um crédito esse valor é o saldo do próprio
+crédito. O crédito do Peugeot saía duas vezes: **24 526,36 € em vez de
+25 433,96 €**. Passou a subtrair-se à parte só os créditos **sem** bem
+ligado. A lista por baixo do banner (Bens Ativos em bruto + Portfólio +
+Fundo − Passivos) soma agora exatamente o total, como se espera de uma
+lista que se lê a olho.
+
+**A linha "Conta à Ordem" (941 €) não era um saldo.** Era `rendimento −
+despesas` do mês (`availableBalance`), um fluxo. Passou a chamar-se
+**"Sobra do mês"** e saiu do cartão do património. O saldo real da conta
+à ordem do dono é um **bem** em Bens Ativos (232,58 € a 3 out).
+
+**Consequência no histórico:** a Dashboard grava o património do mês em
+`dm_net_worth_snapshots` sempre que carrega (upsert por mês). Os meses
+até setembro ficaram gravados com a dupla subtração, e outubro em diante
+sem ela, por isso há um degrau na série. Não foram corrigidos, porque não
+há registo do saldo do crédito em cada mês passado. Hoje nada lê esta
+tabela (o `useNetWorthHistory` não tem consumidor), mas **quem construir
+um gráfico de evolução tem de saber que os valores antes de out 2026
+estão subestimados pelo saldo do crédito do carro nesse mês.**
+
+Caso que a lista ainda não cobre: um bem com dívida manual (`debt`) sem
+crédito ligado. Essa dívida entra no total, mas não aparece na linha
+Passivos, por isso a soma a olho deixaria de bater. Hoje nenhum bem do
+dono está nesse caso.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/

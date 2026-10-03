@@ -621,28 +621,31 @@ export default function DashboardScreen() {
               </View>
             </View>
 
+            {/* Sobra do mês — fora do cartão do património de propósito: é rendimento −
+                despesas do mês, um fluxo e não um saldo, e não entra no total. Na lista
+                do património fazia a soma a olho não bater com o número de cima. O saldo
+                real da conta à ordem é um bem em Bens Ativos. */}
+            <TouchableOpacity
+              className="flex-row items-center bg-dark-800 border border-dark-700 rounded-2xl px-4 py-3.5 mb-3"
+              onPress={() => router.push('/(tabs)/orcamento')}
+              activeOpacity={0.7}
+            >
+              <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#3b82f615' }}>
+                <Ionicons name="wallet-outline" size={15} color="#3b82f6" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-dark-50 text-sm font-medium">Sobra do mês</Text>
+                <Text className="text-dark-500 text-xs">Rendimento menos despesas</Text>
+              </View>
+              <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.availableBalance ?? 0)}</Text>
+              <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
+            </TouchableOpacity>
+
             {/* Património Líquido */}
             <NetWorthBanner label={t('dashboard.netWorth')} value={fmt(data?.netWorth ?? 0)} />
 
-            {/* ── Net Worth — 5 categorias ─────────────────────────── */}
+            {/* ── Net Worth — 4 categorias, que somadas dão o total acima ── */}
             <View className="bg-dark-800 border border-dark-700 rounded-2xl mb-3 overflow-hidden">
-
-              {/* Conta à Ordem */}
-              <TouchableOpacity
-                className="flex-row items-center px-4 py-3.5 border-b border-dark-700"
-                onPress={() => router.push('/(tabs)/orcamento')}
-                activeOpacity={0.7}
-              >
-                <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#3b82f615' }}>
-                  <Ionicons name="wallet-outline" size={15} color="#3b82f6" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-dark-50 text-sm font-medium">Conta à Ordem</Text>
-                  <Text className="text-dark-500 text-xs">Saldo disponível imediato</Text>
-                </View>
-                <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.availableBalance ?? 0)}</Text>
-                <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
-              </TouchableOpacity>
 
               {/* Fundo de Emergência */}
               {editingEmergencyFund ? (
