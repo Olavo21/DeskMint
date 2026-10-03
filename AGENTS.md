@@ -218,8 +218,8 @@ certo de entrar do que `PENDING`.
 
 Bugs que isto causou, todos corrigidos nesta data em `useReports.ts` /
 `relatorios.tsx`:
-- `usePendingByType` filtrava só `PENDING`. Com a base real (9 `PAID`,
-  1 `TO_PAY`, 0 `PENDING`) o ecrã mostrava "🎉 Nenhuma comissão
+- `usePendingByType` filtrava só `PENDING`. Com a base real da conta do dono (8 `PAID`,
+  1 `TO_PAY`, 0 `PENDING` — números corrigidos a 3 out, ver nota no fim desta secção) o ecrã mostrava "🎉 Nenhuma comissão
   pendente — Tudo pago e em dia!" com 12 € por receber. Não era um
   número desviado, era uma conclusão errada.
 - O card "Comissões por Serviço" só somava `PAID` e `PENDING`: uma
@@ -232,6 +232,19 @@ A correção central é `lib/commissions.ts` → `groupByType()`, partilhada
 pelos dois hooks, com os quatro estados tratados explicitamente.
 **Invariante a manter**: nenhuma comissão pode entrar no `count` de um
 grupo sem aparecer no dinheiro desse grupo.
+
+**Correção de 3 out 2026 aos números desta secção e da dos Relatórios.**
+As consultas de diagnóstico foram feitas pela ligação direta ao Postgres,
+que ignora o RLS, e **não filtravam por utilizador**. Há outras contas de
+teste na BD, e uma delas tinha uma comissão de 37 € (a única sem tipo, de
+junho) que entrou em todas as somas. Ficaram contaminados os totais
+("171 €" em vez dos 134 € da conta do dono), as contagens do bug acima, os
+"42 dias" de junho e a "comissão sem tipo" da análise de composição. **As
+conclusões mantêm-se:** os 12 € em `TO_PAY` eram do dono, a mudança de
+ritmo de pagamento a partir de julho continua lá, e um Tour continua a
+valer cerca de 3,4 Táxis. O erro foi apanhado porque a app mostrava 134 €
+e o número esperado era 171 €. A app estava certa e a verificação estava
+errada. **Regra:** qualquer `SELECT` de diagnóstico filtra por `user_id`.
 
 ### `CANCELLED`: estado inatingível com consumidor já escrito
 
@@ -287,7 +300,7 @@ em `dm_agent_usage` ou `dm_confirmed_actions`: as tabelas nasceram
 depois do quarto estado e estão certas, mas quem escrever a query de
 agregação pode não saber que existem quatro estados e não três.
 
-## Invalidação em falta nos mutadores de comissões (1 out 2026) — corrigida no código (2 out), por validar em build
+## Invalidação em falta nos mutadores de comissões (1 out 2026) — corrigida (2 out) e validada no build 15 (3 out)
 
 **Os quatro mutadores de `hooks/useCommissions.ts` (`create`, `update`,
 `updateStatus`, `remove`) invalidam apenas `['commissions']` e
@@ -344,9 +357,20 @@ Achado ao fazer a lista: **a Dashboard não lê comissões** — nem o
 `dashboard` fica na lista porque já era invalidada antes, e está anotada
 como tal para a lista não afirmar uma dependência que não existe.
 
-**Ainda não validado num binário.** O teste é o mesmo que provou a falha:
-criar uma comissão pela UI, avançá-la para `TO_PAY`, apagá-la, e ver os
-Relatórios voltarem a zero **sem** esperar 60 s nem fechar a app.
+**Validado no build 15 (3 out 2026)**, com o mesmo teste que provou a
+falha: comissão de 10 € criada e validada pela UI, e apagada a seguir.
+A aba Mês de outubro passou de 0 € para 10 € em "A receber deste mês"
+logo depois de validar, e voltou a 0 € logo depois de apagar, sem esperar
+nem fechar a app. É a volta para 0 € que prova a invalidação: o valor em
+cache era 10 €, e uma cache velha teria ficado presa nele.
+
+**Atenção para quem repetir este teste:** voltar ao valor *inicial* não
+prova nada. Se a cache ficasse presa, mostraria exatamente esse valor
+inicial. A prova está no valor que estava em cache *a seguir à última
+mutação*. O "Desde sempre" (`all-time-report`) não foi visto a mudar, mas
+passa pelo mesmo ciclo do helper, e um teste com a biblioteca
+`@tanstack/query-core` instalada confirmou que a chave
+`['all-time-report']` apanha `['all-time-report', uid]`.
 
 ## Relatórios: abas reduzidas, e "Desde sempre" é um placeholder (2 out 2026)
 
@@ -393,11 +417,11 @@ Duas escolhas de pormenor:
   conclusão errada — a mesma classe do "tudo pago e em dia".
 
 Foram consideradas e **adiadas** outras vistas de período longo, com os
-dados reais a 2 out (10 comissões em 4 meses): *tendência* (ruído a este
+dados reais da conta do dono a 2 out (9 comissões em 4 meses): *tendência* (ruído a este
 volume — um Tour de 40 € faz um mês parecer crescimento), *sazonalidade*
 (precisa de pelo menos dois anos), *composição por valor* (sinal real: um
 Tour vale 3,4 Táxis em média) e *velocidade de pagamento* (sinal mais
-forte: comissões de junho levaram 31–42 dias a pagar, desde julho nunca
+forte: comissões de junho levaram 30–31 dias a pagar, desde julho nunca
 mais de 9). Ficam como ideias para quando houver volume.
 
 ### "Média dias a receber" media o intervalo errado — corrigido a 3 out 2026
@@ -407,8 +431,8 @@ a data do serviço — é a data em que a comissão foi inserida na app**.
 Prova nos dados: o Tour de 40 € foi pago a 10 set e registado a 12 set,
 dando **−2 dias**. O KPI mede "tempo a registar + tempo a pagar" e pode
 sair negativo. A base certa é `service_date`, com recurso ao
-`earned_at` só quando está vazio (as duas comissões mais antigas não o
-têm). Com `service_date` os valores são todos ≥ 0.
+`earned_at` só quando está vazio (na conta do dono, só a comissão mais
+antiga não o tem). Com `service_date` os valores são todos ≥ 0.
 
 Corrigido a 3 out: `service_date ?? earned_at`, em **dias de calendário**
 (não em milissegundos entre um `date` e um `timestamptz`, que dava
