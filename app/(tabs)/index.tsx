@@ -170,15 +170,20 @@ function RuleRow({ kind, label, pct, ideal, amt, fmt, spent }: {
   const filled = Math.min(Math.max(spent ? spent.pct : pct, 0), 1)
   const unallocated = spent ? Math.min(Math.max(pct - spent.pct, 0), 1 - filled) : 0
   const targetPct = Math.round(ideal * 100)
+  // O texto mostra o que a barra desenha. Num mês deficitário a sobra é negativa e
+  // `pct`/`amt` (desejos + sobra) ficavam abaixo do que foi gasto, enquanto a
+  // barra mostrava o gasto inteiro.
+  const shownPct = spent ? spent.pct + Math.max(pct - spent.pct, 0) : pct
+  const shownAmt = spent ? spent.amt + spent.unallocatedAmt : amt
   return (
     <View className="mb-3">
       <View className="flex-row justify-between items-center mb-1">
         <Text className="text-dark-300 text-sm">{label}</Text>
         <View className="flex-row items-center gap-2">
           <Text className={`text-sm font-semibold ${over ? 'text-red-700' : 'text-mint-800'}`}>
-            {(pct * 100).toFixed(1)}%
+            {(shownPct * 100).toFixed(1)}%
           </Text>
-          <Text className="text-dark-300 text-sm">{fmt(amt)}</Text>
+          <Text className="text-dark-300 text-sm">{fmt(shownAmt)}</Text>
         </View>
       </View>
       <View style={{ height: 12, justifyContent: 'center' }}>
