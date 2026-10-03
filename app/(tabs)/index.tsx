@@ -148,8 +148,28 @@ function EmergencyCard({ atual, despesaMensal }: { atual: number; despesaMensal:
   )
 }
 
-function RuleRow({ label, pct, ideal, amt, fmt }: { label: string; pct: number; ideal: number; amt: number; fmt: (n: number) => string }) {
-  const over = pct > ideal && label !== 'Poupança'
+type RuleKind = 'needs' | 'wants' | 'savings'
+
+function RuleRow({ kind, label, pct, ideal, amt, fmt, spent }: {
+  kind: RuleKind
+  label: string
+  pct: number
+  ideal: number
+  amt: number
+  fmt: (n: number) => string
+  // Só no Lazer: a parte já gasta e a parte por atribuir. A cor julga apenas o
+  // gasto — antes, 341 € por atribuir pintavam a barra de vermelho como se
+  // fossem gasto em lazer acima da meta.
+  spent?: { pct: number; amt: number; unallocatedAmt: number }
+}) {
+  const { t } = useTranslation()
+  const judgedPct = spent ? spent.pct : pct
+  // Chave estável e não o rótulo: comparar com 'Poupança' pintava a Poupança
+  // acima da meta a vermelho com a app em inglês ou espanhol.
+  const over = kind !== 'savings' && judgedPct > ideal
+  const filled = Math.min(Math.max(spent ? spent.pct : pct, 0), 1)
+  const unallocated = spent ? Math.min(Math.max(pct - spent.pct, 0), 1 - filled) : 0
+  const targetPct = Math.round(ideal * 100)
   return (
     <View className="mb-3">
       <View className="flex-row justify-between items-center mb-1">
@@ -161,11 +181,25 @@ function RuleRow({ label, pct, ideal, amt, fmt }: { label: string; pct: number; 
           <Text className="text-dark-300 text-sm">{fmt(amt)}</Text>
         </View>
       </View>
-      <View className="h-2 bg-dark-700 rounded-full overflow-hidden">
+      <View style={{ height: 12, justifyContent: 'center' }}>
+        <View className="h-2 bg-dark-700 rounded-full overflow-hidden" style={{ flexDirection: 'row' }}>
+          <View className={`h-full ${over ? 'bg-red-400' : 'bg-mint-500'}`} style={{ width: `${filled * 100}%` }} />
+          {unallocated > 0 && (
+            <View className="h-full" style={{ width: `${unallocated * 100}%`, backgroundColor: '#cbd5e1' }} />
+          )}
+        </View>
+        {/* Marcador da meta, na mesma escala da barra (100% = rendimento). */}
         <View
-          className={`h-full rounded-full ${over ? 'bg-red-400' : 'bg-mint-500'}`}
-          style={{ width: `${Math.min(pct * 100, 100)}%` }}
+          accessibilityLabel={t('dashboard.ruleTarget', { pct: targetPct })}
+          style={{ position: 'absolute', left: `${Math.min(ideal, 1) * 100}%`, top: 0, bottom: 0,
+                   width: 2, marginLeft: -1, borderRadius: 1, backgroundColor: '#334155' }}
         />
+      </View>
+      <View className="flex-row justify-between mt-0.5">
+        <Text className="text-dark-400 text-xs">
+          {spent ? t('dashboard.wantsBreakdown', { spent: fmt(spent.amt), unallocated: fmt(spent.unallocatedAmt) }) : ''}
+        </Text>
+        <Text className="text-dark-400 text-xs">{t('dashboard.ruleTarget', { pct: targetPct })}</Text>
       </View>
     </View>
   )
@@ -772,9 +806,12 @@ export default function DashboardScreen() {
                 <Text className="text-dark-50 font-semibold mb-3">
                   {t('dashboard.ruleLabel', { n: Math.round(targets.needs * 100), w: Math.round(targets.wants * 100), s: Math.round(targets.savings * 100) })}
                 </Text>
-                <RuleRow label={t('dashboard.needsLabel')} pct={data.budgetRule.needs_pct} ideal={targets.needs} amt={data.budgetRule.needs_amt} fmt={fmt} />
-                <RuleRow label={t('dashboard.leisureLabel')} pct={lazerPct} ideal={targets.wants} amt={lazerAmt} fmt={fmt} />
-                <RuleRow label={t('dashboard.savingsLabel')} pct={data.budgetRule.savings_pct} ideal={targets.savings} amt={data.budgetRule.savings_amt} fmt={fmt} />
+                <RuleRow kind="needs" label={t('dashboard.needsLabel')} pct={data.budgetRule.needs_pct} ideal={targets.needs} amt={data.budgetRule.needs_amt} fmt={fmt} />
+                <RuleRow
+                  kind="wants" label={t('dashboard.leisureLabel')} pct={lazerPct} ideal={targets.wants} amt={lazerAmt} fmt={fmt}
+                  spent={{ pct: data.budgetRule.wants_pct, amt: data.budgetRule.wants_amt, unallocatedAmt: Math.max(data.freeCash, 0) }}
+                />
+                <RuleRow kind="savings" label={t('dashboard.savingsLabel')} pct={data.budgetRule.savings_pct} ideal={targets.savings} amt={data.budgetRule.savings_amt} fmt={fmt} />
               </View>
             )}
 

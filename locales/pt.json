@@ -48,6 +48,8 @@
     "availableLabel": "Disponível",
     "savingsLabel": "Poupança",
     "leisureLabel": "Disponível/Lazer",
+    "ruleTarget": "meta {{pct}}%",
+    "wantsBreakdown": "{{spent}} gastos · {{unallocated}} por atribuir",
     "investedLabel": "Investido",
     "ruleLabel": "Regra {{n}}/{{w}}/{{s}}",
     "needsLabel": "Necessidades",

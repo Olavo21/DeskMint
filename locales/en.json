@@ -48,6 +48,8 @@
     "availableLabel": "Available",
     "savingsLabel": "Savings",
     "leisureLabel": "Available/Leisure",
+    "ruleTarget": "target {{pct}}%",
+    "wantsBreakdown": "{{spent}} spent · {{unallocated}} unallocated",
     "investedLabel": "Invested",
     "ruleLabel": "Rule {{n}}/{{w}}/{{s}}",
     "needsLabel": "Needs",

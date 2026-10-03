@@ -591,6 +591,29 @@ mudanças, a inflação é a que pesa mais.
   "Juros ganhos") continuam em valores nominais, ao lado de um número
   principal em euros de hoje. São unidades diferentes no mesmo cartão.
 
+## Regra Necessidades/Lazer/Poupança: o que a barra do Lazer mede (3 out 2026)
+
+As metas são personalizáveis por perfil (`target_needs/wants/savings` em
+`dm_profiles`, via `useBudgetTargets`). O dono usa **50/20/30**, e o título
+"Regra 50/20/30" segue a ordem das barras. Atenção a não ler isto como a
+clássica 50/30/20.
+
+**A barra "Disponível/Lazer" não é gasto em lazer.** É `desejos gastos +
+dinheiro por atribuir` (`lazerAmt = wants_amt + freeCash` no
+`useDashboard`). Com 0 € gastos e 341 € por atribuir, ficava a vermelho
+por "exceder" a meta de 20% com dinheiro que ninguém gastou. Agora a
+barra tem dois segmentos: o gasto, colorido contra a meta, e o por
+atribuir, a cinzento neutro. **A cor julga só o gasto.** A soma das três
+percentagens continua a dar ~100% do rendimento.
+
+Também corrigido: o teste para não pintar a Poupança comparava o
+**rótulo traduzido** (`label !== 'Poupança'`). Com a app em inglês ou
+espanhol, a Poupança acima da meta aparecia a vermelho. Passou a usar uma
+chave estável (`kind: 'savings'`).
+
+Cada barra tem um marcador na posição da meta, na mesma escala da barra
+(100% = rendimento), e o texto "meta X%" por baixo.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/
