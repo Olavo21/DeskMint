@@ -43,16 +43,53 @@ function RootLayout() {
       }
     })
 
-    // ── Mudanças de auth (login / logout / refresh de token) ──────────────
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // ── Mudanças de auth ──────────────────────────────────────────────────
+    // Só se encaminha nos eventos que significam "acabaste de entrar". Antes, todos
+    // os eventos com sessão chamavam fetchProfile → router.replace('/(tabs)'),
+    // incluindo TOKEN_REFRESHED (renovação do token, ~de hora a hora e ao voltar à
+    // app) e USER_UPDATED — que atirariam a pessoa para a Dashboard a meio do que
+    // estivesse a fazer, ou a meio de escolher uma password nova.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       Sentry.setUser(session ? { id: session.user.id } : null)
-      if (session) {
-        fetchProfile(session.user.id)
-      } else {
+      const { recovering, setRecovering } = useAuthStore.getState()
+
+      if (!session) {
+        setRecovering(false)
         setProfile(null)
         queryClient.clear()
         router.replace('/(auth)/login')
+        return
+      }
+
+      switch (event) {
+        case 'PASSWORD_RECOVERY':
+          // Sessão de recuperação (verifyOtp type 'recovery'): fica no ecrã da
+          // password nova. O ecrã já ligou a flag antes do verifyOtp; isto confirma.
+          setRecovering(true)
+          return
+        case 'USER_UPDATED':
+          // Fim da recuperação: a password foi mudada. Fora disso, não encaminha.
+          if (recovering) {
+            setRecovering(false)
+            fetchProfile(session.user.id)
+          }
+          return
+        case 'SIGNED_IN':
+          // Um login normal limpa sempre a flag. A recuperação nunca emite SIGNED_IN
+          // (verificado no auth-js 2.106.1), por isso isto é uma rede de segurança:
+          // uma flag esquecida a true não bloqueia o login seguinte.
+          setRecovering(false)
+          fetchProfile(session.user.id)
+          return
+        case 'INITIAL_SESSION':
+          // No arranque a flag é sempre false (não persistida). Quem fechar a app a
+          // meio de uma recuperação entra na Dashboard — decisão consciente.
+          if (!recovering) fetchProfile(session.user.id)
+          return
+        default:
+          // TOKEN_REFRESHED, MFA...: só atualiza a sessão.
+          return
       }
     })
 

@@ -129,7 +129,9 @@ export default function OnboardingScreen() {
     } catch (err) {
       console.error('[onboarding] handleFinish:', err)
       // Falha parcial: não quebra a app.
-      // Se onboarding_done ficou false, o _layout.tsx redireciona de volta.
+      // Se onboarding_done ficou false, a pessoa fica na app mesmo assim. O _layout
+      // só volta a mandá-la para o onboarding no arranque seguinte da app
+      // (INITIAL_SESSION) — não há redirecionamento imediato.
       router.replace('/(tabs)')
     } finally {
       setLoading(false)
