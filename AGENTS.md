@@ -671,6 +671,35 @@ sessão e vai marcar muito código existente. Adiado porque hoje há zero
 casos e o detetor acima está provado. A razão para um dia o fazer: **este
 bug passa no `tsc`**, e só aparece quando alguém testa a persistência.
 
+## Língua e moeda: gravação validada; dois pendentes que os testes abriram (4 out 2026)
+
+**A correção da gravação (commit `34c00db`) está validada no build 17,
+nos dois sentidos.** Escolhido inglês: a Dashboard mudou logo, e manteve-se
+depois de fechar a app à força e reabrir, com `dm_profiles.language =
+'en'` na base de dados. Voltando a português e mudando a moeda para USD:
+`language = 'pt'` e `currency = 'USD'`. A chave estável da regra também
+ficou provada: em inglês, a linha "Savings" acima da meta fica a verde.
+No build 16, sem a correção, nada mudava. A falta de gravação explicava
+tudo, e não apareceu nenhuma segunda causa.
+
+**Pendente 1: a moeda só muda o símbolo, não converte.** O `useFmt` passa
+o número guardado ao `Intl.NumberFormat` com o código da moeda escolhida,
+e não há taxa de câmbio em lado nenhum da app. Os valores do dono estão
+em euros: com USD, o património de 25 434 € aparece como `$25,434`, com
+AOA como `25 434 Kz` (mil vezes abaixo do real). **Decidir primeiro o que
+é a "moeda":** a moeda em que o utilizador regista os valores (e então só
+falta dizê-lo claramente no ecrã, sem converter nada), ou uma moeda de
+apresentação (e então precisa de taxas de câmbio e de uma moeda base
+guardada com os dados).
+
+**Pendente 2: a tradução está a meio.** Com inglês escolhido, os textos que
+passam por `t()` mudam ("Net Worth", "Net Income", "Long-Term
+Projection"...), mas muitos estão escritos à mão em português e ficam:
+"Sobra do mês", "Bens Ativos", "Passivos / Créditos", e os nove
+separadores da barra inferior (em `app/(tabs)/_layout.tsx`, `title:
+'Início'` etc.). Quem escolhe inglês fica com uma app meio traduzida, e a
+barra inferior, que está sempre visível, fica toda em português.
+
 ## Sentry (12 set 2026)
 
 `@sentry/react-native` instalado e ligado (`lib/sentry.ts`, `components/
@@ -815,6 +844,12 @@ a identificar sem ambiguidade de que build veio.
   `is_embedded_launch: true`). O rodapé das Definições mostra o mesmo
   valor. **Teste do 17:** o `environment` do primeiro evento no Sentry tem
   de ser igual ao que o rodapé mostra.
+  **Rodapé validado no build 17 (4 out 2026):** mostra literalmente
+  `1.6.0 (17) · production`. Prova que o canal vem preenchido num binário
+  instalado pela Play, e não cai no recurso `dev`. O `Sentry.init` do
+  commit desse build usa `environment: buildChannel`. A confirmação ao
+  vivo de um evento com `environment: production` fica para o primeiro
+  erro real. Não se repõe nenhum gatilho para isto.
 
 ### O `ErrorBoundary` continua por testar — e porque é que a tentativa falhou (30 set 2026)
 
