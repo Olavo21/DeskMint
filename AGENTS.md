@@ -476,7 +476,7 @@ automático nem polling. Esgotar 20 chamadas exige vinte toques manuais
 numa app visivelmente a dar erro. Se algum dia esse fetch passar a ser
 automático, esta decisão tem de ser reavaliada.
 
-## Recuperação de password (2 out 2026) — fase 1 (routing) feita e validada; fase 2 (ecrã) por fazer
+## Recuperação de password — fase 1 validada (build 18); fase 2 implementada, por validar
 
 **Atualização de 4 out 2026 — ler isto antes do resto da secção, que
 descreve o estado anterior.** O desenho mudou para **código de 6 dígitos**
@@ -514,6 +514,37 @@ evento, `PASSWORD_RECOVERY` (nunca `SIGNED_IN`). O `updateUser` emite
   Password" para usar `{{ .Token }}`. Sem isso o email chega com um link
   e o ecrã espera um código que nunca vem.
 - Teste: depois de mudar a password, chegar à Dashboard sem reabrir a app.
+
+**Fase 2 implementada a 4 out 2026, sem build:** `app/(auth)/recuperar.tsx`,
+com link "Esqueci-me da palavra-passe" no login e textos em `recovery.*`
+nos três idiomas. Cumpre os requisitos acima e mais três que saíram dos
+limites do Supabase: "Reenviar código" com espera de 60 s (igual ao
+intervalo mínimo por utilizador do Supabase), mensagem própria para o
+limite de email (por hora, não o "aguarda um minuto" do `friendlyError`
+do login) e limite de 8 códigos errados na UI. Depois de um `verifyOtp`
+bem-sucedido o código fica gasto, por isso uma password rejeitada
+(`same_password`, `weak_password`) só repete o `updateUser`.
+
+**Configuração do Supabase de que isto depende (dashboard, fora do repo):**
+- **Template "Reset Password"** tem de usar `{{ .Token }}` e não
+  `{{ .ConfirmationURL }}` (o de omissão). Sem isso o email traz um link
+  que não abre nada na app, e o ecrã espera um código que nunca chega.
+- **Limite de envio de emails: 2 por hora, para o projeto inteiro**
+  (Authentication → Rate Limits, 4 out 2026), partilhado com os emails de
+  confirmação de registo. Cada pedido de código num teste gasta um.
+- **Verificação de códigos: 30 a cada 5 min, por IP.** É isto que protege
+  o código de 6 dígitos contra força bruta; o limite da UI é experiência.
+- **Expiração do código:** Authentication → Providers → Email → "Email
+  OTP Expiration". O valor por omissão é 3600 s; recomendado 600 s.
+- **SMTP próprio é pré-requisito para outros utilizadores.** O serviço de
+  email por omissão do Supabase tem limites baixos e, segundo as regras
+  atuais do Supabase, pode só entregar a membros da equipa do projeto.
+  Se for assim, a recuperação funciona para o dono e falha para quem a
+  motivou. Para um círculo fechado, Gmail com app password
+  (`smtp.gmail.com`, porta 465) chega e não precisa de domínio. A app
+  password mete-se diretamente no dashboard, nunca no chat. **Cuidado:**
+  ligar o interruptor "Enable custom SMTP" e guardar com os campos vazios
+  faz deixar de sair todos os emails de autenticação.
 
 **Lacuna conhecida:** as Definições não permitem mudar a password. Quem
 fechar a app a meio da recuperação entra na Dashboard (decisão consciente)

@@ -2,6 +2,8 @@ import { useState, useRef } from 'react'
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
+import { router } from 'expo-router'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -18,6 +20,7 @@ function friendlyError(msg: string): string {
 }
 
 export default function LoginScreen() {
+  const { t } = useTranslation()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading]   = useState(false)
@@ -163,6 +166,14 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(auth)/recuperar' as any)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ alignSelf: 'flex-end', marginTop: -6 }}
+          >
+            <Text style={{ color: '#0d9488', fontSize: 13, fontWeight: '600' }}>{t('recovery.forgotLink')}</Text>
+          </TouchableOpacity>
 
           {error && (
             <View className={`rounded-xl px-4 py-3 border ${error.startsWith('📧') ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
