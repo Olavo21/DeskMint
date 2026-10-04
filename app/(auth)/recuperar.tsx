@@ -18,6 +18,14 @@ const MAX_CODE_ATTEMPTS = 8  // generoso: um código novo gasta um dos 2 emails/
 
 type Step = 'email' | 'code'
 
+// Espelha "Password requirements" do Supabase (Authentication → Providers → Email:
+// mínimo 6, com minúsculas, maiúsculas, números e símbolos). Validar aqui dá uma
+// mensagem que diz a regra, em vez do "weak_password" genérico do servidor. Se a
+// regra mudar no dashboard, tem de mudar aqui e no texto recovery.passwordRuleHint.
+function meetsPasswordRule(p: string): boolean {
+  return p.length >= 6 && /[a-z]/.test(p) && /[A-Z]/.test(p) && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p)
+}
+
 // O Supabase só aplica o intervalo mínimo por utilizador ("only request this after N
 // seconds") a contas que EXISTEM. Mostrá-lo como erro revelava quais emails estão
 // registados (bastava cancelar e repetir o pedido, porque o cooldown local é do ecrã
@@ -90,7 +98,7 @@ export default function RecuperarScreen() {
 
   async function submit() {
     if (!/^\d{6}$/.test(code)) { setError(t('recovery.errCodeFormat')); return }
-    if (password.length < 6)   { setError(t('recovery.errPasswordShort')); return }
+    if (!meetsPasswordRule(password)) { setError(t('recovery.errPasswordRule')); return }
     if (password !== confirm)  { setError(t('recovery.errPasswordMismatch')); return }
     if (attempts >= MAX_CODE_ATTEMPTS && !verified.current) { setError(t('recovery.errTooManyAttempts')); return }
 
@@ -198,6 +206,7 @@ export default function RecuperarScreen() {
                 onToggle={() => setShowPassword((v) => !v)}
                 toggleLabel={showPassword ? t('recovery.hidePassword') : t('recovery.showPassword')}
               />
+              <Text className="text-dark-400 text-xs ml-1" style={{ marginTop: -8 }}>{t('recovery.passwordRuleHint')}</Text>
               <PasswordField
                 label={t('recovery.confirmPasswordLabel')}
                 value={confirm}

@@ -552,8 +552,24 @@ o passo nem o estado.
   confirmação de registo. Cada pedido de código num teste gasta um.
 - **Verificação de códigos: 30 a cada 5 min, por IP.** É isto que protege
   o código de 6 dígitos contra força bruta; o limite da UI é experiência.
-- **Expiração do código:** Authentication → Providers → Email → "Email
-  OTP Expiration". O valor por omissão é 3600 s; recomendado 600 s.
+- **Authentication → Sign In / Providers → Email**, valores definidos a 4
+  out 2026 e de que a app depende:
+  - **Email OTP Expiration = 600 s** (era 3600). O template diz "expira em
+    10 minutos": mudar um sem o outro faz o email mentir.
+  - **Email OTP Length = 6** (estava a **8**). O ecrã só aceita 6 dígitos
+    (`/^d{6}$/`, `maxLength={6}`); com 8 ninguém conseguia escrever o
+    código recebido.
+  - **Require current password when updating = desligado** (estava
+    ligado). Com ele, o Supabase pode pedir a password atual para mudar de
+    password — a que a pessoa esqueceu. O único chamador de `updateUser` na
+    app é o ecrã de recuperação, por isso hoje esta opção não protegia mais
+    nada. **Se um dia houver "mudar password" nas Definições, reavaliar.**
+  - **Password requirements = minúsculas, maiúsculas, números e símbolos**
+    (mínimo 6). O ecrã de recuperação valida a **mesma regra** no cliente
+    (`meetsPasswordRule`) para dizer qual é, em vez do `weak_password`
+    genérico. Se a regra mudar no dashboard, muda no código e no texto
+    `recovery.passwordRuleHint`. O registo no login tem o mesmo problema e
+    ainda não foi tratado: mostra a mensagem crua do Supabase, em inglês.
 - **SMTP próprio é pré-requisito para outros utilizadores.** O serviço de
   email por omissão do Supabase tem limites baixos e, segundo as regras
   atuais do Supabase, pode só entregar a membros da equipa do projeto.

@@ -219,6 +219,7 @@
     "codeLabel": "Código de 6 dígitos",
     "newPasswordLabel": "Nova palavra-passe",
     "confirmPasswordLabel": "Confirmar palavra-passe",
+    "passwordRuleHint": "Mínimo 6 caracteres, com minúsculas, maiúsculas, números e símbolos.",
     "save": "Guardar palavra-passe",
     "resend": "Reenviar código",
     "resendIn": "Reenviar código ({{s}} s)",
@@ -229,13 +230,13 @@
     "errEmailRateLimit": "Não foi possível enviar agora. Tenta dentro de uma hora.",
     "errSend": "Não foi possível enviar o código. Verifica a ligação e tenta outra vez.",
     "errCodeFormat": "O código tem 6 dígitos.",
-    "errPasswordShort": "A palavra-passe deve ter pelo menos 6 caracteres.",
+    "errPasswordRule": "A palavra-passe tem de ter pelo menos 6 caracteres, com minúsculas, maiúsculas, números e símbolos.",
     "errPasswordMismatch": "As palavras-passe não coincidem.",
     "errInvalidCode": "Código inválido ou expirado.",
     "errTooManyAttempts": "Demasiadas tentativas. Pede um código novo.",
     "errVerifyRateLimit": "Demasiadas tentativas. Aguarda alguns minutos.",
     "errSamePassword": "A nova palavra-passe tem de ser diferente da anterior.",
-    "errWeakPassword": "Essa palavra-passe é demasiado fraca. Escolhe outra.",
+    "errWeakPassword": "A palavra-passe tem de ter pelo menos 6 caracteres, com minúsculas, maiúsculas, números e símbolos.",
     "errUpdate": "Não foi possível guardar a palavra-passe. Tenta outra vez."
   }
 }
