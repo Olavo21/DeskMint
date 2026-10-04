@@ -525,6 +525,24 @@ do login) e limite de 8 códigos errados na UI. Depois de um `verifyOtp`
 bem-sucedido o código fica gasto, por isso uma password rejeitada
 (`same_password`, `weak_password`) só repete o `updateUser`.
 
+**"Mensagem igual exista ou não a conta" — a armadilha do intervalo
+(corrigida a 4 out 2026, antes do build).** O Supabase só aplica o
+intervalo mínimo por utilizador ("only request this after N seconds") a
+contas que **existem**. A primeira versão mostrava-o como erro ("aguarda N
+segundos"), e isso revelava pelo ecrã quais emails estão registados: o
+cooldown local de 60 s é do ecrã montado, por isso bastava pedir, cancelar,
+voltar e pedir outra vez. Esse erro passou a ser tratado como um envio
+normal (mensagem genérica, passo do código, espera nos N segundos
+indicados), sem repor o contador de tentativas porque não saiu código
+novo. A única mensagem de envio própria é a do limite **por hora** do
+projeto, que é igual para todos e não revela nada da conta. Por API
+direta o intervalo continua a revelar contas, mas isso é comportamento do
+Supabase e não da app.
+
+O ramo `PASSWORD_RECOVERY` do `_layout` **não navega** (verificado): só
+confirma a flag. O ecrã já está montado quando o evento chega e não perde
+o passo nem o estado.
+
 **Configuração do Supabase de que isto depende (dashboard, fora do repo):**
 - **Template "Reset Password"** tem de usar `{{ .Token }}` e não
   `{{ .ConfirmationURL }}` (o de omissão). Sem isso o email traz um link

@@ -18,14 +18,23 @@ const MAX_CODE_ATTEMPTS = 8  // generoso: um código novo gasta um dos 2 emails/
 
 type Step = 'email' | 'code'
 
+// O Supabase só aplica o intervalo mínimo por utilizador ("only request this after N
+// seconds") a contas que EXISTEM. Mostrá-lo como erro revelava quais emails estão
+// registados (bastava cancelar e repetir o pedido, porque o cooldown local é do ecrã
+// montado). Por isso é tratado como um envio normal: o código pedido há segundos
+// continua válido.
+function intervalSeconds(e: AuthError): number | null {
+  const m = /after (\d+) seconds?/i.exec(e.message)
+  return m ? Number(m[1]) : null
+}
+
 // Erros de envio. Não usar o friendlyError do login: diz "aguarda um minuto", e o
-// limite de email do Supabase é por hora (2 emails/h para o projeto inteiro).
-function sendErrorKey(e: AuthError): { key: string; s?: number } {
-  const wait = /after (\d+) seconds?/i.exec(e.message)
-  if (wait) return { key: 'recovery.errEmailInterval', s: Number(wait[1]) }
-  if (e.code === 'over_email_send_rate_limit' || e.status === 429) return { key: 'recovery.errEmailRateLimit' }
-  if (e.code === 'email_address_invalid') return { key: 'recovery.errEmailInvalid' }
-  return { key: 'recovery.errSend' }
+// limite de email do Supabase é por hora (2 emails/h para o projeto inteiro). Esse
+// limite é igual para todos, por isso a mensagem própria não revela nada da conta.
+function sendErrorKey(e: AuthError): string {
+  if (e.code === 'over_email_send_rate_limit' || e.status === 429) return 'recovery.errEmailRateLimit'
+  if (e.code === 'email_address_invalid') return 'recovery.errEmailInvalid'
+  return 'recovery.errSend'
 }
 
 export default function RecuperarScreen() {
@@ -64,18 +73,19 @@ export default function RecuperarScreen() {
     setSending(true); setError(null)
     const { error: e } = await supabase.auth.resetPasswordForEmail(normalizedEmail)
     setSending(false)
-    if (e) {
-      const { key, s } = sendErrorKey(e)
-      setError(t(key, { s }))
-      if (s) setCooldown(s)
+    const wait = e ? intervalSeconds(e) : null
+    if (e && wait === null) {
+      setError(t(sendErrorKey(e)))
       return
     }
-    // Mesma mensagem exista ou não a conta: não revela se o email está registado.
+    // Mesma resposta exista ou não a conta, incluindo o caso do intervalo mínimo.
     setInfo(t('recovery.codeSent'))
     setCode('')
     setStep('code')
-    setAttempts(0)
-    setCooldown(RESEND_COOLDOWN_S)
+    // No caso do intervalo não saiu código novo: o contador de tentativas mantém-se,
+    // senão repetir o pedido contornava o limite de códigos errados.
+    if (wait === null) setAttempts(0)
+    setCooldown(wait ?? RESEND_COOLDOWN_S)
   }
 
   async function submit() {

@@ -227,7 +227,6 @@
     "hidePassword": "Hide password",
     "errEmailInvalid": "Enter a valid email.",
     "errEmailRateLimit": "We couldn't send it right now. Try again in an hour.",
-    "errEmailInterval": "Wait {{s}} seconds before requesting another code.",
     "errSend": "We couldn't send the code. Check your connection and try again.",
     "errCodeFormat": "The code has 6 digits.",
     "errPasswordShort": "The password must have at least 6 characters.",

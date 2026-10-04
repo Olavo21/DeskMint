@@ -227,7 +227,6 @@
     "hidePassword": "Ocultar contraseña",
     "errEmailInvalid": "Indica un email válido.",
     "errEmailRateLimit": "No se ha podido enviar ahora. Inténtalo dentro de una hora.",
-    "errEmailInterval": "Espera {{s}} segundos antes de pedir otro código.",
     "errSend": "No se ha podido enviar el código. Comprueba la conexión e inténtalo de nuevo.",
     "errCodeFormat": "El código tiene 6 dígitos.",
     "errPasswordShort": "La contraseña debe tener al menos 6 caracteres.",
