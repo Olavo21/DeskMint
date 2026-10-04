@@ -66,3 +66,6 @@ screenshots/
 
 # DB export backups (dados pessoais/financeiros)
 backups/
+
+# gerado pelo deno check local; as edge functions nao o usam no deploy
+/deno.lock
