@@ -576,7 +576,13 @@ o passo nem o estado.
   Se for assim, a recuperação funciona para o dono e falha para quem a
   motivou. Para um círculo fechado, Gmail com app password
   (`smtp.gmail.com`, porta 465) chega e não precisa de domínio. A app
-  password mete-se diretamente no dashboard, nunca no chat. **Cuidado:**
+  password mete-se diretamente no dashboard, nunca no chat.
+  **Configurado a 4 out 2026:** Gmail do dono (`smtp.gmail.com`, porta 465,
+  intervalo mínimo por utilizador 60 s), remetente "DeskMint". Com SMTP
+  próprio o limite do projeto sobe de 2 para 30 emails por hora. O
+  Supabase avisa que o Gmail é pensado para email pessoal e não
+  transacional: num círculo fechado é aceitável, mas um email pode cair no
+  spam. **Cuidado:**
   ligar o interruptor "Enable custom SMTP" e guardar com os campos vazios
   faz deixar de sair todos os emails de autenticação.
 
