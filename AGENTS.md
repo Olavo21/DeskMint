@@ -671,7 +671,7 @@ sessão e vai marcar muito código existente. Adiado porque hoje há zero
 casos e o detetor acima está provado. A razão para um dia o fazer: **este
 bug passa no `tsc`**, e só aparece quando alguém testa a persistência.
 
-## Língua e moeda: gravação validada; dois pendentes que os testes abriram (4 out 2026)
+## Língua e moeda: gravação validada, e o que cada seletor significa (4 out 2026)
 
 **A correção da gravação (commit `34c00db`) está validada no build 17,
 nos dois sentidos.** Escolhido inglês: a Dashboard mudou logo, e manteve-se
@@ -682,17 +682,22 @@ ficou provada: em inglês, a linha "Savings" acima da meta fica a verde.
 No build 16, sem a correção, nada mudava. A falta de gravação explicava
 tudo, e não apareceu nenhuma segunda causa.
 
-**Pendente 1: a moeda só muda o símbolo, não converte.** O `useFmt` passa
+**Moeda: só muda o símbolo, e isso é o comportamento pretendido.** O `useFmt` passa
 o número guardado ao `Intl.NumberFormat` com o código da moeda escolhida,
 e não há taxa de câmbio em lado nenhum da app. Os valores do dono estão
 em euros: com USD, o património de 25 434 € aparece como `$25,434`, com
-AOA como `25 434 Kz` (mil vezes abaixo do real). **Decidir primeiro o que
-é a "moeda":** a moeda em que o utilizador regista os valores (e então só
-falta dizê-lo claramente no ecrã, sem converter nada), ou uma moeda de
-apresentação (e então precisa de taxas de câmbio e de uma moeda base
-guardada com os dados).
+AOA como `25 434 Kz` (mil vezes abaixo do real). **Decidido a 4 out 2026 pelo dono:** a app é de uso
+pessoal, com valores registados pelo utilizador e não lidos de contas
+reais. A "moeda" é portanto **a unidade em que o utilizador regista os
+valores**, não uma moeda de apresentação. Não há conversão nem taxas de
+câmbio, e não é bug: quem regista em dólares vê dólares. **Não tratar
+isto como erro nem acrescentar conversão sem nova decisão.** O cuidado
+que fica: mudar de moeda depois de ter registos **não os converte**, só
+troca o símbolo. Se um dia isto confundir alguém, a correção é de texto
+(dizer no seletor que é a moeda dos registos e que não converte), não de
+câmbio.
 
-**Pendente 2: a tradução está a meio.** Com inglês escolhido, os textos que
+**Língua: fica, por decisão do dono (4 out 2026). Pendente: a tradução está a meio.** Com inglês escolhido, os textos que
 passam por `t()` mudam ("Net Worth", "Net Income", "Long-Term
 Projection"...), mas muitos estão escritos à mão em português e ficam:
 "Sobra do mês", "Bens Ativos", "Passivos / Créditos", e os nove
