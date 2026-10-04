@@ -476,7 +476,48 @@ automático nem polling. Esgotar 20 chamadas exige vinte toques manuais
 numa app visivelmente a dar erro. Se algum dia esse fetch passar a ser
 automático, esta decisão tem de ser reavaliada.
 
-## Recuperação de password (2 out 2026) — por implementar
+## Recuperação de password (2 out 2026) — fase 1 (routing) feita e validada; fase 2 (ecrã) por fazer
+
+**Atualização de 4 out 2026 — ler isto antes do resto da secção, que
+descreve o estado anterior.** O desenho mudou para **código de 6 dígitos**
+(`resetPasswordForEmail` + `verifyOtp({ type: 'recovery' })` +
+`updateUser({ password })`), que **dispensa o deep link e o Site URL**.
+
+**Fase 1 feita (commit `03cf751`) e validada no build 18:** o
+`onAuthStateChange` do `_layout` só encaminha em `INITIAL_SESSION` e
+`SIGNED_IN`. O `authStore` ganhou `recovering`, só em memória e a
+`false` no arranque. `PASSWORD_RECOVERY` confirma a flag sem encaminhar;
+`USER_UPDATED` com a flag ligada limpa-a **e encaminha** (via
+`fetchProfile`); `SIGNED_IN` e `SIGNED_OUT` limpam-na sempre. Validado
+no telemóvel: rodapé `1.6.0 (18) · production`, terminar sessão e voltar
+a entrar chega à Dashboard, e fechar à força e reabrir entra direto.
+
+Factos verificados na fonte instalada (`@supabase/auth-js` 2.106.1):
+`verifyOtp` com `type: 'recovery'` grava a sessão e emite **um só**
+evento, `PASSWORD_RECOVERY` (nunca `SIGNED_IN`). O `updateUser` emite
+`USER_UPDATED` **antes** de devolver o controlo.
+
+**Requisitos da fase 2 que saem disto:**
+- Ligar `recovering = true` **antes** do `verifyOtp`. Em erro do
+  `verifyOtp`, desligá-la.
+- **Nunca limpar a flag antes do `updateUser`**: o encaminhamento final
+  depende de ela ainda estar ligada quando o `USER_UPDATED` chega.
+- No sucesso o ecrã não mexe em estado local: o `_layout` navega depois
+  de um `fetchProfile` assíncrono, e o ecrã ainda está montado nesse
+  intervalo. A flag de submissão nunca volta a `false` no caminho feliz
+  (o botão fica bloqueado até a navegação acontecer).
+- Mensagem igual exista ou não a conta ("se existir, enviámos um
+  código"). Limite de tentativas na UI, como experiência e não como
+  segurança. Cancelar faz `signOut()`.
+- Textos com `t()` nos três idiomas desde o início.
+- **Passo manual no dashboard do Supabase:** mudar o template "Reset
+  Password" para usar `{{ .Token }}`. Sem isso o email chega com um link
+  e o ecrã espera um código que nunca vem.
+- Teste: depois de mudar a password, chegar à Dashboard sem reabrir a app.
+
+**Lacuna conhecida:** as Definições não permitem mudar a password. Quem
+fechar a app a meio da recuperação entra na Dashboard (decisão consciente)
+e fica sem forma de escolher a password dentro da app.
 
 Investigado antes de implementar. **Não é "adicionar uma funcionalidade"**
 — obriga a mexer no ponto de decisão único do routing da app. Merece uma
