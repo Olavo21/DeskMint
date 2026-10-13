@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next'
 import type { AuthError } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
+import { meetsPasswordRule } from '../../lib/passwordRule'
+import { isServerError, reportAuthFailure } from '../../lib/authErrors'
 
 // Recuperação de password por código de 6 dígitos (resetPasswordForEmail →
 // verifyOtp type 'recovery' → updateUser). Não usa deep link nem Site URL.
@@ -17,14 +19,6 @@ const RESEND_COOLDOWN_S = 60 // igual ao intervalo mínimo por utilizador do Sup
 const MAX_CODE_ATTEMPTS = 8  // generoso: um código novo gasta um dos 2 emails/hora do projeto
 
 type Step = 'email' | 'code'
-
-// Espelha "Password requirements" do Supabase (Authentication → Providers → Email:
-// mínimo 6, com minúsculas, maiúsculas, números e símbolos). Validar aqui dá uma
-// mensagem que diz a regra, em vez do "weak_password" genérico do servidor. Se a
-// regra mudar no dashboard, tem de mudar aqui e no texto recovery.passwordRuleHint.
-function meetsPasswordRule(p: string): boolean {
-  return p.length >= 6 && /[a-z]/.test(p) && /[A-Z]/.test(p) && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p)
-}
 
 // O Supabase só aplica o intervalo mínimo por utilizador ("only request this after N
 // seconds") a contas que EXISTEM. Mostrá-lo como erro revelava quais emails estão
@@ -42,6 +36,10 @@ function intervalSeconds(e: AuthError): number | null {
 function sendErrorKey(e: AuthError): string {
   if (e.code === 'over_email_send_rate_limit' || e.status === 429) return 'recovery.errEmailRateLimit'
   if (e.code === 'email_address_invalid') return 'recovery.errEmailInvalid'
+  // Durante uma avaria do SMTP o 500 só aparece para contas que existem (para as
+  // outras o Supabase devolve sucesso sem enviar), por isso revela o email como
+  // registado. Aceite num círculo fechado porque a falha vai para o Sentry.
+  if (isServerError(e)) return 'recovery.errServer'
   return 'recovery.errSend'
 }
 
@@ -83,7 +81,9 @@ export default function RecuperarScreen() {
     setSending(false)
     const wait = e ? intervalSeconds(e) : null
     if (e && wait === null) {
-      setError(t(sendErrorKey(e)))
+      const key = sendErrorKey(e)
+      if (key === 'recovery.errServer' || key === 'recovery.errSend') reportAuthFailure('recovery_send', e)
+      setError(t(key))
       return
     }
     // Mesma resposta exista ou não a conta, incluindo o caso do intervalo mínimo.
@@ -127,8 +127,15 @@ export default function RecuperarScreen() {
     if (e) {
       setSubmitting(false)
       if (e.code === 'same_password') setError(t('recovery.errSamePassword'))
-      else if (e.code === 'weak_password') setError(t('recovery.errWeakPassword'))
-      else setError(t('recovery.errUpdate'))
+      else if (e.code === 'weak_password') {
+        // A regra da app já foi verificada antes: se o servidor recusa, a regra do
+        // painel e a de lib/passwordRule.ts divergiram. Texto próprio e Sentry.
+        reportAuthFailure('recovery_weak_password', e)
+        setError(t('recovery.errWeakPassword'))
+      } else {
+        reportAuthFailure('recovery_update', e)
+        setError(t('recovery.errUpdate'))
+      }
     }
   }
 

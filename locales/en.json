@@ -219,7 +219,7 @@
     "codeLabel": "6-digit code",
     "newPasswordLabel": "New password",
     "confirmPasswordLabel": "Confirm password",
-    "passwordRuleHint": "At least 6 characters, with lowercase, uppercase, numbers and symbols.",
+    "passwordRuleHint": "At least 6 characters, with lowercase, uppercase, numbers and a symbol such as ! @ # $ % & *. Accented letters do not count as symbols.",
     "save": "Save password",
     "resend": "Resend code",
     "resendIn": "Resend code ({{s}} s)",
@@ -230,14 +230,15 @@
     "errEmailRateLimit": "We couldn't send it right now. Try again in an hour.",
     "errSend": "We couldn't send the code. Check your connection and try again.",
     "errCodeFormat": "The code has 6 digits.",
-    "errPasswordRule": "The password must have at least 6 characters, with lowercase, uppercase, numbers and symbols.",
+    "errPasswordRule": "The password must have at least 6 characters, with lowercase, uppercase, numbers and a symbol such as ! @ # $ % & *. Accented letters do not count as symbols.",
     "errPasswordMismatch": "The passwords don't match.",
     "errInvalidCode": "Invalid or expired code.",
     "errTooManyAttempts": "Too many attempts. Request a new code.",
     "errVerifyRateLimit": "Too many attempts. Wait a few minutes.",
     "errSamePassword": "The new password must be different from the old one.",
-    "errWeakPassword": "The password must have at least 6 characters, with lowercase, uppercase, numbers and symbols.",
-    "errUpdate": "We couldn't save the password. Try again."
+    "errWeakPassword": "The server rejected this password because it does not meet the security rule. Try another one, with lowercase, uppercase, numbers and a symbol such as ! @ # $ % & *.",
+    "errUpdate": "We couldn't save the password. Try again.",
+    "errServer": "The email service is unavailable right now. Please try again later."
   },
   "savingsProducts": {
     "segmentStocks": "Markets",

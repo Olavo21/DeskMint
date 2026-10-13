@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../../lib/supabase'
+import { meetsPasswordRule } from '../../lib/passwordRule'
+import { isServerError, reportAuthFailure } from '../../lib/authErrors'
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const logoSource = require('../../assets/logo.png')
@@ -66,13 +68,24 @@ export default function LoginScreen() {
 
   async function handleSignUp() {
     if (!email || !password) { setError('Preenche o email e a password.'); return }
-    if (password.length < 6)  { setError('A password deve ter pelo menos 6 caracteres.'); return }
+    // Mesma regra do servidor que a recuperação usa: sem isto, o Supabase recusava
+    // com a mensagem crua em inglês ("Password should contain at least one…").
+    if (!meetsPasswordRule(password)) { setError(t('recovery.errPasswordRule')); return }
     if (!checkCooldown()) return
     setLoading(true); setError(null)
     lastAttempt.current = Date.now()
     const { error: authError } = await supabase.auth.signUp({ email, password })
     if (authError) {
-      setError(friendlyError(authError.message))
+      if (authError.code === 'weak_password') {
+        reportAuthFailure('signup_weak_password', authError)
+        setError(t('recovery.errWeakPassword'))
+      } else if (isServerError(authError)) {
+        // O registo também envia email (confirmação): um SMTP em baixo dá 500.
+        reportAuthFailure('signup', authError)
+        setError(t('recovery.errServer'))
+      } else {
+        setError(friendlyError(authError.message))
+      }
       if (authError.message.includes('only request this after') || authError.message.includes('rate limit')) {
         startCooldown(60)
       }
