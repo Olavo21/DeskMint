@@ -18,12 +18,14 @@ import XtbImportModal from '../../components/investments/XtbImportModal'
 import AnaliseModal from '../../components/investments/AnaliseModal'
 import ThresholdAlertsCard from '../../components/investments/ThresholdAlertsCard'
 import TickerBar from '../../components/TickerBar'
+import SavingsSection from '../../components/savings/SavingsSection'
 import { getColor } from '../../lib/portfolioColors'
 import { getSector, SECTOR_COLORS } from '../../lib/assetSectors'
 import { useFmt } from '../../utils/format'
 import { useTranslation } from 'react-i18next'
 
 type Tab = 'ativos' | 'tipo' | 'setor'
+type Segment = 'stocks' | 'savings'
 
 const TABS: { key: Tab; labelKey: string; icon: string }[] = [
   { key: 'ativos', labelKey: 'investments.assets', icon: 'list-outline'   },
@@ -41,6 +43,7 @@ const TYPE_COLORS: Record<string, string> = {
 export default function InvestimentosScreen() {
   const { width: screenW } = useWindowDimensions()
   const { data, isLoading } = usePortfolio()
+  const [segment, setSegment]     = useState<Segment>('stocks')
   const [activeTab, setActiveTab] = useState<Tab>('ativos')
   const [showModal, setShowModal]     = useState(false)
   const [showBroker, setShowBroker]   = useState(false)
@@ -106,6 +109,16 @@ export default function InvestimentosScreen() {
   return (
     <SafeAreaView className="flex-1 bg-dark-900">
       <Header title="Portfolio" />
+      <SegmentSelector value={segment} onChange={setSegment} />
+
+      {/* Poupança não tem cotações, análise nem botões de corretora: o resto do
+          ecrã (TickerBar, gráficos, FABs) só existe em Bolsa. */}
+      {segment === 'savings' ? (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+          <SavingsSection />
+        </ScrollView>
+      ) : (
+      <>
       <TickerBar />
       <AnaliseModal visible={showAnalise} onClose={() => setShowAnalise(false)} />
 
@@ -300,11 +313,39 @@ export default function InvestimentosScreen() {
         onAdd={() => { setShowManage(false); setTimeout(() => setShowModal(true), 300) }}
       />
       <XtbImportModal visible={showXtb} onClose={() => setShowXtb(false)} />
+      </>
+      )}
     </SafeAreaView>
   )
 }
 
 // ── Sub-componentes ────────────────────────────────────────────────────────────
+
+// Nível acima das abas Ativos/Tipo/Setor: tem de parecer diferente delas, para os
+// dois níveis não se confundirem (controlo segmentado a toda a largura).
+function SegmentSelector({ value, onChange }: { value: Segment; onChange: (s: Segment) => void }) {
+  const { t } = useTranslation()
+  const items: { key: Segment; label: string }[] = [
+    { key: 'stocks',  label: t('savingsProducts.segmentStocks') },
+    { key: 'savings', label: t('savingsProducts.segmentSavings') },
+  ]
+  return (
+    <View className="mx-4 mt-2 mb-1 flex-row bg-dark-800 border border-dark-600 rounded-2xl p-1">
+      {items.map((it) => {
+        const active = it.key === value
+        return (
+          <TouchableOpacity
+            key={it.key}
+            onPress={() => onChange(it.key)}
+            className={`flex-1 py-2 rounded-xl items-center ${active ? 'bg-teal-500' : ''}`}
+          >
+            <Text className={`text-sm font-semibold ${active ? 'text-white' : 'text-dark-400'}`}>{it.label}</Text>
+          </TouchableOpacity>
+        )
+      })}
+    </View>
+  )
+}
 
 function Legend({ segments, assets, fmt }: {
   segments: DonutSegment[]

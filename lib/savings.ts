@@ -25,6 +25,19 @@ export function splitSavings(accounts: Pick<DmSavingsAccount, 'balance' | 'is_em
   }
 }
 
+// Colunas `date` ('AAAA-MM-DD') lidas e escritas em hora local. new Date('AAAA-MM-DD')
+// seria lido como UTC, e toISOString() converte para UTC: em Lisboa ambos mudam o dia.
+export function parseDateOnly(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+export function toDateOnly(d: Date): string {
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
+
 // Queries que dependem de dm_savings_accounts. Query nova que leia a tabela entra
 // aqui, nunca nos onSuccess (o mesmo padrão de COMMISSION_DEPENDENT_QUERY_KEYS).
 export const SAVINGS_DEPENDENT_QUERY_KEYS = [
