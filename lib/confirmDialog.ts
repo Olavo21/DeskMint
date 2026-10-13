@@ -1,4 +1,5 @@
 import { Alert, Platform } from 'react-native'
+import i18n from './i18n'
 
 // Alert.alert com múltiplos botões é um no-op no react-native-web
 // (static alert() {} — não mostra nada e o onPress nunca dispara).
@@ -9,7 +10,7 @@ export function confirmDestructive(title: string, message: string, confirmLabel:
     return
   }
   Alert.alert(title, message, [
-    { text: 'Cancelar', style: 'cancel' },
+    { text: i18n.t('common.cancel'), style: 'cancel' },
     { text: confirmLabel, style: 'destructive', onPress: onConfirm },
   ])
 }
