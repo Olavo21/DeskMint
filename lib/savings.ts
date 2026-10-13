@@ -43,6 +43,7 @@ export function toDateOnly(d: Date): string {
 export const SAVINGS_DEPENDENT_QUERY_KEYS = [
   'savings-accounts',
   'dashboard', // património, fundo de emergência efetivo e projeção
+  'portfolio', // usePortfolio: fundo efetivo do Triângulo Financeiro
 ] as const
 
 export function invalidateSavingsQueries(qc: QueryClient) {

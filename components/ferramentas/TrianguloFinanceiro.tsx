@@ -170,7 +170,7 @@ export default function TrianguloFinanceiro() {
   const liquidezNome = bankAccounts.length > 0
     ? bankAccounts.map((a) => a.name).join(' + ')
     : 'Conta Bancária'
-  const emergencia   = data?.emergencyFund?.current_amount ?? 0
+  const emergencia   = data?.emergencyFund ?? 0
   const investimento = data?.totalValue ?? 0
 
   const resultado = useMemo(
