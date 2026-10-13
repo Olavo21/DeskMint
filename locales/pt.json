@@ -281,6 +281,8 @@
     "errEmergencyTaken": "Já tens outro produto marcado como fundo de emergência. Desmarca-o primeiro.",
     "loadError": "Não foi possível carregar a poupança.",
     "deleteTitle": "Eliminar produto?",
-    "deleteBody": "Esta ação não pode ser desfeita."
+    "deleteBody": "Esta ação não pode ser desfeita.",
+    "emergencyFromProduct": "Saldo do produto de poupança",
+    "dashboardSubtitle": "Depósitos e contas poupança"
   }
 }

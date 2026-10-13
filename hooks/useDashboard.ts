@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../stores/authStore'
 import { getCreditOutstandingBalance } from '../lib/creditMath'
+import { splitSavings } from '../lib/savings'
 import type { DmIncome, DmBudgetRule, DmPortfolioAsset, DmEmergencyFund, DmAsset, DmCredit } from '../types/database'
 
 type RawExpense = {
@@ -21,7 +22,7 @@ export function useDashboard(month: number, year: number) {
     queryFn: async () => {
       const uid = session!.user.id
 
-      const [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes, recurringRes] = await Promise.all([
+      const [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes, recurringRes, savingsRes] = await Promise.all([
         // Rendimento não é filtrado ao mês/ano pedido — lê sempre a linha mais
         // recente, para não zerar quando o mês civil muda sem o utilizador
         // reeditar (mesmo comportamento de hooks/useFixedBudget.ts).
@@ -41,9 +42,10 @@ export function useDashboard(month: number, year: number) {
           .select('amount, credit_id, dm_expense_categories(type)')
           .eq('user_id', uid)
           .eq('is_active', true),
+        supabase.from('dm_savings_accounts').select('balance, is_emergency_fund').eq('user_id', uid),
       ])
 
-      const results = [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes, recurringRes]
+      const results = [incomeRes, budgetRes, portfolioRes, emergencyRes, assetsRes, creditsRes, expensesRes, recurringRes, savingsRes]
       const failed = results.find((r) => r.error)
       if (failed?.error) throw failed.error
 
@@ -72,7 +74,12 @@ export function useDashboard(month: number, year: number) {
 
       const portfolioValue   = portfolio.reduce((s, a) => s + a.current_value, 0)
       const portfolioCapital = portfolio.reduce((s, a) => s + a.capital_invested, 0)
-      const emergencyFund    = emergency?.current_amount ?? 0
+      // Fundo de emergência efetivo: o saldo do produto de poupança marcado, se
+      // existir; senão o valor editável. A poupança soma só os produtos não marcados,
+      // para o mesmo dinheiro não contar duas vezes. A projeção lê este mesmo
+      // emergencyFund, por isso segue o fundo efetivo sem mudar a sua lógica.
+      const { emergencyFund, emergencyFromProduct, savingsTotal } =
+        splitSavings(savingsRes.data ?? [], emergency?.current_amount ?? 0)
       const totalCreditDebt  = credits.reduce((s, c) => s + getCreditOutstandingBalance(c).balance, 0)
 
       // Para um asset vinculado a um crédito (ex: carro financiado), a dívida
@@ -123,10 +130,12 @@ export function useDashboard(month: number, year: number) {
         lazerAmt,
         lazerPct,
         availableBalance: income - totalExpenses,
-        netWorth:    assetsValue + portfolioValue + emergencyFund - unlinkedCreditDebt,
+        netWorth:    assetsValue + portfolioValue + emergencyFund + savingsTotal - unlinkedCreditDebt,
         portfolioValue,
         portfolioPL: portfolioValue - portfolioCapital,
         emergencyFund,
+        emergencyFromProduct,
+        savingsTotal,
         totalCreditDebt,
         budgetRule,
         assets: assetsWithLiveDebt,

@@ -281,6 +281,8 @@
     "errEmergencyTaken": "Ya tienes otro producto marcado como fondo de emergencia. Desmárcalo primero.",
     "loadError": "No se pudo cargar tu ahorro.",
     "deleteTitle": "¿Eliminar producto?",
-    "deleteBody": "Esta acción no se puede deshacer."
+    "deleteBody": "Esta acción no se puede deshacer.",
+    "emergencyFromProduct": "Saldo del producto de ahorro",
+    "dashboardSubtitle": "Depósitos y cuentas de ahorro"
   }
 }

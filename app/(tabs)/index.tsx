@@ -729,9 +729,12 @@ export default function DashboardScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
+                // Com um produto de poupança marcado como fundo, o valor editável deixa
+                // de contar: editá-lo aqui não mudaria nada, por isso a linha leva à
+                // Poupança em vez de abrir o campo.
                 <TouchableOpacity
                   className="flex-row items-center px-4 py-3.5 border-b border-dark-700"
-                  onPress={startEditEmergencyFund}
+                  onPress={data?.emergencyFromProduct ? () => router.push('/(tabs)/investimentos') : startEditEmergencyFund}
                   activeOpacity={0.7}
                 >
                   <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#14b8a615' }}>
@@ -739,10 +742,38 @@ export default function DashboardScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-dark-50 text-sm font-medium">{t('dashboard.emergencyFund')}</Text>
-                    <Text className="text-dark-500 text-xs">6 meses de despesas</Text>
+                    <Text className="text-dark-500 text-xs">
+                      {data?.emergencyFromProduct ? t('savingsProducts.emergencyFromProduct') : '6 meses de despesas'}
+                    </Text>
                   </View>
                   <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.emergencyFund ?? 0)}</Text>
-                  <Ionicons name="pencil-outline" size={14} color="#475569" style={{ marginLeft: 6 }} />
+                  <Ionicons
+                    name={data?.emergencyFromProduct ? 'chevron-forward' : 'pencil-outline'}
+                    size={14}
+                    color={data?.emergencyFromProduct ? '#334155' : '#475569'}
+                    style={{ marginLeft: 6 }}
+                  />
+                </TouchableOpacity>
+              )}
+
+              {/* Poupança: só aparece com produtos registados, por isso quem não os tem
+                  vê a lista exatamente como antes. Os produtos marcados como fundo de
+                  emergência estão na linha de cima e não entram nesta soma. */}
+              {(data?.savingsTotal ?? 0) > 0 && (
+                <TouchableOpacity
+                  className="flex-row items-center px-4 py-3.5 border-b border-dark-700"
+                  onPress={() => router.push('/(tabs)/investimentos')}
+                  activeOpacity={0.7}
+                >
+                  <View className="w-7 h-7 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: '#0ea5e915' }}>
+                    <Ionicons name="wallet-outline" size={15} color="#0ea5e9" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-dark-50 text-sm font-medium">{t('savingsProducts.segmentSavings')}</Text>
+                    <Text className="text-dark-500 text-xs">{t('savingsProducts.dashboardSubtitle')}</Text>
+                  </View>
+                  <Text className="text-dark-50 text-sm font-semibold">{fmt(data?.savingsTotal ?? 0)}</Text>
+                  <Ionicons name="chevron-forward" size={14} color="#334155" style={{ marginLeft: 6 }} />
                 </TouchableOpacity>
               )}
 

@@ -281,6 +281,8 @@
     "errEmergencyTaken": "Another product is already marked as your emergency fund. Unmark it first.",
     "loadError": "Could not load your savings.",
     "deleteTitle": "Delete product?",
-    "deleteBody": "This cannot be undone."
+    "deleteBody": "This cannot be undone.",
+    "emergencyFromProduct": "Savings product balance",
+    "dashboardSubtitle": "Deposits and savings accounts"
   }
 }
