@@ -735,6 +735,60 @@ mudanças, a inflação é a que pesa mais.
   inflação até ao mês em que entra. O capital inicial não é descontado,
   porque já está em euros de hoje.
 
+## Produtos de poupança, fase 1: só registo (13 out 2026), por validar
+
+Tabela `dm_savings_accounts` (SQL em `supabase/sql/2026-10-13_dm_savings_accounts.sql`),
+ecrã Bolsa | Poupança dentro de Investimentos, `lib/savings.ts`,
+`hooks/useSavingsAccounts.ts`. **A simulação a 1/5/10 anos é a fase 2 e não
+existe.** Validação pendente: não há build com isto, e os testes de escrita
+fazem-se só na conta de teste `info@deskmint.app`, pela UI.
+
+- **Retenção:** `SAVINGS_WITHHOLDING_RATE = 0.28`, constante única. Líquida =
+  bruta × 0,72. A taxa é sempre a que o utilizador introduz: a app nunca
+  afirma taxas. É um pressuposto, não uma verificação: numa instituição
+  estrangeira os juros podem não ser retidos na fonte e ser declarados no IRS.
+- **Fundo de emergência:** `is_emergency_fund`, no máximo um por utilizador
+  (índice único parcial; o 23505 tem mensagem própria). Com um produto
+  marcado, a linha do fundo na Dashboard lê o saldo dele, deixa de ser
+  editável, e o valor de `dm_emergency_fund` deixa de contar. Sem produto
+  marcado, nada muda. Existe para quem tem o fundo num depósito não o contar
+  duas vezes. **Decidido pelo dono:** a conta da Trade Republic dele (3% TANB,
+  onde está o fundo) **não** é registada por agora; o fundo continua editável.
+- **Património:** `netWorth` soma os produtos **não** marcados numa linha
+  "Poupança", que só aparece com produtos. Para quem não os tem, o total e a
+  lista ficam exatamente como antes (conta do dono: 0 produtos).
+- **Projeção:** lê `data.emergencyFund`, que passa a ser o fundo efetivo.
+  Mudou a fonte de um valor, não a lógica do cálculo (opção (a), decidida a 13
+  out). Os outros produtos de poupança **não** entram na projeção.
+- **Snapshot mensal:** quem registar produtos vê o total subir a partir do mês
+  em que os regista, e o snapshot desse mês é reescrito com o valor novo. A
+  série ganha outro degrau (além do da dupla subtração do crédito, out 2026).
+- **RLS:** a política tem `with check` explícito. As 19 políticas `_own` antigas
+  não o têm (o Postgres reaplica o `using` às escritas; o efeito é o mesmo) e 8
+  políticas mais recentes têm. Isolamento verificado a 13 out como `authenticated`
+  numa transação revertida: a conta de teste vê a sua linha, o dono vê 0, e
+  inserir com o `user_id` de outro ou um segundo fundo de emergência é recusado.
+
+**Não confundir com duas coisas que já existiam:**
+- `dm_saving_buckets` são os **Objetivos de Poupança** do Orçamento (metas com
+  alvo, prazo e emoji). Não entram no património. O dono tem um ("Casa 2030",
+  5 405 € de 10 000 € a 13 out). Um objetivo diz *para quê*; um produto diz
+  *onde está o dinheiro e a que taxa*. Se um dia os objetivos entrarem no
+  património, cuidado com o dinheiro que está nos dois.
+- `dm_asset_kind` tem um valor `SAVINGS` (bens ativos). Não foi verificado se
+  a UI dos Bens Ativos o oferece. Se oferecer, um depósito registado como bem
+  **e** como produto conta duas vezes.
+
+## Fundo de emergência: o "6 meses de despesas" não calcula nada (13 out 2026)
+
+Registado, não corrigido. Na lista do património, a linha do fundo tem o
+subtítulo **"6 meses de despesas" em texto fixo** (`app/(tabs)/index.tsx`, também
+fora do `t()`): promete uma meta que nada calcula nem compara. Existe um
+componente `EmergencyCard` no mesmo ficheiro que calcula a meta (6 × despesas
+mensais, ou 6 × 1 000 € quando as despesas são 50 € ou menos) e mostra o
+progresso, mas **não é usado em lado nenhum**. A tabela `dm_emergency_fund` tem
+ainda `target_months` e `target_amount`, que nenhum ecrã lê.
+
 ## Regra Necessidades/Lazer/Poupança: o que a barra do Lazer mede (3 out 2026)
 
 As metas são personalizáveis por perfil (`target_needs/wants/savings` em
