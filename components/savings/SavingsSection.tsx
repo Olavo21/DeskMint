@@ -69,23 +69,25 @@ export default function SavingsSection() {
                   <View className="flex-1 mr-3">
                     <Text className="text-dark-50 text-sm font-semibold" numberOfLines={1}>{a.name}</Text>
                     <Text className="text-dark-500 text-xs mt-0.5" numberOfLines={1}>{subtitle}</Text>
+                    {/* Na linha das taxas não cabia: selo + bruta + esta marca passam dos
+                        ~300 px úteis de um ecrã de 360 dp, sobretudo em espanhol. */}
+                    {a.is_emergency_fund && (
+                      <View className="flex-row items-center gap-1 mt-1">
+                        <Ionicons name="shield-checkmark-outline" size={12} color="#14b8a6" />
+                        <Text className="text-xs" style={{ color: '#0d9488' }}>{t('savingsProducts.emergencyBadge')}</Text>
+                      </View>
+                    )}
                   </View>
                   <Text className="text-dark-50 text-base font-bold">{fmt(a.balance)}</Text>
                 </View>
 
                 <View className="flex-row items-center gap-3 mt-3">
                   <View className="px-2 py-1 rounded-lg" style={{ backgroundColor: '#14b8a615' }}>
-                    <Text className="text-xs font-bold" style={{ color: '#0d9488' }}>
-                      {t('savingsProducts.net')} {pct(netRate(a.gross_rate))}
+                    <Text className="text-xs font-bold" style={{ color: '#0d9488' }} numberOfLines={1}>
+                      {t('savingsProducts.netBadge', { rate: pct(netRate(a.gross_rate)), pct: SAVINGS_WITHHOLDING_RATE * 100 })}
                     </Text>
                   </View>
-                  <Text className="text-dark-500 text-xs">{t('savingsProducts.gross')} {pct(a.gross_rate)}</Text>
-                  {a.is_emergency_fund && (
-                    <View className="flex-row items-center gap-1 ml-auto">
-                      <Ionicons name="shield-checkmark-outline" size={12} color="#14b8a6" />
-                      <Text className="text-xs" style={{ color: '#0d9488' }}>{t('savingsProducts.emergencyBadge')}</Text>
-                    </View>
-                  )}
+                  <Text className="text-dark-500 text-xs" numberOfLines={1}>{t('savingsProducts.gross')} {pct(a.gross_rate)}</Text>
                 </View>
 
                 {a.maturity_date && (
