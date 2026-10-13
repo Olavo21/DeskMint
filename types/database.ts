@@ -298,6 +298,53 @@ export type Database = {
           user_id?: string
         }
       }
+      dm_savings_accounts: {
+        Row: {
+          balance: number
+          created_at: string
+          gross_rate: number
+          id: string
+          institution: string | null
+          is_emergency_fund: boolean
+          kind: Database["public"]["Enums"]["dm_savings_kind"]
+          maturity_date: string | null
+          name: string
+          notes: string | null
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance: number
+          created_at?: string
+          gross_rate: number
+          id?: string
+          institution?: string | null
+          is_emergency_fund?: boolean
+          kind: Database["public"]["Enums"]["dm_savings_kind"]
+          maturity_date?: string | null
+          name: string
+          notes?: string | null
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          gross_rate?: number
+          id?: string
+          institution?: string | null
+          is_emergency_fund?: boolean
+          kind?: Database["public"]["Enums"]["dm_savings_kind"]
+          maturity_date?: string | null
+          name?: string
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+      }
       dm_recurring_expenses: {
         Row: {
           amount: number
@@ -783,6 +830,7 @@ export type Database = {
       dm_budget_type: "NEEDS" | "WANTS" | "SAVINGS"
       dm_commission_status: "PENDING" | "TO_PAY" | "PAID" | "CANCELLED"
       dm_plan: "FREE" | "PRO" | "FOUNDER"
+      dm_savings_kind: "term_deposit" | "savings_account" | "savings_certificate" | "other"
     }
   }
 }
@@ -836,3 +884,4 @@ export type DmPortfolioLot       = Tables<"dm_portfolio_lots">
 export type DmEtfComposition     = Tables<"dm_etf_composition">
 export type DmPortfolioLimit     = Tables<"dm_portfolio_limits">
 export type DmPortfolioThreshold = Tables<"dm_portfolio_thresholds">
+export type DmSavingsAccount     = Tables<"dm_savings_accounts">
