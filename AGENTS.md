@@ -574,11 +574,18 @@ o passo nem o estado.
     app é o ecrã de recuperação, por isso hoje esta opção não protegia mais
     nada. **Se um dia houver "mudar password" nas Definições, reavaliar.**
   - **Password requirements = minúsculas, maiúsculas, números e símbolos**
-    (mínimo 6). O ecrã de recuperação valida a **mesma regra** no cliente
-    (`meetsPasswordRule`) para dizer qual é, em vez do `weak_password`
-    genérico. Se a regra mudar no dashboard, muda no código e no texto
-    `recovery.passwordRuleHint`. O registo no login tem o mesmo problema e
-    ainda não foi tratado: mostra a mensagem crua do Supabase, em inglês.
+    (mínimo 6). A recuperação **e o registo** validam a mesma regra no
+    cliente (`lib/passwordRule.ts`) para dizer qual é. **"Símbolo" quer dizer
+    só os 32 símbolos ASCII** da lista que o próprio Supabase devolve no 422
+    (`!@#$%^&*()_+-=[]{};'\:"|<>?,./` + acento grave + `~`): o `ç`, os acentos
+    e o `€` **não contam**. Descoberto a 13 out 2026 no build 19: a app aceitava
+    `Senha1ç` (contava tudo o que não fosse letra ou número) e o servidor
+    recusava. Pelo ecrã não se via, porque `errPasswordRule` (app) e
+    `errWeakPassword` (servidor) tinham o mesmo texto: foi o log do Auth que
+    separou os casos. Agora têm textos diferentes, e um `weak_password` do
+    servidor vai para o Sentry, porque só acontece se a regra do painel e a da
+    app divergirem. Se a regra mudar no painel: `lib/passwordRule.ts` (com a
+    data de verificação), `recovery.passwordRuleHint` e `errPasswordRule`.
 - **SMTP próprio é pré-requisito para outros utilizadores.** O serviço de
   email por omissão do Supabase tem limites baixos e, segundo as regras
   atuais do Supabase, pode só entregar a membros da equipa do projeto.
@@ -775,9 +782,33 @@ fazem-se só na conta de teste `info@deskmint.app`, pela UI.
   5 405 € de 10 000 € a 13 out). Um objetivo diz *para quê*; um produto diz
   *onde está o dinheiro e a que taxa*. Se um dia os objetivos entrarem no
   património, cuidado com o dinheiro que está nos dois.
-- `dm_asset_kind` tem um valor `SAVINGS` (bens ativos). Não foi verificado se
-  a UI dos Bens Ativos o oferece. Se oferecer, um depósito registado como bem
-  **e** como produto conta duas vezes.
+- `dm_asset_kind` tem um valor `SAVINGS` (bens ativos). Ver a regra abaixo.
+
+**Regra: um formulário de Bens Ativos nunca oferece o tipo `SAVINGS`.** Um
+depósito, conta poupança ou certificado regista-se em **Poupança**
+(`dm_savings_accounts`), nunca como bem. Motivo: os bens e os produtos entram
+os dois no património, por isso o mesmo depósito registado nos dois sítios conta
+duas vezes. A alternativa, excluir os bens `SAVINGS` da soma quando há produtos,
+foi **rejeitada** (13 out 2026): esconderia dinheiro do património em silêncio, e
+corrigir uma dupla contagem escondendo valores é pior do que preveni-la à
+entrada. Estado a 13 out: a app **não tem** formulário de criar bens nem de mudar
+o tipo (`useAssets` só edita nome, valor e dívida, e nenhum código faz `insert`
+em `dm_assets`), e há **0** bens `SAVINGS` em todas as contas. Quem construir esse
+formulário aplica esta regra.
+
+**Quem lê o fundo de emergência** (lista completa a 13 out, em `app`,
+`components`, `hooks`, `lib`, `stores` e `supabase/functions`): `useDashboard`
+(Dashboard e projeção) e `usePortfolio` (Triângulo Financeiro), ambos pelo
+`splitSavings`; o único escritor é `useEmergencyFund`. Nenhuma edge function lê
+`dm_emergency_fund` (o assistente não o usa). O Triângulo lia a linha crua e
+ficava com um número diferente da Dashboard: corrigido a 13 out. Leitor novo
+passa pelo `splitSavings`, nunca por `dm_emergency_fund.current_amount`.
+
+**Imposto, não "retenção na fonte":** a nota da taxa líquida dizia retenção na
+fonte, mas o ecrã Fiscal da própria app diz que a Trade Republic não faz
+retenção portuguesa (juros no Anexo J). Diz agora "28% de imposto", retido nos
+bancos portugueses e declarado no IRS num banco estrangeiro. O selo de cada
+produto mostra "Líquida X% · após 28%".
 
 ## Fundo de emergência: o "6 meses de despesas" não calcula nada (13 out 2026)
 
