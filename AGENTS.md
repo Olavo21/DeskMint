@@ -476,7 +476,16 @@ automático nem polling. Esgotar 20 chamadas exige vinte toques manuais
 numa app visivelmente a dar erro. Se algum dia esse fetch passar a ser
 automático, esta decisão tem de ser reavaliada.
 
-## Recuperação de password — fase 1 validada (build 18); fase 2 implementada, por validar
+## Recuperação de password — fase 1 validada (build 18); fase 2 validada no caminho principal (build 19)
+
+**Build 19, 13 out 2026.** Fluxo completo feito no telemóvel e confirmado
+no log do Auth: `/recover` 200 → `/verify` 200 → `/user` **422**
+("New password should be different", a mesma password de antes) → `/user`
+200, e chegada à Dashboard sem reabrir a app. O 422 provou de passagem o
+caminho de repetição: depois de uma password recusada o ecrã repetiu só o
+`updateUser`, sem segundo `/verify` (o código já estava gasto). Por testar
+ainda: código errado, password com `ç`, entrar com a password nova,
+Cancelar a meio, e o email de outra pessoa.
 
 **Atualização de 4 out 2026 — ler isto antes do resto da secção, que
 descreve o estado anterior.** O desenho mudou para **código de 6 dígitos**
@@ -585,6 +594,26 @@ o passo nem o estado.
   spam. **Cuidado:**
   ligar o interruptor "Enable custom SMTP" e guardar com os campos vazios
   faz deixar de sair todos os emails de autenticação.
+
+**SMTP: se os emails deixarem de sair, verificar primeiro se a password
+de aplicação do Gmail foi revogada.** Aconteceu a 13 out 2026: a password
+de aplicação gravada no Supabase já não existia na conta Google (a página
+`myaccount.google.com/apppasswords` dizia "não tem nenhuma"; uma mudança
+da password da conta Google revoga-as todas). Cada `/recover` dava **500**
+com `535 5.7.8 Username and Password not accepted (BadCredentials)` no log
+do Auth, e a app mostrava o `errSend` genérico, "Verifica a ligação", que
+mandava procurar no sítio errado. Trocar a porta 465 ↔ 587 não muda nada
+num 535: o Gmail só responde isso depois de a ligação TLS estar feita.
+Correção: password de aplicação nova, colada **sem espaços** (o Google
+mostra-a em grupos de 4). Onde ver a causa: Supabase → Logs → Auth,
+eventos de `/recover`, campo `error`. A password de aplicação dá acesso de
+envio à conta: fica num gestor de passwords, nunca no chat nem no repo.
+
+Enquanto o SMTP falha, o 500 só aparece para contas que **existem** (para
+um email sem conta o Supabase devolve 200 sem tentar enviar). Qualquer
+mensagem de erro revela, durante a avaria, que o email está registado.
+Aceite num círculo fechado, mas só se a avaria for vista depressa: daí a
+captura destes erros no Sentry (por fazer, build 20).
 
 **Lacuna conhecida:** as Definições não permitem mudar a password. Quem
 fechar a app a meio da recuperação entra na Dashboard (decisão consciente)
