@@ -271,7 +271,7 @@
     "emergencyBadge": "Fundo de emergência",
     "gross": "Bruta",
     "net": "Líquida",
-    "netNote": "Taxa líquida depois de {{pct}}% de imposto sobre os juros. Nos bancos portugueses é retido na fonte; num banco estrangeiro é declarado no IRS.",
+    "netNote": "Estimativa: taxa líquida depois de {{pct}}% de imposto sobre os juros. Nos bancos portugueses é retido na fonte; num banco estrangeiro é declarado no IRS, e na conta entra a taxa bruta.",
     "rateDisclaimer": "A taxa é a que introduziste. Confirma na instituição se é fixa ou promocional.",
     "maturesOn": "Vence a {{date}}",
     "maturedOn": "Venceu a {{date}}",
@@ -285,6 +285,6 @@
     "deleteBody": "Esta ação não pode ser desfeita.",
     "emergencyFromProduct": "Saldo do produto de poupança",
     "dashboardSubtitle": "Depósitos e contas poupança",
-    "netBadge": "Líquida {{rate}} · após {{pct}}%"
+    "netBadge": "Líquida ≈ {{rate}} · após {{pct}}%"
   }
 }

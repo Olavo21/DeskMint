@@ -271,7 +271,7 @@
     "emergencyBadge": "Emergency fund",
     "gross": "Gross",
     "net": "Net",
-    "netNote": "Net rate after {{pct}}% tax on interest. Portuguese banks withhold it at source; with a foreign bank it is declared in your tax return.",
+    "netNote": "Estimate: net rate after {{pct}}% tax on interest. Portuguese banks withhold it at source; with a foreign bank it is declared in your tax return, and the gross rate is what reaches your account.",
     "rateDisclaimer": "The rate is the one you entered. Check with the institution whether it is fixed or promotional.",
     "maturesOn": "Matures on {{date}}",
     "maturedOn": "Matured on {{date}}",
@@ -285,6 +285,6 @@
     "deleteBody": "This cannot be undone.",
     "emergencyFromProduct": "Savings product balance",
     "dashboardSubtitle": "Deposits and savings accounts",
-    "netBadge": "Net {{rate}} · after {{pct}}%"
+    "netBadge": "Net ≈ {{rate}} · after {{pct}}%"
   }
 }

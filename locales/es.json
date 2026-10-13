@@ -271,7 +271,7 @@
     "emergencyBadge": "Fondo de emergencia",
     "gross": "Bruto",
     "net": "Neto",
-    "netNote": "Tipo neto tras un {{pct}}% de impuesto sobre los intereses. Los bancos portugueses lo retienen en origen; con un banco extranjero se declara en el IRS.",
+    "netNote": "Estimación: tipo neto tras un {{pct}}% de impuesto sobre los intereses. Los bancos portugueses lo retienen en origen; con un banco extranjero se declara en el IRS, y en la cuenta entra el tipo bruto.",
     "rateDisclaimer": "El tipo es el que has introducido. Confirma con la entidad si es fijo o promocional.",
     "maturesOn": "Vence el {{date}}",
     "maturedOn": "Venció el {{date}}",
@@ -285,6 +285,6 @@
     "deleteBody": "Esta acción no se puede deshacer.",
     "emergencyFromProduct": "Saldo del producto de ahorro",
     "dashboardSubtitle": "Depósitos y cuentas de ahorro",
-    "netBadge": "Neto {{rate}} · tras {{pct}}%"
+    "netBadge": "Neto ≈ {{rate}} · tras {{pct}}%"
   }
 }
