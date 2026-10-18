@@ -483,9 +483,21 @@ no log do Auth: `/recover` 200 → `/verify` 200 → `/user` **422**
 ("New password should be different", a mesma password de antes) → `/user`
 200, e chegada à Dashboard sem reabrir a app. O 422 provou de passagem o
 caminho de repetição: depois de uma password recusada o ecrã repetiu só o
-`updateUser`, sem segundo `/verify` (o código já estava gasto). Por testar
-ainda: código errado, password com `ç`, entrar com a password nova,
-Cancelar a meio, e o email de outra pessoa.
+`updateUser`, sem segundo `/verify` (o código já estava gasto).
+
+**Fecho do 19 (13 e 18 out 2026), com as contas do dono e `info@deskmint.app`:**
+password com `ç` recusada pelo servidor (422, origem da regra ASCII do build
+20); entrar com a password nova; código errado (`000000` → "Código inválido ou
+expirado", botão de novo ativo). O **Cancelar a meio** passa para o build 20.
+Por testar ainda: o email de outra pessoa (o `info@` reencaminha para o dono,
+por isso não prova a entrega a terceiros).
+
+**Armadilha deste teste:** a regra da password é verificada **antes** de o
+código ir ao servidor. Com a password vazia ou inválida, um código errado mostra
+a mensagem da regra e não testa nada. E uma password escrita com uma letra
+trocada é aceite como "nova" (a 18 out ficou `Teste1x!` em vez de `Teste1!x`):
+se um teste de "mesma password" passar, confirmar o que ficou gravado antes de
+suspeitar do servidor.
 
 **Atualização de 4 out 2026 — ler isto antes do resto da secção, que
 descreve o estado anterior.** O desenho mudou para **código de 6 dígitos**
