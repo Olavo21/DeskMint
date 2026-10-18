@@ -759,8 +759,9 @@ mudanças, a inflação é a que pesa mais.
 Tabela `dm_savings_accounts` (SQL em `supabase/sql/2026-10-13_dm_savings_accounts.sql`),
 ecrã Bolsa | Poupança dentro de Investimentos, `lib/savings.ts`,
 `hooks/useSavingsAccounts.ts`. **A simulação a 1/5/10 anos é a fase 2 e não
-existe.** Validação pendente: não há build com isto, e os testes de escrita
-fazem-se só na conta de teste `info@deskmint.app`, pela UI.
+existe.** Entrou no **build 20** (commit `c6f5184`, carregado no canal interno
+a 18 out 2026). Validação pendente: os testes de escrita fazem-se só na conta
+de teste `info@deskmint.app`, pela UI.
 
 - **Retenção:** `SAVINGS_WITHHOLDING_RATE = 0.28`, constante única. Líquida =
   bruta × 0,72. A taxa é sempre a que o utilizador introduz: a app nunca
