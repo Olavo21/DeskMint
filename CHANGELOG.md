@@ -5,6 +5,47 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.6.0 (21)] — 2026-10-25
+
+### Fixed
+- **Simulador de amortização (Créditos)**: com um valor extra muito grande, a
+  poupança em juros chegava a mostrar o total das prestações (738,32 € num
+  crédito com 10,22 € de juros por pagar). Passa a simular mês a mês: a
+  poupança nunca passa os juros que faltam e o prazo nunca é 0 meses. Também
+  corrige o Otimizador de Dívida, que usa a mesma conta.
+- **Campo do simulador**: só aceita algarismos e uma vírgula (ou ponto), com 2
+  casas, e nunca passa a dívida em falta.
+- **Percentagens das poupanças**: o imposto aparecia como
+  "28.000000000000004%"; passa a "28%", formatado na língua da app.
+
+### Added
+- **"Liquidar hoje"** no simulador, perto do fim do crédito: quanto custa pagar
+  tudo e quanto se poupa em juros, com nota sobre a comissão de reembolso
+  antecipado.
+- Quando a prestação mais o extra liquidam a dívida no 1.º mês, o simulador
+  di-lo em vez de mostrar "reduzes o prazo".
+
+## [1.6.0 (20)] — 2026-10-18
+
+### Added
+- **Poupança** em Investimentos (Bolsa | Poupança): depósitos a prazo, contas
+  poupança e certificados de aforro, com taxa bruta e líquida estimada (após
+  28% de imposto). Entram no património numa linha "Poupança". Um produto pode
+  ser marcado como fundo de emergência (no máximo um).
+
+### Fixed
+- **Palavra-passe**: a regra só conta os símbolos ASCII aceites pelo servidor
+  (ç, acentos e € não contam) e diz quais; mensagens distintas para a recusa
+  da app e a do servidor; falha do serviço de email com mensagem própria e
+  envio ao Sentry; erros do registo traduzidos.
+- Triângulo Financeiro usa o mesmo fundo de emergência da Dashboard.
+- "Cancelar" do diálogo de confirmação traduzido.
+
+> Os builds 15 a 19 (3 a 13 out 2026: invalidação dos Relatórios, património
+> sem dupla subtração, projeção em euros de hoje, língua e moeda, rodapé com a
+> versão, recuperação de password) não foram registados aqui. O detalhe está no
+> AGENTS.md e no histórico do git.
+
 ## [Unreleased] — sessões 2026-09-17/18
 
 ### Fixed (18 set)
