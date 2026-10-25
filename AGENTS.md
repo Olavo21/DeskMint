@@ -1538,3 +1538,29 @@ raiz) corre a **zero erros** de forma reprodutível — deixou de ser
   `LotsModal.tsx`, `ThresholdsModal.tsx` e `NovoAtivoModal.tsx`: limites
   máximos em valores monetários/quantidades, 0-100% em tetos,
   `maxLength` em texto livre, ticker sempre capado a 10 caracteres.
+
+## Backlog para a 1.7.0 e seguintes (25 out 2026)
+
+Fechado o build 21 sem nada a corrigir. Fica para as próximas versões:
+
+- **Percentagens com a língua da app.** No ecrã Créditos aparecem "6.72%" e
+  "12.9%" com ponto, ao lado de "728,10 €" com vírgula. Procurar os
+  `toFixed(...)` seguidos de `%` e o `pct()` de `utils/format.ts`, e passar
+  tudo por `formatPct`. É só apresentação.
+- **Opcional: uma frase no simulador de amortização** a explicar por que um
+  extra que liquida a dívida poupa menos do que "Liquidar hoje" (6,14 € contra
+  10,22 € no Peugeot). O extra só liquida no mês seguinte e paga mais um mês
+  de juros.
+- **Marcar crédito como liquidado.** Antes de desenhar, decidir o que acontece
+  à despesa fixa ligada e à dívida do carro em Bens Ativos (ver a secção do
+  simulador).
+- **Sessão dedicada ao `xlsx`** (CVE sem correção), antes de abrir a app a
+  mais gente.
+- **Source maps no Sentry.** A receção de eventos já está confirmada desde o
+  build 13. Para os stack traces ficarem legíveis não chega o
+  `SENTRY_AUTH_TOKEN`: também são precisos os slugs `organization`/`project`
+  e apagar o `SENTRY_DISABLE_AUTO_UPLOAD`, com um build de teste completo (ver
+  a secção do Sentry). A alternativa é subir os source maps à mão depois de
+  cada build.
+- **Email de recuperação para o endereço de outra pessoa.** O `info@`
+  reencaminha para o dono, por isso não prova a entrega a terceiros.
