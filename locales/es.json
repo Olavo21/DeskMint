@@ -286,5 +286,16 @@
     "emergencyFromProduct": "Saldo del producto de ahorro",
     "dashboardSubtitle": "Depósitos y cuentas de ahorro",
     "netBadge": "Neto ≈ {{rate}} · tras {{pct}}%"
+  },
+  "amortization": {
+    "title": "Si amortizas de más cada mes",
+    "perMonth": "/ extra al mes",
+    "interestSaved": "Ahorras en intereses",
+    "termReduced": "Reduces el plazo",
+    "monthOne": "{{n}} mes",
+    "monthsOther": "{{n}} meses",
+    "paidOffFirstMonth": "Con este importe liquidas la deuda el próximo mes y ahorras {{amount}} en intereses.",
+    "payoffToday": "Liquidar hoy: pagas {{balance}} y ahorras {{interest}} en intereses.",
+    "earlyFeeNote": "El contrato puede prever una comisión por reembolso anticipado. Confírmalo con el banco."
   }
 }

@@ -286,5 +286,16 @@
     "emergencyFromProduct": "Savings product balance",
     "dashboardSubtitle": "Deposits and savings accounts",
     "netBadge": "Net ≈ {{rate}} · after {{pct}}%"
+  },
+  "amortization": {
+    "title": "If you pay extra each month",
+    "perMonth": "/ extra per month",
+    "interestSaved": "Interest saved",
+    "termReduced": "Term reduced by",
+    "monthOne": "{{n}} month",
+    "monthsOther": "{{n}} months",
+    "paidOffFirstMonth": "With this amount you pay off the loan next month and save {{amount}} in interest.",
+    "payoffToday": "Pay off today: you pay {{balance}} and save {{interest}} in interest.",
+    "earlyFeeNote": "Your contract may include an early repayment fee. Check with your bank."
   }
 }

@@ -286,5 +286,16 @@
     "emergencyFromProduct": "Saldo do produto de poupança",
     "dashboardSubtitle": "Depósitos e contas poupança",
     "netBadge": "Líquida ≈ {{rate}} · após {{pct}}%"
+  },
+  "amortization": {
+    "title": "Se amortizares a mais por mês",
+    "perMonth": "/ mês extra",
+    "interestSaved": "Poupas em juros",
+    "termReduced": "Reduzes o prazo",
+    "monthOne": "{{n}} mês",
+    "monthsOther": "{{n}} meses",
+    "paidOffFirstMonth": "Com este valor liquidas a dívida já no próximo mês e poupas {{amount}} em juros.",
+    "payoffToday": "Liquidar hoje: pagas {{balance}} e poupas {{interest}} em juros.",
+    "earlyFeeNote": "O contrato pode prever uma comissão por reembolso antecipado. Confirma com o banco."
   }
 }
