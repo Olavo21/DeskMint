@@ -772,8 +772,11 @@ de teste `info@deskmint.app`, pela UI.
   marcado, a linha do fundo na Dashboard lê o saldo dele, deixa de ser
   editável, e o valor de `dm_emergency_fund` deixa de contar. Sem produto
   marcado, nada muda. Existe para quem tem o fundo num depósito não o contar
-  duas vezes. **Decidido pelo dono:** a conta da Trade Republic dele (3% TANB,
-  onde está o fundo) **não** é registada por agora; o fundo continua editável.
+  duas vezes. **Atualização de 25 out 2026:** a 13 out ficou decidido não
+  registar a conta da Trade Republic do dono, mas a 24 out o dono registou-a
+  pela app na conta dele ("Fundo de emergência", 2 000 €, 3%, marcada como
+  fundo). Desde então a Dashboard, a projeção e o Triângulo usam 2 000 € e
+  não os 1 566 € editáveis, e o snapshot de outubro passou a incluí-lo.
 - **Património:** `netWorth` soma os produtos **não** marcados numa linha
   "Poupança", que só aparece com produtos. Para quem não os tem, o total e a
   lista ficam exatamente como antes (conta do dono: 0 produtos).
