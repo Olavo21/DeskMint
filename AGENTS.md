@@ -488,7 +488,9 @@ caminho de repetição: depois de uma password recusada o ecrã repetiu só o
 **Fecho do 19 (13 e 18 out 2026), com as contas do dono e `info@deskmint.app`:**
 password com `ç` recusada pelo servidor (422, origem da regra ASCII do build
 20); entrar com a password nova; código errado (`000000` → "Código inválido ou
-expirado", botão de novo ativo). O **Cancelar a meio** passa para o build 20.
+expirado", botão de novo ativo). O **Cancelar a meio** passou para o build 20 e
+foi validado no build 21 (25 out 2026), tal como a recusa de `Senha1ç` pela
+própria app (regra ASCII) e a aceitação de uma password com `"` ou `\`.
 Por testar ainda: o email de outra pessoa (o `info@` reencaminha para o dono,
 por isso não prova a entrega a terceiros).
 
@@ -754,14 +756,16 @@ mudanças, a inflação é a que pesa mais.
   inflação até ao mês em que entra. O capital inicial não é descontado,
   porque já está em euros de hoje.
 
-## Produtos de poupança, fase 1: só registo (13 out 2026), por validar
+## Produtos de poupança, fase 1: só registo (13 out 2026), validada no build 21 (25 out)
 
 Tabela `dm_savings_accounts` (SQL em `supabase/sql/2026-10-13_dm_savings_accounts.sql`),
 ecrã Bolsa | Poupança dentro de Investimentos, `lib/savings.ts`,
 `hooks/useSavingsAccounts.ts`. **A simulação a 1/5/10 anos é a fase 2 e não
 existe.** Entrou no **build 20** (commit `c6f5184`, carregado no canal interno
-a 18 out 2026). Validação pendente: os testes de escrita fazem-se só na conta
-de teste `info@deskmint.app`, pela UI.
+a 18 out 2026). **Validada no build 21 (25 out 2026)**, pela UI e na conta de
+teste `info@deskmint.app`: criar, editar e apagar produtos, marcar o fundo de
+emergência e a recusa de um segundo (23505), as validações do formulário, o
+Triângulo e o selo "Líquida ≈ 2,16% · após 28%" sem o `28.000000000000004`.
 
 - **Retenção:** `SAVINGS_WITHHOLDING_RATE = 0.28`, constante única. Líquida =
   bruta × 0,72. A taxa é sempre a que o utilizador introduz: a app nunca
@@ -852,6 +856,11 @@ casas, e nunca passa a dívida.
 e não "extra ≥ dívida" (a prestação já abate parte). No Peugeot: 547,60 €.
 **"Liquidar hoje"** mostra os juros por pagar como poupança, com uma nota
 genérica sobre a comissão de reembolso antecipado (não é calculada na app).
+
+**Validado no build 21 (25 out 2026)**, no Peugeot: 100 € → poupa 2,71 € e 1
+mês; 500 € → 6,14 € e 2 meses; 548 € → "liquidas a dívida já no próximo mês";
+um valor absurdo fica limitado a 728,10 €; "Liquidar hoje" mostra 728,10 € e
+10,22 € de poupança.
 
 **Backlog: marcar um crédito como liquidado.** Não existe estado de
 "liquidado" em `dm_credits` nem fluxo de registo de pagamentos. Quando os
