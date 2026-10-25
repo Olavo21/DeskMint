@@ -52,12 +52,43 @@ export function getCreditOutstandingBalance(credit: DmCredit, today: Date = new 
 }
 
 export type AmortizationSimulation = {
+  /** Meses inteiros até liquidar com o extra; nunca 0 enquanto houver dívida. */
   newPayoffMonths: number
   monthsSaved: number
   interestSaved: number
+  /** Juros que faltam pagar sem extra: é também o que se poupa liquidando hoje. */
+  baselineInterest: number
+  /** Prestação + extra cobrem a dívida e os juros do primeiro mês. */
+  paidOffFirstMonth: boolean
 }
 
-/** Simula o impacto de pagar `extraMonthly` a mais por mês, a partir do saldo atual. */
+// Abaixo disto (meio cêntimo) o saldo conta como liquidado: o saldo vem de um
+// valor atual calculado, e a última prestação deixa sempre um resto de vírgula.
+const PAID_OFF_EPSILON = 0.005
+
+/** Juros pagos e meses até liquidar, mês a mês: juros sobre o saldo, depois o pagamento. */
+function runAmortization(balance: number, r: number, payment: number, maxMonths: number) {
+  let saldo = balance
+  let interest = 0
+  let months = 0
+  while (saldo > PAID_OFF_EPSILON && months < maxMonths) {
+    const juros = saldo * r
+    interest += juros
+    saldo += juros - Math.min(payment, saldo + juros)
+    months++
+  }
+  return { months, interest }
+}
+
+/**
+ * Simula o impacto de pagar `extraMonthly` a mais por mês, a partir do saldo atual.
+ *
+ * Mês a mês, e não pela fórmula fechada com logaritmos: com um extra enorme a
+ * fração rB/(P+E) arredondava para 0, o prazo dava 0 meses, os "juros novos"
+ * davam −saldo e a poupança mostrava o total das prestações (738,32 € num
+ * crédito com 10,22 € de juros por pagar, 25 out 2026). O ciclo tem no máximo
+ * `remainingMonths` voltas, e a poupança fica limitada aos juros que faltam.
+ */
 export function simulateExtraAmortization(
   balance: number,
   annualRatePct: number,
@@ -65,21 +96,23 @@ export function simulateExtraAmortization(
   remainingMonths: number,
   extraMonthly: number
 ): AmortizationSimulation {
-  if (extraMonthly <= 0 || balance <= 0 || remainingMonths <= 0) {
-    return { newPayoffMonths: remainingMonths, monthsSaved: 0, interestSaved: 0 }
+  const r = monthlyRate(annualRatePct)
+  const months = Math.max(Math.round(remainingMonths), 0)
+  const baselineInterest = balance > 0 && months > 0
+    ? runAmortization(balance, r, monthlyPayment, months).interest
+    : 0
+
+  if (!(extraMonthly > 0) || balance <= 0 || months <= 0) {
+    return { newPayoffMonths: months, monthsSaved: 0, interestSaved: 0, baselineInterest, paidOffFirstMonth: false }
   }
 
-  const baselineInterest = monthlyPayment * remainingMonths - balance
-  const newPayoffMonths = calcPayoffMonths(balance, annualRatePct, monthlyPayment + extraMonthly)
-
-  if (!Number.isFinite(newPayoffMonths)) {
-    return { newPayoffMonths: remainingMonths, monthsSaved: 0, interestSaved: 0 }
-  }
-
-  const newInterest = (monthlyPayment + extraMonthly) * newPayoffMonths - balance
+  const sim = runAmortization(balance, r, monthlyPayment + extraMonthly, months)
+  const newPayoffMonths = Math.max(sim.months, 1)
   return {
     newPayoffMonths,
-    monthsSaved: remainingMonths - newPayoffMonths,
-    interestSaved: Math.max(baselineInterest - newInterest, 0),
+    monthsSaved: Math.max(months - newPayoffMonths, 0),
+    interestSaved: Math.min(Math.max(baselineInterest - sim.interest, 0), baselineInterest),
+    baselineInterest,
+    paidOffFirstMonth: newPayoffMonths === 1,
   }
 }
