@@ -833,6 +833,29 @@ mensais, ou 6 × 1 000 € quando as despesas são 50 € ou menos) e mostra o
 progresso, mas **não é usado em lado nenhum**. A tabela `dm_emergency_fund` tem
 ainda `target_months` e `target_amount`, que nenhum ecrã lê.
 
+## Simulador de amortização: a poupança passava os juros (25 out 2026)
+
+Com um extra de 20 algarismos, o simulador do ecrã Créditos mostrava "Poupas
+em juros 738,32 €" num crédito com só **10,22 €** de juros por pagar (Peugeot:
+728,10 € em dívida, 4 × 184,58 €). A fórmula fechada arredondava
+`r·saldo/(prestação+extra)` para 0, o prazo dava 0 meses e os "juros novos"
+davam −saldo. `simulateExtraAmortization` (`lib/creditMath.ts`) passou a simular
+**mês a mês** (no máximo `remainingMonths` voltas): o prazo nunca é 0 e a
+poupança fica limitada aos juros que faltam. O Otimizador de Dívida usa a mesma
+função. O campo (`lib/moneyInput.ts`) aceita só algarismos e um separador, 2
+casas, e nunca passa a dívida.
+
+**Fronteira de "liquida no 1.º mês":** prestação + extra ≥ saldo × (1 + taxa/12),
+e não "extra ≥ dívida" (a prestação já abate parte). No Peugeot: 547,60 €.
+**"Liquidar hoje"** mostra os juros por pagar como poupança, com uma nota
+genérica sobre a comissão de reembolso antecipado (não é calculada na app).
+
+**Backlog: marcar um crédito como liquidado.** Não existe estado de
+"liquidado" em `dm_credits` nem fluxo de registo de pagamentos. Quando os
+meses chegam a zero, o saldo passa sozinho a 0 €. Antes de desenhar, decidir:
+o que acontece à despesa fixa ligada ao crédito (`dm_recurring_expenses.credit_id`)
+e à dívida do bem ligado (`dm_assets.credit_id`, o carro em Bens Ativos).
+
 ## Regra Necessidades/Lazer/Poupança: o que a barra do Lazer mede (3 out 2026)
 
 As metas são personalizáveis por perfil (`target_needs/wants/savings` em
