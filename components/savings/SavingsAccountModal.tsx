@@ -9,6 +9,7 @@ import DateTimePicker from '../ui/CrossDateTimePicker'
 import { useSavingsAccounts, type SavingsPayload } from '../../hooks/useSavingsAccounts'
 import { confirmDestructive } from '../../lib/confirmDialog'
 import { netRate, parseDateOnly, toDateOnly, SAVINGS_WITHHOLDING_RATE } from '../../lib/savings'
+import { formatPct } from '../../utils/format'
 import type { DmSavingsAccount, Enums } from '../../types/database'
 
 type Kind = Enums<'dm_savings_kind'>
@@ -193,7 +194,7 @@ export default function SavingsAccountModal({ visible, onClose, account }: Props
             </View>
             {!isNaN(rateNum) && rateNum >= 0 && rateNum <= 100 && (
               <Text className="text-dark-500 text-xs -mt-2 mb-4">
-                {t('savingsProducts.net')}: ≈ {netRate(rateNum).toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% · {t('savingsProducts.netNote', { pct: SAVINGS_WITHHOLDING_RATE * 100 })}
+                {t('savingsProducts.net')}: ≈ {formatPct(netRate(rateNum), i18n.language, 2, 2)}% · {t('savingsProducts.netNote', { pct: formatPct(SAVINGS_WITHHOLDING_RATE * 100, i18n.language) })}
               </Text>
             )}
 

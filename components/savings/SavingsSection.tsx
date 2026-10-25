@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { useSavingsAccounts } from '../../hooks/useSavingsAccounts'
 import { netRate, parseDateOnly, toDateOnly, SAVINGS_WITHHOLDING_RATE } from '../../lib/savings'
-import { useFmt } from '../../utils/format'
+import { useFmt, formatPct } from '../../utils/format'
 import SavingsAccountModal from './SavingsAccountModal'
 import type { DmSavingsAccount } from '../../types/database'
 
@@ -15,7 +15,8 @@ export default function SavingsSection() {
   const [editing, setEditing]   = useState<DmSavingsAccount | null>(null)
   const [showModal, setShowModal] = useState(false)
 
-  const pct = (n: number) => n.toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
+  const pct = (n: number) => formatPct(n, i18n.language, 2, 2) + '%'
+  const taxPct = formatPct(SAVINGS_WITHHOLDING_RATE * 100, i18n.language)
   const openNew  = () => { setEditing(null); setShowModal(true) }
   const openEdit = (a: DmSavingsAccount) => { setEditing(a); setShowModal(true) }
 
@@ -84,7 +85,7 @@ export default function SavingsSection() {
                 <View className="flex-row items-center gap-3 mt-3">
                   <View className="px-2 py-1 rounded-lg" style={{ backgroundColor: '#14b8a615' }}>
                     <Text className="text-xs font-bold" style={{ color: '#0d9488' }} numberOfLines={1}>
-                      {t('savingsProducts.netBadge', { rate: pct(netRate(a.gross_rate)), pct: SAVINGS_WITHHOLDING_RATE * 100 })}
+                      {t('savingsProducts.netBadge', { rate: pct(netRate(a.gross_rate)), pct: taxPct })}
                     </Text>
                   </View>
                   <Text className="text-dark-500 text-xs" numberOfLines={1}>{t('savingsProducts.gross')} {pct(a.gross_rate)}</Text>
@@ -106,7 +107,7 @@ export default function SavingsSection() {
       {accounts.length > 0 && (
         <View className="mx-4 mt-4 bg-dark-800/50 border border-dark-600/50 rounded-xl p-3">
           <Text className="text-dark-500 text-xs">
-            {t('savingsProducts.netNote', { pct: SAVINGS_WITHHOLDING_RATE * 100 })} {t('savingsProducts.rateDisclaimer')}
+            {t('savingsProducts.netNote', { pct: taxPct })} {t('savingsProducts.rateDisclaimer')}
           </Text>
         </View>
       )}
