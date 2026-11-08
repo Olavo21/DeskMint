@@ -10,7 +10,8 @@ Vault do Obsidian dentro do repositório. O Claude Code lê e edita estas notas.
 - [[05-Releases]] — notas de cada versão
 
 ## Em curso
-- Falhas da Finnhub ao Sentry e 429 próprio no assistente — em produção desde 8 nov 2026, falta ver a primeira chamada real; ver [[04-Bugs/stock-fundamentals-cacheia-null]]
+- Falhas da Finnhub ao Sentry e 429 próprio no assistente — em produção e validado com uma chamada real a 8 nov 2026 (falta testar o `investment-chat` num dev build); ver [[04-Bugs/stock-fundamentals-cacheia-null]]
+- EV/EBITDA e Receita/Emp. vazios no "Auto" (chaves erradas da Finnhub) — [[04-Bugs/fundamentals-chaves-finnhub-erradas]]
 - 1.7.0: proxy da Finnhub, chave fora do APK — [[02-Features/finnhub-proxy]] (planeada)
 - Backlog 1.7.0: percentagens com a língua da app, marcar crédito como liquidado, sessão do `xlsx`, source maps no Sentry
 
@@ -68,6 +69,7 @@ Vault do Obsidian dentro do repositório. O Claude Code lê e edita estas notas.
 
 ## Bugs e armadilhas
 Abertos:
+- [[04-Bugs/fundamentals-chaves-finnhub-erradas]]
 - [[04-Bugs/expo-public-finnhub-key]]
 - [[04-Bugs/finnhub-plano-gratis-limites]]
 - [[04-Bugs/yahoo-crumb-cors]]
