@@ -12,7 +12,7 @@ criado: 2026-11-08
 **Para quem:** quem usa a Análise para comparar ações. Hoje uma empresa de crescimento com Beta alto nunca chega a "alta".
 **Esforço estimado:** pequeno no código (só `computeVerdict` e o cartão do veredito), mas precisa de build. O que leva tempo é a decisão de produto.
 
-Para decidir: entra na 1.7.0 ou fica para depois. Não mexe nos limites de cada métrica, só na forma de os somar.
+**Decidido a 8 nov 2026:** a regra fica no backlog. Na 1.7.0 entra só o texto que diz que métricas impediram o veredito de subir — ver [[03-Decisoes/veredito-texto-antes-da-regra]]. Rever a regra não mexe nos limites de cada métrica, só na forma de os somar.
 
 ## Ligações
 - [[02-Features/analise-fundamentalista]]

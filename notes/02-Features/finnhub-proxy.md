@@ -37,6 +37,22 @@ Já no servidor (não mudam de sítio): `stock-fundamentals` (`stock/metric`, `s
 - CORS: a app nativa não precisa; se a build Web voltar, permitir só `https://deskmint.app`
 - **Fora do proxy, mas no mesmo build:** a Receita/Emp. do `FundamentalsModal` passa de € para "$" (`unit` e os textos `good`/`bad`/`example` de `revenuePerEmployee` em `lib/fundamentalsMetrics.ts`). O valor vem da Finnhub em USD. Ver [[03-Decisoes/moeda-receita-empregado-aproximada]]. *Nice to have, não bloqueia:* o campo mostra `7213500.00` (o modal faz `toFixed(2)` a tudo); a linha "≈ 7.2M por empregado" por baixo já o torna legível
 
+## Fora do proxy, no mesmo build: texto do veredito da Análise
+Item separado do proxy, com critério de pronto próprio, para uma falha num não ser confundida com uma falha no outro. A regra **não** muda. Ver [[03-Decisoes/veredito-texto-antes-da-regra]].
+
+- **O que faz:** quando há vermelhos, o veredito do `FundamentalsModal` mostra que métricas o impediram de subir. Formato: rótulo do veredito + ` · ` + `label` da métrica + `getLightLabel` em minúsculas (ex.: "Qualidade moderada · Beta muito volátil")
+- **Vários vermelhos:** mostrar até dois e depois "+N" (ex.: "· Beta muito volátil, P/E caro +1")
+- **Sem vermelhos:** o texto fica igual ao de hoje
+- **Ficheiros:** `lib/fundamentalsMetrics.ts` (`computeVerdict` passa a devolver as métricas a vermelho, não só a contagem) e o cartão do veredito no `FundamentalsModal`
+- **Tradução:** os textos do veredito estão hoje escritos à mão em português, fora do `t()`. O texto novo entra no `t()`, nos três idiomas
+
+**Critérios de pronto (veredito):**
+- [ ] NVDA (Beta 2,35, resto como a 8 nov): "Qualidade moderada · Beta muito volátil"
+- [ ] Um ticker sem vermelhos mostra o veredito sem sufixo
+- [ ] Com três ou mais vermelhos aparecem dois nomes e "+N", e o texto não sai do cartão
+- [ ] Os mesmos casos com a app em inglês
+- [ ] O veredito (alta / moderada / fragilidades) é o mesmo de antes para os mesmos valores, porque a regra não mudou
+
 ## Rollout
 1. Implementar a função e migrar os quatro pontos da app; testar com o utilizador de teste
 2. Deploy da função **antes** de publicar o build (a app nova depende dela; a antiga não)
