@@ -31,6 +31,6 @@ O PEG só foi apanhado ao testar a correção: vinha `null` na NVDA e na AAPL.
 | NVDA.US | 0,459 | 22,42 | 7 213 500 |
 | AAPL.US | 3,062 | 29,27 | 2 884 500 |
 
-**Por ver:** "Auto" na NVDA no telemóvel depois do deploy.
+**Validado a 8 nov 2026, 18:50**, com "Auto" na NVDA no telemóvel: PEG 0,46 (verde, "Potencialmente subavaliada"), EV/EBITDA 22,42 (laranja, "Razoável"), Receita/Emp. 7213500.00 (verde, "Excecional", com "≈ 7.2M por empregado" por baixo). Os positivos passaram de 5 para 7. A cache v1 não foi servida: os valores novos apareceram no primeiro toque.
 
 Ligações: [[02-Features/analise-fundamentalista]], [[04-Bugs/stock-fundamentals-cacheia-null]], [[03-Decisoes/cache-nao-guarda-falhas]]

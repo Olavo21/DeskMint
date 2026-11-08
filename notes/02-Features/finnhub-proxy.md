@@ -35,7 +35,7 @@ Já no servidor (não mudam de sítio): `stock-fundamentals` (`stock/metric`, `s
 - Resposta ao cliente com um estado explícito (`ok` / `sem_cobertura` / `limite_pedidos` / `erro`), igual ao do `investment-chat`
 - Sufixos: manter as regras atuais (`.US` sai, cripto passa a `BINANCE:XXXUSDT`) dentro da função — ver [[04-Bugs/sufixo-us-finnhub]]
 - CORS: a app nativa não precisa; se a build Web voltar, permitir só `https://deskmint.app`
-- **Fora do proxy, mas no mesmo build:** a Receita/Emp. do `FundamentalsModal` passa de € para "$" (`unit` e os textos `good`/`bad`/`example` de `revenuePerEmployee` em `lib/fundamentalsMetrics.ts`). O valor vem da Finnhub em USD. Ver [[03-Decisoes/moeda-receita-empregado-aproximada]]
+- **Fora do proxy, mas no mesmo build:** a Receita/Emp. do `FundamentalsModal` passa de € para "$" (`unit` e os textos `good`/`bad`/`example` de `revenuePerEmployee` em `lib/fundamentalsMetrics.ts`). O valor vem da Finnhub em USD. Ver [[03-Decisoes/moeda-receita-empregado-aproximada]]. *Nice to have, não bloqueia:* o campo mostra `7213500.00` (o modal faz `toFixed(2)` a tudo); a linha "≈ 7.2M por empregado" por baixo já o torna legível
 
 ## Rollout
 1. Implementar a função e migrar os quatro pontos da app; testar com o utilizador de teste
