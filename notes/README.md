@@ -72,6 +72,7 @@ Vault do Obsidian dentro do repositório. O Claude Code lê e edita estas notas.
 
 ## Bugs e armadilhas
 Abertos:
+- [[04-Bugs/i18n-veredito-semaforos]]
 - [[04-Bugs/expo-public-finnhub-key]]
 - [[04-Bugs/finnhub-plano-gratis-limites]]
 - [[04-Bugs/yahoo-crumb-cors]]

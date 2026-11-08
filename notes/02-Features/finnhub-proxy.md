@@ -44,7 +44,7 @@ Item separado do proxy, com critério de pronto próprio, para uma falha num nã
 - **Vários vermelhos:** mostrar até dois e depois "+N" (ex.: "· Beta muito volátil, P/E caro +1")
 - **Sem vermelhos:** o texto fica igual ao de hoje
 - **Ficheiros:** `lib/fundamentalsMetrics.ts` (`computeVerdict` passa a devolver as métricas a vermelho, não só a contagem) e o cartão do veredito no `FundamentalsModal`
-- **Tradução:** os textos do veredito estão hoje escritos à mão em português, fora do `t()`. O texto novo entra no `t()`, nos três idiomas
+- **Tradução:** os textos do veredito e os rótulos dos semáforos estão hoje escritos à mão em português, fora do `t()` (bug em produção: [[04-Bugs/i18n-veredito-semaforos]]). O sufixo novo junta os dois, por isso o critério em inglês depende de passar essas 33 strings para o `t()` neste build. Ainda por confirmar se entram na 1.7.0
 
 **Critérios de pronto (veredito):**
 - [ ] NVDA (Beta 2,35, resto como a 8 nov): "Qualidade moderada · Beta muito volátil"
