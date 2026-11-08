@@ -22,9 +22,11 @@ criado: 2026-11-08
 | Placeholders (`ex: …`) | 9 + 2 no modal | |
 | Resto do `FundamentalsModal` (abas, "Métricas fundamentais", "positivos", "críticos", "por empregado", "Fórmula", "Mau quando", "Exemplo", calculadora, aviso de teto, "Registar compra", erro do "Auto") | ~30 | contagem aproximada |
 
-**Proposta:**
-- **1.7.0: semáforos + veredito (33 strings).** Estão acopladas ao item do veredito da 1.7.0: o sufixo novo é "veredito · métrica + rótulo do semáforo", e o critério "os mesmos casos com a app em inglês" só passa se os dois já estiverem no `t()`. O ficheiro já vai ser mexido nesse build
+**Decidido a 8 nov 2026:**
+- **1.7.0: semáforos + veredito (33 strings), confirmado.** Estão acopladas ao item do veredito da 1.7.0: o sufixo novo é "veredito · métrica + rótulo do semáforo", e o critério "os mesmos casos com a app em inglês" só passa se os dois já estiverem no `t()`. O ficheiro já vai ser mexido nesse build
 - **Backlog: o resto (~95 strings e os formatos `pt-PT`)**, como item próprio. As fichas de informação são texto longo, com exemplos em €, e precisam de tradução a sério, não de uma passagem mecânica
+
+**Como fazer o item do backlog:** as 45 strings das fichas são a parte delicada (exemplos em € e tom didático). Primeiro, exportá-las de `lib/fundamentalsMetrics.ts` para um ficheiro (por métrica: `description`, `formula`, `good`, `bad`, `example`) e mandá-lo ao Claude da conversa de produto, que as traduz nos três idiomas com os exemplos adaptados à moeda. Depois é só metê-las no `t()`. O resto do modal e os formatos `pt-PT` podem ser feitos diretamente
 
 **Nota técnica:** `lib/fundamentalsMetrics.ts` não é um componente. Ou devolve chaves de tradução e o modal faz o `t()`, ou usa o `i18n.t` de `lib/i18n.ts`. A primeira opção mantém o ficheiro puro e mostra a língua certa quando ela muda com o ecrã aberto.
 

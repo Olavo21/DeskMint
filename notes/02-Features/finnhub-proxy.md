@@ -44,13 +44,14 @@ Item separado do proxy, com critério de pronto próprio, para uma falha num nã
 - **Vários vermelhos:** mostrar até dois e depois "+N" (ex.: "· Beta muito volátil, P/E caro +1")
 - **Sem vermelhos:** o texto fica igual ao de hoje
 - **Ficheiros:** `lib/fundamentalsMetrics.ts` (`computeVerdict` passa a devolver as métricas a vermelho, não só a contagem) e o cartão do veredito no `FundamentalsModal`
-- **Tradução:** os textos do veredito e os rótulos dos semáforos estão hoje escritos à mão em português, fora do `t()` (bug em produção: [[04-Bugs/i18n-veredito-semaforos]]). O sufixo novo junta os dois, por isso o critério em inglês depende de passar essas 33 strings para o `t()` neste build. Ainda por confirmar se entram na 1.7.0
+- **Tradução:** os textos do veredito e os rótulos dos semáforos estão hoje escritos à mão em português, fora do `t()` (bug em produção: [[04-Bugs/i18n-veredito-semaforos]]). O sufixo novo junta os dois, por isso **as 33 strings (27 rótulos de semáforo + 6 do veredito) passam para o `t()` neste build, nos três idiomas** (confirmado a 8 nov 2026). As fichas de informação e o resto do modal ficam no backlog
 
 **Critérios de pronto (veredito):**
 - [ ] NVDA (Beta 2,35, resto como a 8 nov): "Qualidade moderada · Beta muito volátil"
 - [ ] Um ticker sem vermelhos mostra o veredito sem sufixo
 - [ ] Com três ou mais vermelhos aparecem dois nomes e "+N", e o texto não sai do cartão
 - [ ] Os mesmos casos com a app em inglês
+- [ ] Em inglês e espanhol, nenhum rótulo de semáforo nem texto do veredito aparece em português
 - [ ] O veredito (alta / moderada / fragilidades) é o mesmo de antes para os mesmos valores, porque a regra não mudou
 
 ## Rollout

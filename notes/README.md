@@ -12,7 +12,9 @@ Vault do Obsidian dentro do repositório. O Claude Code lê e edita estas notas.
 ## Em curso
 - Falhas da Finnhub ao Sentry e 429 próprio no assistente — em produção e validado com uma chamada real a 8 nov 2026 (falta testar o `investment-chat` num dev build); ver [[04-Bugs/stock-fundamentals-cacheia-null]]
 - 1.7.0: texto do veredito da Análise com as métricas a vermelho — na spec [[02-Features/finnhub-proxy]], decisão [[03-Decisoes/veredito-texto-antes-da-regra]]
+- 1.7.0: 33 strings dos semáforos e do veredito no `t()` — [[04-Bugs/i18n-veredito-semaforos]]
 - Backlog: regra do veredito com qualidade e risco separados — [[01-Ideias/veredito-qualidade-vs-risco]] (a-avaliar)
+- Backlog: resto da Análise no `t()` (~95 strings, incluindo as 45 das fichas de informação, que são exportadas para tradução primeiro) e formatos `pt-PT` — [[04-Bugs/i18n-veredito-semaforos]]
 - 1.7.0: proxy da Finnhub, chave fora do APK — [[02-Features/finnhub-proxy]] (planeada)
 - Backlog 1.7.0: percentagens com a língua da app, marcar crédito como liquidado, sessão do `xlsx`, source maps no Sentry
 
