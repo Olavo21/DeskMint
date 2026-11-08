@@ -16,7 +16,7 @@ criado: 2026-09-23
 - *Nenhuma falha da Finnhub chega ao Sentry* — corrigido a 8 nov 2026 com `supabase/functions/_shared/sentry.ts`. O `investment-chat` (quote, company-news) e o `stock-fundamentals` (metric, profile2, quote) reportam 429, 401/403, 5xx, outros erros HTTP e timeouts (8 s), um evento por endpoint e tipo de falha. Tags: `edge_function`, `runtime:edge`, `finnhub_endpoint`, `finnhub_failure` (`rate_limit` / `auth_error` / `server_error` / `http_error` / `timeout` / `network`); `environment: production`. "Sem cobertura" não é reportado.
 - *Validado a 8 nov 2026*: um 401 real da Finnhub passado pelo helper chegou ao Sentry (REACT-NATIVE-4), no mesmo projeto da app — o `SENTRY_DSN` das edge functions é o mesmo DSN. A tag `function` era descartada pelo Sentry (chave reservada), daí `edge_function`. Para separar backend da app: filtrar por `runtime:edge`.
 
-**Estado do deploy:** por fazer (`supabase functions deploy investment-chat stock-fundamentals`). A Store API do Sentry ainda não foi confirmada ao vivo: confirmar no primeiro evento real.
+**Estado do deploy:** feito a 8 nov 2026 (commit `7830bd1`; `investment-chat` v12, `stock-fundamentals` v10). Store API do Sentry confirmada pelo teste acima. Por ver: a primeira chamada real depois do deploy (nos logs de 8 nov não houve nenhuma).
 
 **Fica para a 1.7.0 (precisa de build):** o `FundamentalsModal` mostra o mesmo "Erro ao buscar dados" para um 429 e para qualquer outra falha — ver [[02-Features/finnhub-proxy]].
 

@@ -10,7 +10,7 @@ Vault do Obsidian dentro do repositório. O Claude Code lê e edita estas notas.
 - [[05-Releases]] — notas de cada versão
 
 ## Em curso
-- Falhas da Finnhub ao Sentry e 429 próprio no assistente (só edge functions, sem build) — deploy por fazer; ver [[04-Bugs/stock-fundamentals-cacheia-null]]
+- Falhas da Finnhub ao Sentry e 429 próprio no assistente — em produção desde 8 nov 2026, falta ver a primeira chamada real; ver [[04-Bugs/stock-fundamentals-cacheia-null]]
 - 1.7.0: proxy da Finnhub, chave fora do APK — [[02-Features/finnhub-proxy]] (planeada)
 - Backlog 1.7.0: percentagens com a língua da app, marcar crédito como liquidado, sessão do `xlsx`, source maps no Sentry
 
