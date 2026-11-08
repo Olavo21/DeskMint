@@ -11,6 +11,13 @@ criado: 2026-09-23
 **Causa:** não verificava `res.ok` antes de `.json()`; o leitor da cache não valida o conteúdo.
 **Correção:** a função devolve 503 se alguma resposta não vier `ok`, e só grava cache e rate limit depois das três `ok` — ver [[03-Decisoes/cache-nao-guarda-falhas]]. Nunca logar `res.url` (traz o token).
 
-**Ainda em aberto, do mesmo levantamento:** no `investment-chat`, 429 e "sem cobertura" colapsam no mesmo `{ disponivel: false }`; e nenhum caminho Finnhub reporta ao Sentry, por isso um 429 sustentado não dá sinal.
+**Os outros dois pontos do mesmo levantamento (23 set 2026):**
+- *429 e "sem cobertura" na mesma resposta do `investment-chat`* — separados em `2cbc043` (`erro_api` / `erro_rede` / `sem_cobertura`). A 8 nov 2026 o 429 passou a ter motivo próprio, `limite_pedidos`, e o modelo diz ao utilizador para tentar daqui a pouco; o `get_news` faz o mesmo.
+- *Nenhuma falha da Finnhub chega ao Sentry* — corrigido a 8 nov 2026 com `supabase/functions/_shared/sentry.ts`. O `investment-chat` (quote, company-news) e o `stock-fundamentals` (metric, profile2, quote) reportam 429, 401/403, 5xx, outros erros HTTP e timeouts (8 s), um evento por endpoint e tipo de falha. Tags: `edge_function`, `runtime:edge`, `finnhub_endpoint`, `finnhub_failure` (`rate_limit` / `auth_error` / `server_error` / `http_error` / `timeout` / `network`); `environment: production`. "Sem cobertura" não é reportado.
+- *Validado a 8 nov 2026*: um 401 real da Finnhub passado pelo helper chegou ao Sentry (REACT-NATIVE-4), no mesmo projeto da app — o `SENTRY_DSN` das edge functions é o mesmo DSN. A tag `function` era descartada pelo Sentry (chave reservada), daí `edge_function`. Para separar backend da app: filtrar por `runtime:edge`.
 
-Ligações: [[02-Features/analise-fundamentalista]]
+**Estado do deploy:** por fazer (`supabase functions deploy investment-chat stock-fundamentals`). A Store API do Sentry ainda não foi confirmada ao vivo: confirmar no primeiro evento real.
+
+**Fica para a 1.7.0 (precisa de build):** o `FundamentalsModal` mostra o mesmo "Erro ao buscar dados" para um 429 e para qualquer outra falha — ver [[02-Features/finnhub-proxy]].
+
+Ligações: [[02-Features/analise-fundamentalista]], [[02-Features/assistente-srmint]], [[02-Features/sentry]], [[04-Bugs/expo-public-finnhub-key]]

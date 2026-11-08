@@ -1,4 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js";
+import {
+  FINNHUB_TIMEOUT_MS,
+  failureFromError,
+  failureFromStatus,
+  reportFinnhubFailures,
+} from "../_shared/sentry.ts";
 
 const FINNHUB_KEY = Deno.env.get("FINNHUB_KEY") ?? "";
 
@@ -86,11 +92,22 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Too many requests" }, 429);
     }
 
-    const [metricRes, profileRes, quoteRes] = await Promise.all([
-      fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${finnhubSymbol}&metric=all&token=${FINNHUB_KEY}`),
-      fetch(`https://finnhub.io/api/v1/stock/profile2?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`),
-      fetch(`https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`),
-    ]);
+    const finnhub = (path: string) =>
+      fetch(`https://finnhub.io/api/v1/${path}&token=${FINNHUB_KEY}`, {
+        signal: AbortSignal.timeout(FINNHUB_TIMEOUT_MS),
+      });
+
+    let metricRes: Response, profileRes: Response, quoteRes: Response;
+    try {
+      [metricRes, profileRes, quoteRes] = await Promise.all([
+        finnhub(`stock/metric?symbol=${finnhubSymbol}&metric=all`),
+        finnhub(`stock/profile2?symbol=${finnhubSymbol}`),
+        finnhub(`quote?symbol=${finnhubSymbol}`),
+      ]);
+    } catch (err) {
+      await reportFinnhubFailures(ENDPOINT_NAME, user.id, [failureFromError("fundamentals", err, finnhubSymbol)]);
+      return jsonResponse({ error: "Upstream unavailable" }, 503);
+    }
 
     // Falhar em aberto, nunca cachear o vazio. Sem esta verificação, um 429
     // (ou 5xx, ou hiccup de rede) devolvia um corpo JSON de erro, `metric`
@@ -98,18 +115,20 @@ Deno.serve(async (req) => {
     // respondia 200 com tudo a null e gravava isso na cache. Uma falha de um
     // segundo ficava presa 5 minutos por user+ticker, e o utilizador via um
     // ecrã vazio indistinguível de "este ticker não tem cobertura".
-    const upstream = [
-      { label: "metric",   res: metricRes },
-      { label: "profile2", res: profileRes },
-      { label: "quote",    res: quoteRes },
-    ].find((r) => !r.res.ok);
-    if (upstream) {
-      // Nunca logar res.url — traz o token da Finnhub na query string.
-      console.error(`finnhub ${upstream.label} devolveu ${upstream.res.status} para ${finnhubSymbol}`);
-      return jsonResponse(
-        { error: upstream.res.status === 429 ? "Upstream rate limited" : "Upstream unavailable" },
-        503,
+    const failed = [
+      { label: "stock/metric",   res: metricRes },
+      { label: "stock/profile2", res: profileRes },
+      { label: "quote",          res: quoteRes },
+    ].filter((r) => !r.res.ok);
+    if (failed.length) {
+      // Nunca logar nem reportar res.url — traz o token da Finnhub na query string.
+      await reportFinnhubFailures(
+        ENDPOINT_NAME,
+        user.id,
+        failed.map((r) => failureFromStatus(r.label, r.res.status, finnhubSymbol)),
       );
+      const rateLimited = failed.some((r) => r.res.status === 429);
+      return jsonResponse({ error: rateLimited ? "Upstream rate limited" : "Upstream unavailable" }, 503);
     }
 
     const [metricData, profileData, quoteData] = await Promise.all([

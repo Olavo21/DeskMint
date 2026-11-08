@@ -1,6 +1,14 @@
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import type { Database } from "../../../types/database.ts";
+import {
+  FINNHUB_TIMEOUT_MS,
+  type FinnhubFailure,
+  failureFromError,
+  failureFromStatus,
+  reportFinnhubFailures,
+  reportToSentry,
+} from "../_shared/sentry.ts";
 
 // NOTA (17 set 2026): versão do @supabase/supabase-js fixada em 2.45.0 —
 // não deixar sem pin. Com "npm:@supabase/supabase-js" em aberto (o que
@@ -39,7 +47,6 @@ import type { Database } from "../../../types/database.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const FINNHUB_KEY        = Deno.env.get("FINNHUB_KEY") ?? "";
-const SENTRY_DSN         = Deno.env.get("SENTRY_DSN") ?? "";
 
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
@@ -73,47 +80,10 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-// ─── Sentry (best-effort, sem SDK) ───────────────────────────────────────
-// NOTA (17 set 2026): usa a Store API legada da Sentry via fetch simples —
-// evita puxar o SDK completo para dentro de uma function Deno. NÃO
-// confirmado ao vivo se o projeto DeskMint em sentry.io ainda aceita esta
-// API (pode exigir a envelope API mais recente) — a confirmar no primeiro
-// erro real, tal como o resto da integração Sentry desta app. Uma falha
-// aqui nunca deve impedir a resposta real ao utilizador.
+// ─── Sentry ──────────────────────────────────────────────────────────────
 
-async function reportToSentry(
-  error: unknown,
-  userId: string | null,
-  extra?: Record<string, unknown>,
-) {
-  if (!SENTRY_DSN) return;
-  try {
-    const match = SENTRY_DSN.match(/^https:\/\/([^@]+)@([^/]+)\/(.+)$/);
-    if (!match) return;
-    const [, publicKey, host, projectId] = match;
-    const message = error instanceof Error ? error.message : String(error);
-
-    await fetch(`https://${host}/api/${projectId}/store/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Sentry-Auth":
-          `Sentry sentry_version=7, sentry_key=${publicKey}, sentry_client=deskmint-edge/1.0`,
-      },
-      body: JSON.stringify({
-        event_id: crypto.randomUUID().replace(/-/g, ""),
-        timestamp: new Date().toISOString(),
-        platform: "other",
-        level: "error",
-        message,
-        user: userId ? { id: userId } : undefined,
-        tags: { source: ENDPOINT_NAME },
-        extra,
-      }),
-    });
-  } catch {
-    // Nunca deixar uma falha do Sentry rebentar a resposta real.
-  }
+function reportError(err: unknown, userId: string | null, extra?: Record<string, unknown>) {
+  return reportToSentry(err, { fn: ENDPOINT_NAME, userId, extra });
 }
 
 // ─── System Prompt ───────────────────────────────────────────────────────
@@ -215,7 +185,7 @@ const TOOLS: ToolDef[] = [
   {
     name: "get_market_data",
     description:
-      "Cotações atuais via Finnhub para uma lista de tickers. Um ticker indisponível vem com disponivel:false e um motivo — 'sem_cobertura' significa que a Finnhub não cobre aquele ativo no plano gratuito (ex: ETFs .DE) e nunca vai cobrir; 'erro_api' ou 'erro_rede' significam falha temporária da consulta. São diferentes: com 'sem_cobertura' diz que não tens esse ativo; com erro, diz que não consegues consultar agora e não tires conclusões sobre o preço.",
+      "Cotações atuais via Finnhub para uma lista de tickers. Um ticker indisponível vem com disponivel:false e um motivo — 'sem_cobertura' significa que a Finnhub não cobre aquele ativo no plano gratuito (ex: ETFs .DE) e nunca vai cobrir; 'limite_pedidos' significa que o limite de pedidos à Finnhub foi atingido — diz ao utilizador para tentar daqui a pouco; 'erro_api' ou 'erro_rede' significam falha temporária da consulta. São diferentes: com 'sem_cobertura' diz que não tens esse ativo; com 'limite_pedidos' ou erro, diz que não consegues consultar agora e não tires conclusões sobre o preço.",
     input_schema: {
       type: "object",
       properties: {
@@ -444,18 +414,26 @@ async function getPortfolio(sb: SB, uid: string) {
 
 const MAX_TICKERS_PER_CALL = 20;
 
-async function getMarketData(tickers: string[]) {
+async function getMarketData(userId: string, tickers: string[]) {
   if (!FINNHUB_KEY) return { erro: "Finnhub key não configurada" };
   const list = (Array.isArray(tickers) ? tickers : []).slice(0, MAX_TICKERS_PER_CALL);
+  const failures: FinnhubFailure[] = [];
 
   const cotacoes = await Promise.all(list.map(async (original) => {
     const symbol = stripSuffix(String(original).toUpperCase());
     try {
-      const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_KEY}`);
+      const res = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_KEY}`,
+        { signal: AbortSignal.timeout(FINNHUB_TIMEOUT_MS) },
+      );
       // "Não tenho este ativo" e "não consigo consultar agora" são estados
       // diferentes e davam os dois { disponivel: false }. Colapsados, o modelo
       // aconselhava "sem cobertura" a quem estava só a apanhar um 429.
-      if (!res.ok) return { ticker: original, disponivel: false, motivo: "erro_api", status: res.status };
+      if (!res.ok) {
+        failures.push(failureFromStatus("quote", res.status, symbol));
+        const motivo = res.status === 429 ? "limite_pedidos" : "erro_api";
+        return { ticker: original, disponivel: false, motivo, status: res.status };
+      }
       const q = await res.json();
       if (q.c == null || q.c === 0) return { ticker: original, disponivel: false, motivo: "sem_cobertura" };
       return {
@@ -468,17 +446,19 @@ async function getMarketData(tickers: string[]) {
         minimoDia: q.l,
         fechoAnterior: q.pc,
       };
-    } catch {
+    } catch (err) {
+      failures.push(failureFromError("quote", err, symbol));
       return { ticker: original, disponivel: false, motivo: "erro_rede" };
     }
   }));
 
+  if (failures.length) await reportFinnhubFailures(ENDPOINT_NAME, userId, failures);
   return { cotacoes };
 }
 
 const MAX_NEWS = 10;
 
-async function getNews(ticker: string, limit?: number) {
+async function getNews(userId: string, ticker: string, limit?: number) {
   if (!FINNHUB_KEY) return { erro: "Finnhub key não configurada" };
   const cleanTicker  = stripSuffix((ticker ?? "").toUpperCase());
   const cappedLimit  = Math.min(Math.max(1, limit || 5), MAX_NEWS);
@@ -486,8 +466,22 @@ async function getNews(ticker: string, limit?: number) {
   const to   = new Date().toISOString().split("T")[0];
   const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-  const res = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(cleanTicker)}&from=${from}&to=${to}&token=${FINNHUB_KEY}`);
-  if (!res.ok) return { erro: `Erro Finnhub: ${res.status}` };
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(cleanTicker)}&from=${from}&to=${to}&token=${FINNHUB_KEY}`,
+      { signal: AbortSignal.timeout(FINNHUB_TIMEOUT_MS) },
+    );
+  } catch (err) {
+    await reportFinnhubFailures(ENDPOINT_NAME, userId, [failureFromError("company-news", err, cleanTicker)]);
+    return { erro: "Falha temporária ao consultar notícias. Tenta daqui a pouco." };
+  }
+  if (!res.ok) {
+    await reportFinnhubFailures(ENDPOINT_NAME, userId, [failureFromStatus("company-news", res.status, cleanTicker)]);
+    return res.status === 429
+      ? { erro: "Limite de pedidos à Finnhub atingido. Tenta daqui a pouco." }
+      : { erro: `Erro Finnhub: ${res.status}` };
+  }
 
   const data = await res.json();
   const noticias = Array.isArray(data) ? data.slice(0, cappedLimit) : [];
@@ -809,7 +803,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ result, invalidateKeys: ["portfolio", "dashboard"] });
     } catch (err) {
       console.error("investment-chat confirmAction error:", err);
-      await reportToSentry(err, user.id, { phase: "confirmAction", kind });
+      await reportError(err, user.id, { phase: "confirmAction", kind });
       return jsonResponse({ error: "Erro ao aplicar a ação" }, 500);
     }
   }
@@ -853,7 +847,7 @@ Deno.serve(async (req) => {
     response = await anthropic.messages.create({ ...baseParams, messages } as never);
   } catch (err) {
     console.error("investment-chat anthropic error:", err);
-    await reportToSentry(err, user.id, { phase: "initial_call" });
+    await reportError(err, user.id, { phase: "initial_call" });
     return jsonResponse({ error: "Erro ao contactar o assistente" }, 502);
   }
   accumulateUsage(usage, response.usage);
@@ -876,10 +870,10 @@ Deno.serve(async (req) => {
             result = await getPortfolio(sb, user.id);
             break;
           case "get_market_data":
-            result = await getMarketData((inp.tickers as string[]) ?? []);
+            result = await getMarketData(user.id, (inp.tickers as string[]) ?? []);
             break;
           case "get_news":
-            result = await getNews(inp.ticker as string, inp.limit as number | undefined);
+            result = await getNews(user.id, inp.ticker as string, inp.limit as number | undefined);
             break;
           case "calculate_metrics":
             result = await calculateMetrics(sb, user.id, inp.metric as "concentration" | "performance" | "diversification");
@@ -931,7 +925,7 @@ Deno.serve(async (req) => {
       response = await anthropic.messages.create({ ...baseParams, messages } as never);
     } catch (err) {
       console.error("investment-chat anthropic error (loop):", err);
-      await reportToSentry(err, user.id, { phase: "loop", iteration: iterations });
+      await reportError(err, user.id, { phase: "loop", iteration: iterations });
       return jsonResponse({ error: "Erro ao contactar o assistente" }, 502);
     }
     accumulateUsage(usage, response.usage);
@@ -966,7 +960,7 @@ Deno.serve(async (req) => {
     const err = w.status === "rejected" ? w.reason : w.value.error;
     if (err) {
       console.error(`${writeNames[i]} insert error:`, err);
-      await reportToSentry(err, user.id, { phase: "usage_log", table: writeNames[i] });
+      await reportError(err, user.id, { phase: "usage_log", table: writeNames[i] });
     }
   }
 

@@ -18,6 +18,7 @@ Saber de erros em produção e mostrar um ecrã amigável em vez de um crash.
 ## Notas técnicas
 - Ficheiros: `lib/sentry.ts`, `lib/appInfo.ts`
 - Receção confirmada desde o build 13
+- Edge functions: helper partilhado `supabase/functions/_shared/sentry.ts` (Store API, sem SDK; lê `SENTRY_DSN`, sem DSN só faz `console.error`). Reporta as falhas da Finnhub do `investment-chat` e do `stock-fundamentals`. Eventos no mesmo projeto da app (mesmo DSN), separáveis por `runtime:edge` e `edge_function:<nome>` — nunca usar a tag `function`, que o Sentry descarta. Ver [[04-Bugs/stock-fundamentals-cacheia-null]]
 - `ErrorBoundary` ainda por testar a sério: precisa de um `throw` durante o render (não num `onPress`), num build `preview`
 
 ## Ligações

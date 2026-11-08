@@ -10,7 +10,8 @@ Vault do Obsidian dentro do repositório. O Claude Code lê e edita estas notas.
 - [[05-Releases]] — notas de cada versão
 
 ## Em curso
-- Migrar as chamadas Finnhub do cliente para um proxy — [[03-Decisoes/finnhub-proxy-pendente]]
+- Falhas da Finnhub ao Sentry e 429 próprio no assistente (só edge functions, sem build) — deploy por fazer; ver [[04-Bugs/stock-fundamentals-cacheia-null]]
+- 1.7.0: proxy da Finnhub, chave fora do APK — [[02-Features/finnhub-proxy]] (planeada)
 - Backlog 1.7.0: percentagens com a língua da app, marcar crédito como liquidado, sessão do `xlsx`, source maps no Sentry
 
 ## Releases
@@ -21,6 +22,9 @@ Vault do Obsidian dentro do repositório. O Claude Code lê e edita estas notas.
 - [[05-Releases/v1.2.0]] — 2 ago 2026
 - [[05-Releases/v1.1.0]] — 22 jul 2026
 - [[05-Releases/v1.0.0]] — Founders Preview, 15 jul 2026
+
+## Features planeadas
+- [[02-Features/finnhub-proxy]] — 1.7.0
 
 ## Features (feitas)
 - [[02-Features/autenticacao-onboarding]]
