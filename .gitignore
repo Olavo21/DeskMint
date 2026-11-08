@@ -69,3 +69,8 @@ backups/
 
 # gerado pelo deno check local; as edge functions nao o usam no deploy
 /deno.lock
+
+# Obsidian (estado local do vault)
+notes/.obsidian/workspace*.json
+notes/.obsidian/cache
+notes/.trash/
