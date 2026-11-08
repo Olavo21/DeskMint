@@ -1,23 +1,36 @@
 ---
 tipo: bug
-estado: aberto
+estado: resolvido
 sentry: 
 criado: 2026-11-08
 ---
-# EV/EBITDA e Receita/Emp. nunca vêm preenchidos no "Auto"
+# PEG, EV/EBITDA e Receita/Emp. nunca vinham preenchidos no "Auto"
 
-**Como reproduzir:** Análise de NVDA.US → "Auto". Os outros campos são preenchidos, mas EV/EBITDA e Receita/Emp. ficam vazios.
-**Esperado vs. atual:** esperado EV/EBITDA ≈ 22,4 e Receita/Emp. ≈ 7,2M; atual `null` nos dois.
-**Causa:** `supabase/functions/stock-fundamentals/index.ts` pede chaves que não existem na resposta de `/stock/metric`:
-- `m["enterpriseValue/ebitdaAnnual"]` — a chave real é `evEbitdaTTM` (NVDA: 22.4164)
-- `m.revenuePerEmployeeTTM ?? m.revenuePerEmployeeAnnual` — as chaves reais são `revenueEmployeeTTM` / `revenueEmployeeAnnual` (NVDA: 7.2135 / 5.1414)
+**Como reproduzir:** Análise de NVDA.US → "Auto". Os outros campos eram preenchidos; PEG, EV/EBITDA e Receita/Emp. ficavam vazios.
+**Esperado vs. atual:** esperado PEG ≈ 0,46, EV/EBITDA ≈ 22,4 e Receita/Emp. ≈ 7,2M; vinha `null` nos três.
+**Causa:** `supabase/functions/stock-fundamentals/index.ts` pedia chaves que não existem na resposta de `/stock/metric`. Estavam assim desde a criação da função, sem relação com o deploy de 8 nov.
 
-Confirmado a 8 nov 2026 com uma chamada direta à Finnhub. O bug não foi introduzido pelo deploy desse dia: as chaves estão assim desde a criação da função.
+| Campo | Chave pedida (não existe) | Chave real |
+|---|---|---|
+| PEG | `pegAnnual` | `pegTTM` |
+| EV/EBITDA | `enterpriseValue/ebitdaAnnual` | `evEbitdaTTM` |
+| Receita/Emp. | `revenuePerEmployeeTTM` / `revenuePerEmployeeAnnual` | `revenueEmployeeTTM` / `revenueEmployeeAnnual` |
 
-**Correção proposta (por fazer, precisa de deploy):**
-- `evEbitda: m.evEbitdaTTM ?? null`
-- `revenuePerEmployee`: a Finnhub devolve **milhões de USD**, mas a app espera unidades (o semáforo usa 1 000 000 / 200 000, e o placeholder é `6000000`). Fica `(m.revenueEmployeeTTM ?? m.revenueEmployeeAnnual) * 1_000_000`, se não for null
-- A métrica está rotulada em € mas o valor vem em USD (é o único campo absoluto; os outros são rácios). Decidir se o rótulo passa a "$" ou se fica a aproximação
-- Depois do deploy, as entradas de `dm_fundamentals_cache` (TTL de 5 min) expiram sozinhas, por isso não é preciso limpar nada
+O PEG só foi apanhado ao testar a correção: vinha `null` na NVDA e na AAPL.
 
-Ligações: [[02-Features/analise-fundamentalista]], [[04-Bugs/stock-fundamentals-cacheia-null]]
+**Correção (8 nov 2026, `stock-fundamentals` v11):**
+- O mapeamento passou para `supabase/functions/stock-fundamentals/mapping.ts` (`mapFundamentals`), para poder ser testado contra respostas reais da Finnhub sem servir a função
+- `num()` só aceita números finitos e devolve `null` em todos os outros casos, nunca 0
+- Receita/Emp.: a Finnhub dá-a em **milhões de USD**, por isso multiplica-se por 1 000 000 (a app espera unidades). O rótulo € fica até à 1.7.0 — ver [[03-Decisoes/moeda-receita-empregado-aproximada]]
+- **Cache:** a resposta leva um campo `v` (`RESPONSE_VERSION = 2`). O leitor da `dm_fundamentals_cache` só serve entradas com o `v` atual; as antigas (sem `v`) são tratadas como inexistentes e reescritas pelo upsert. Escolhido em vez de apagar linhas da tabela: não toca em dados de outras contas, e a regra fica para a próxima mudança da resposta (subir o `v`)
+
+**Teste antes do deploy (chamada direta à Finnhub, passada pelo `mapFundamentals`):**
+
+| | PEG | EV/EBITDA | Receita/Emp. |
+|---|---|---|---|
+| NVDA.US | 0,459 | 22,42 | 7 213 500 |
+| AAPL.US | 3,062 | 29,27 | 2 884 500 |
+
+**Por ver:** "Auto" na NVDA no telemóvel depois do deploy.
+
+Ligações: [[02-Features/analise-fundamentalista]], [[04-Bugs/stock-fundamentals-cacheia-null]], [[03-Decisoes/cache-nao-guarda-falhas]]

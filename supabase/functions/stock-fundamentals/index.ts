@@ -5,6 +5,7 @@ import {
   failureFromStatus,
   reportFinnhubFailures,
 } from "../_shared/sentry.ts";
+import { mapFundamentals, RESPONSE_VERSION } from "./mapping.ts";
 
 const FINNHUB_KEY = Deno.env.get("FINNHUB_KEY") ?? "";
 
@@ -74,7 +75,14 @@ Deno.serve(async (req) => {
       .eq("ticker", ticker)
       .maybeSingle();
 
-    if (cached && Date.now() - new Date(cached.created_at).getTime() < CACHE_TTL_MS) {
+    // Uma entrada gravada por uma versão anterior da função (sem `v` ou com
+    // outro valor) é tratada como inexistente e reescrita pelo upsert abaixo.
+    const cachedVersion = (cached?.response as { v?: number } | null)?.v;
+    if (
+      cached &&
+      cachedVersion === RESPONSE_VERSION &&
+      Date.now() - new Date(cached.created_at).getTime() < CACHE_TTL_MS
+    ) {
       return jsonResponse(cached.response);
     }
 
@@ -137,28 +145,7 @@ Deno.serve(async (req) => {
       quoteRes.json(),
     ]);
 
-    const m = metricData.metric ?? {};
-    const p = profileData ?? {};
-    const q = quoteData ?? {};
-
-    // Build response mapping Finnhub fields → our metric keys
-    const result = {
-      ticker,
-      name:         p.name   ?? null,
-      currency:     p.currency ?? "USD",
-      currentPrice: q.c ?? null,
-
-      // Fundamentals
-      pe:               m.peTTM          ?? m.peAnnual        ?? null,
-      peg:              m.pegAnnual       ?? null,
-      roe:              m.roeTTM          ?? m.roeAnnual       ?? null,
-      roic:             m.roicAnnual      ?? m.roiAnnual       ?? null,
-      evEbitda:         m["enterpriseValue/ebitdaAnnual"] ?? null,
-      opMargin:         m.operatingMarginTTM ?? m.operatingMarginAnnual ?? null,
-      beta:             m.beta            ?? p.beta            ?? null,
-      debtEquity:       m["totalDebt/totalEquityAnnual"] ?? m["totalDebt/totalEquityQuarterly"] ?? null,
-      revenuePerEmployee: m.revenuePerEmployeeTTM ?? m.revenuePerEmployeeAnnual ?? null,
-    };
+    const result = mapFundamentals(ticker, metricData, profileData, quoteData);
 
     // Ambos só acontecem com as três respostas ok: a cache nunca guarda o
     // resultado de uma chamada falhada, e uma chamada falhada não gasta o

@@ -35,6 +35,7 @@ Já no servidor (não mudam de sítio): `stock-fundamentals` (`stock/metric`, `s
 - Resposta ao cliente com um estado explícito (`ok` / `sem_cobertura` / `limite_pedidos` / `erro`), igual ao do `investment-chat`
 - Sufixos: manter as regras atuais (`.US` sai, cripto passa a `BINANCE:XXXUSDT`) dentro da função — ver [[04-Bugs/sufixo-us-finnhub]]
 - CORS: a app nativa não precisa; se a build Web voltar, permitir só `https://deskmint.app`
+- **Fora do proxy, mas no mesmo build:** a Receita/Emp. do `FundamentalsModal` passa de € para "$" (`unit` e os textos `good`/`bad`/`example` de `revenuePerEmployee` em `lib/fundamentalsMetrics.ts`). O valor vem da Finnhub em USD. Ver [[03-Decisoes/moeda-receita-empregado-aproximada]]
 
 ## Rollout
 1. Implementar a função e migrar os quatro pontos da app; testar com o utilizador de teste
@@ -54,6 +55,7 @@ Decisão e porquê da ordem: [[03-Decisoes/finnhub-proxy-pendente]]. Problema qu
 - [ ] 429 simulado mostra "tenta daqui a pouco" no ticker bar, nas notícias e no `FundamentalsModal`, e chega ao Sentry com `edge_function`, `runtime:edge`, `finnhub_endpoint` e `finnhub_failure:rate_limit`
 - [ ] "Sem cobertura" (ex.: `VWCE.DE`) não gera evento no Sentry
 - [ ] Cache verificada: duas aberturas seguidas do ticker bar = uma ida à Finnhub
+- [ ] Receita/Emp. com "$" no `FundamentalsModal`
 - [ ] Chave regenerada depois da adoção, e `stock-fundamentals` / `investment-chat` a funcionar com a nova
 
 ## Ligações
